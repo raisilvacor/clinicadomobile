@@ -53,3 +53,12 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+    // Atualiza a página automaticamente a cada 1 minuto (60000 milissegundos)
+    setInterval(function() {
+        location.reload();
+    }, 60000);
+</script>
+{% endblock %}
+
