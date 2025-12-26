@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clínica do Molile - Android e iPhone</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header e Navegação */
+        header {
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            padding: 1.5rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(255, 140, 0, 0.2);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            height: 60px;
+        }
+
+        .logo img {
+            height: 60px;
+            width: auto;
+            max-width: 300px;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #ff8c00;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .hero-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            z-index: 1;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #ff8c00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            color: #cccccc;
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 3rem;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: #000000;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 1s ease 0.4s both;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4);
+        }
+
+        /* Serviços */
+        .services {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #ff8c00;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .service-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            padding: 2.5rem;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff8c00, #ff6b00);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+            border-color: #ff8c00;
+            box-shadow: 0 15px 40px rgba(255, 140, 0, 0.3);
+        }
+
+        .service-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            color: #ff8c00;
+        }
+
+        .service-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .service-card p {
+            color: #cccccc;
+            line-height: 1.8;
+        }
+
+        /* Sobre */
+        .about {
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .about-text h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: #ff8c00;
+        }
+
+        .about-text p {
+            color: #cccccc;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .features-list {
+            list-style: none;
+            margin-top: 2rem;
+        }
+
+        .features-list li {
+            padding: 0.8rem 0;
+            color: #cccccc;
+            font-size: 1.1rem;
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .features-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #ff8c00;
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+
+        .about-image {
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 15px 40px rgba(255, 140, 0, 0.3);
+            border: 3px solid #ff8c00;
+            background: #000000;
+        }
+
+        .about-video {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 12px;
+        }
+
+        /* Módulos de Dispositivos */
+        .devices {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .device-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .device-card:hover {
+            transform: translateY(-10px);
+            border-color: #ff8c00;
+            box-shadow: 0 20px 50px rgba(255, 140, 0, 0.4);
+        }
+
+        .device-image-container {
+            width: 100%;
+            height: 300px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .device-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .device-card:hover .device-image {
+            transform: scale(1.1);
+        }
+
+        .device-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            color: #ff8c00;
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.1) 0%, rgba(255, 107, 0, 0.1) 100%);
+        }
+
+        .device-content {
+            padding: 2rem;
+        }
+
+        .device-content h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #ff8c00;
+            text-align: center;
+        }
+
+        .device-content p {
+            color: #cccccc;
+            line-height: 1.8;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        /* Laboratório */
+        .laboratory {
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .laboratory-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .lab-image-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .lab-image-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: #ff8c00;
+            box-shadow: 0 15px 40px rgba(255, 140, 0, 0.3);
+        }
+
+        .lab-image-container {
+            width: 100%;
+            height: 250px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lab-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .lab-image-card:hover .lab-image {
+            transform: scale(1.15);
+        }
+
+        .lab-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #ff8c00;
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.1) 0%, rgba(255, 107, 0, 0.1) 100%);
+        }
+
+        /* Contato */
+        .contact {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .contact-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .contact-card:hover {
+            border-color: #ff8c00;
+            transform: translateY(-5px);
+        }
+
+        .contact-icon {
+            font-size: 2.5rem;
+            color: #ff8c00;
+            margin-bottom: 1rem;
+        }
+
+        .contact-card h3 {
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-card p {
+            color: #cccccc;
+        }
+
+        /* Footer */
+        footer {
+            background: linear-gradient(135deg, #0d0d0d 0%, #000000 100%);
+            padding: 3rem 2rem;
+            text-align: center;
+            border-top: 2px solid #ff8c00;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #cccccc;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: #ff8c00;
+        }
+
+        .copyright {
+            color: #666666;
+            margin-top: 2rem;
+        }
+
+        /* Animações */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .nav-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .about-content {
+                grid-template-columns: 1fr;
+            }
+
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .devices-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .laboratory-gallery {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Botão WhatsApp */
+        .whatsapp-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: #ffffff;
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
+            font-weight: bold;
+            box-shadow: 0 5px 20px rgba(37, 211, 102, 0.4);
+            z-index: 100;
+            animation: pulse 2s infinite;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .whatsapp-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.6);
+        }
+
+        .whatsapp-button::before {
+            content: '📱';
+            font-size: 1.2rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo TechCell Assistência">
+            </div>
+            <ul class="nav-links">
+                <li><a href="#inicio">Início</a></li>
+                <li><a href="#servicos">Serviços</a></li>
+                <li><a href="#sobre">Sobre</a></li>
+                <li><a href="#dispositivos">Dispositivos</a></li>
+                <li><a href="#laboratorio">Laboratório</a></li>
+                <li><a href="#contato">Contato</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="inicio" class="hero">
+        <img src="{{ content.hero.background_image if content and content.hero and content.hero.background_image else '/static/images/head.jpg' }}" alt="Assistência Técnica" class="hero-image">
+        <div class="hero-overlay">
+            <div class="hero-content">
+                <h1>{{ content.hero.title if content and content.hero and content.hero.title else 'Assistência Técnica Profissional' }}</h1>
+                <p>{{ content.hero.subtitle if content and content.hero and content.hero.subtitle else 'Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.' }}</p>
+                <a href="#contato" class="cta-button">{{ content.hero.button_text if content and content.hero and content.hero.button_text else 'Fale Conosco' }}</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Serviços -->
+    <section id="servicos" class="services">
+        <h2 class="section-title">Nossos Serviços</h2>
+        <div class="services-grid">
+            {% if content and content.services %}
+                {% for service in content.services %}
+                <div class="service-card">
+                    <div class="service-icon">{{ service.icon }}</div>
+                    <h3>{{ service.title }}</h3>
+                    <p>{{ service.description }}</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="service-card">
+                    <div class="service-icon">📱</div>
+                    <h3>Troca de Tela</h3>
+                    <p>Troca profissional de telas quebradas ou trincadas para Android e iPhone. Utilizamos peças originais e garantimos a qualidade do serviço.</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Sobre -->
+    <section id="sobre" class="about">
+        <h2 class="section-title">{{ content.about.title if content and content.about and content.about.title else 'Por Que Escolher Nosso Serviço?' }}</h2>
+        <div class="about-content">
+            <div class="about-text">
+                <h2>{{ content.about.heading if content and content.about and content.about.heading else 'Excelência em Cada Reparo' }}</h2>
+                <p>{{ content.about.description1 if content and content.about and content.about.description1 else 'Somos uma assistência técnica especializada com anos de experiência no mercado, focada em oferecer o melhor serviço para seu dispositivo Android ou iPhone.' }}</p>
+                <p>{{ content.about.description2 if content and content.about and content.about.description2 else 'Nossa equipe é composta por técnicos certificados que utilizam equipamentos de última geração e peças de qualidade para garantir a satisfação dos nossos clientes.' }}</p>
+                <ul class="features-list">
+                    {% if content and content.about and content.about.features %}
+                        {% for feature in content.about.features %}
+                        <li>{{ feature }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li>Atendimento rápido e eficiente</li>
+                        <li>Garantia em todos os serviços</li>
+                        <li>Orçamento gratuito e transparente</li>
+                        <li>Peças originais e de qualidade</li>
+                        <li>Técnicos especializados e certificados</li>
+                        <li>Atendimento personalizado</li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div class="about-image">
+                <video class="about-video" autoplay loop playsinline>
+                    <source src="{{ content.about.video if content and content.about and content.about.video else '/static/videos/iphone.mp4' }}" type="video/mp4">
+                    Seu navegador não suporta vídeos HTML5.
+                </video>
+            </div>
+        </div>
+    </section>
+
+    <!-- Módulos de Dispositivos -->
+    <section id="dispositivos" class="devices">
+        <h2 class="section-title">Especialidades</h2>
+        <div class="devices-grid">
+            {% if content and content.devices %}
+                {% for device in content.devices %}
+                <div class="device-card">
+                    <div class="device-image-container">
+                        <img src="{{ device.image }}" alt="{{ device.name }}" class="device-image" onerror="this.parentElement.innerHTML='<div class=\'device-image-placeholder\'>📱</div>'">
+                    </div>
+                    <div class="device-content">
+                        <h3>{{ device.name }}</h3>
+                        <p>{{ device.description }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Conteúdo padrão -->
+                <div class="device-card">
+                    <div class="device-image-container">
+                        <img src="/static/images/android.jpg" alt="Android" class="device-image" onerror="this.parentElement.innerHTML='<div class=\'device-image-placeholder\'>🤖</div>'">
+                    </div>
+                    <div class="device-content">
+                        <h3>Android</h3>
+                        <p>Reparos especializados para aparelhos Android de todas as marcas.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Laboratório -->
+    <section id="laboratorio" class="laboratory">
+        <h2 class="section-title">{{ content.laboratory.title if content and content.laboratory and content.laboratory.title else 'Nosso Laboratório' }}</h2>
+        <div class="laboratory-gallery">
+            {% if content and content.laboratory and content.laboratory.images %}
+                {% for image_url in content.laboratory.images %}
+                <div class="lab-image-card">
+                    <div class="lab-image-container">
+                        <img src="{{ image_url }}" alt="Laboratório {{ loop.index }}" class="lab-image">
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="lab-image-card">
+                    <div class="lab-image-container">
+                        <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=600&fit=crop" alt="Laboratório" class="lab-image">
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Contato -->
+    <section id="contato" class="contact">
+        <h2 class="section-title">Entre em Contato</h2>
+        <div class="contact-grid">
+            <div class="contact-card">
+                <div class="contact-icon">📞</div>
+                <h3>Telefone</h3>
+                <p>{{ content.contact.phone if content and content.contact and content.contact.phone else (content.contact.phone1 if content and content.contact and content.contact.phone1 else '(11) 9999-9999') }}</p>
+            </div>
+            <div class="contact-card">
+                <div class="contact-icon">✉️</div>
+                <h3>E-mail</h3>
+                <p>{{ content.contact.email if content and content.contact and content.contact.email else (content.contact.email1 if content and content.contact and content.contact.email1 else 'contato@techcell.com.br') }}</p>
+            </div>
+            <div class="contact-card">
+                <div class="contact-icon">📍</div>
+                <h3>Endereço</h3>
+                <p>{{ content.contact.address if content and content.contact and content.contact.address else 'Rua Exemplo, 123' }}</p>
+                <p>{{ content.contact.city if content and content.contact and content.contact.city else 'São Paulo - SP' }}</p>
+            </div>
+            <div class="contact-card">
+                <div class="contact-icon">🕒</div>
+                <h3>Horário</h3>
+                <p>{{ content.contact.hours_weekdays if content and content.contact and content.contact.hours_weekdays else 'Segunda a Sexta: 9h - 18h' }}</p>
+                <p>{{ content.contact.hours_saturday if content and content.contact and content.contact.hours_saturday else 'Sábado: 9h - 13h' }}</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="#inicio">Início</a>
+                <a href="#servicos">Serviços</a>
+                <a href="#sobre">Sobre</a>
+                <a href="#dispositivos">Dispositivos</a>
+                <a href="#laboratorio">Laboratório</a>
+                <a href="#contato">Contato</a>
+            </div>
+            <div class="copyright">
+                <p></p>CNPJ: 62.891.287/0001-44</p><p>&copy; 2025 Clínica do Mobile. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Botão WhatsApp -->
+    {% if content and content.contact and content.contact.whatsapp %}
+    <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-button" rel="noopener noreferrer">
+        WhatsApp
+    </a>
+    {% endif %}
+
+    <script>
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Animação ao scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.8s ease forwards';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.service-card, .contact-card, .device-card, .lab-image-card').forEach(card => {
+            observer.observe(card);
+        });
+
+        // Configurar vídeo para autoplay com áudio
+        const video = document.querySelector('.about-video');
+        if (video) {
+            video.muted = false;
+            video.play().catch(error => {
+                // Se autoplay com áudio for bloqueado, tenta tocar quando o usuário interagir com a página
+                document.addEventListener('click', function playVideoOnce() {
+                    video.play();
+                    document.removeEventListener('click', playVideoOnce);
+                }, { once: true });
+            });
+        }
+    </script>
+</body>
+</html>
+

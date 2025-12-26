@@ -1,0 +1,31 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Gerenciar Laboratório{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>🔬 Gerenciar Laboratório</h2>
+    <p>Edite o título e as imagens da galeria do laboratório.</p>
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="title">Título da Seção:</label>
+            <input type="text" id="title" name="title" value="{{ laboratory.title or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="images">URLs das Imagens (uma por linha):</label>
+            <textarea id="images" name="images" rows="10" required>{{ laboratory.images|join('\n') if laboratory.images else '' }}</textarea>
+            <small style="color: #888; display: block; margin-top: 0.5rem;">
+                Digite uma URL por linha. Exemplos:<br>
+                /static/images/lab1.jpg<br>
+                https://images.unsplash.com/photo-...
+            </small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
+

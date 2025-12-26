@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Editar Sobre{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>ℹ️ Editar Seção Sobre</h2>
+    <p>Edite as informações sobre a empresa, características e vídeo.</p>
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="title">Título da Seção:</label>
+            <input type="text" id="title" name="title" value="{{ about.title or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="heading">Cabeçalho Principal:</label>
+            <input type="text" id="heading" name="heading" value="{{ about.heading or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description1">Primeira Descrição:</label>
+            <textarea id="description1" name="description1" required>{{ about.description1 or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="description2">Segunda Descrição:</label>
+            <textarea id="description2" name="description2" required>{{ about.description2 or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="video">URL do Vídeo:</label>
+            <input type="text" id="video" name="video" value="{{ about.video or '' }}" placeholder="/static/videos/iphone.mp4">
+            <small style="color: #888; display: block; margin-top: 0.5rem;">Exemplo: /static/videos/iphone.mp4</small>
+        </div>
+
+        <div class="form-group">
+            <label for="features">Características (uma por linha):</label>
+            <textarea id="features" name="features" rows="10">{{ about.features|join('\n') if about.features else '' }}</textarea>
+            <small style="color: #888; display: block; margin-top: 0.5rem;">Digite uma característica por linha</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
+

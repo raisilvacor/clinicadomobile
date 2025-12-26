@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>📊 Dashboard</h2>
+    <p>Bem-vindo ao painel administrativo. Escolha uma seção abaixo para editar o conteúdo do site.</p>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <h3>🎯 Hero</h3>
+            <p>Edite o título, subtítulo e imagem de fundo da seção principal</p>
+            <a href="{{ url_for('admin_hero') }}" class="btn btn-primary">Editar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>⚙️ Serviços</h3>
+            <p>Gerencie os serviços oferecidos pela assistência técnica</p>
+            <a href="{{ url_for('admin_services') }}" class="btn btn-primary">Editar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>ℹ️ Sobre</h3>
+            <p>Edite informações sobre a empresa e características</p>
+            <a href="{{ url_for('admin_about') }}" class="btn btn-primary">Editar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>📱 Dispositivos</h3>
+            <p>Gerencie os módulos Android, iPhone e MAC</p>
+            <a href="{{ url_for('admin_devices') }}" class="btn btn-primary">Editar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>🔬 Laboratório</h3>
+            <p>Gerencie as imagens da galeria do laboratório</p>
+            <a href="{{ url_for('admin_laboratory') }}" class="btn btn-primary">Editar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>📞 Contato</h3>
+            <p>Edite informações de contato e horários</p>
+            <a href="{{ url_for('admin_contact') }}" class="btn btn-primary">Editar</a>
+        </div>
+    </div>
+
+    <div class="admin-card" style="margin-top: 2rem;">
+        <h2>🌐 Visualizar Site</h2>
+        <p>Clique no botão abaixo para ver como o site está ficando:</p>
+        <a href="{{ url_for('index') }}" target="_blank" class="btn btn-primary">Abrir Site</a>
+    </div>
+</div>
+{% endblock %}
+

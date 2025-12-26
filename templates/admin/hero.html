@@ -1,0 +1,37 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Editar Hero{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>🎯 Editar Seção Hero</h2>
+    <p>Aqui você pode editar o título, subtítulo, botão e imagem de fundo da seção principal do site.</p>
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="title">Título Principal:</label>
+            <input type="text" id="title" name="title" value="{{ hero.title or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="subtitle">Subtítulo/Descrição:</label>
+            <textarea id="subtitle" name="subtitle" required>{{ hero.subtitle or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="button_text">Texto do Botão:</label>
+            <input type="text" id="button_text" name="button_text" value="{{ hero.button_text or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="background_image">URL da Imagem de Fundo:</label>
+            <input type="text" id="background_image" name="background_image" value="{{ hero.background_image or '' }}" placeholder="/static/images/head.jpg">
+            <small style="color: #888; display: block; margin-top: 0.5rem;">Exemplo: /static/images/head.jpg</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
+

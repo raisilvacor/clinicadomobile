@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Editar Contato{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>📞 Editar Informações de Contato</h2>
+    <p>Atualize os dados de contato exibidos no site.</p>
+
+    <form method="POST">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📞 Contato</h3>
+        
+        <div class="form-group">
+            <label for="phone">Telefone:</label>
+            <input type="text" id="phone" name="phone" value="{{ contact.phone if contact.phone else (contact.phone1 or '') }}" placeholder="(11) 9999-9999" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">E-mail:</label>
+            <input type="email" id="email" name="email" value="{{ contact.email if contact.email else (contact.email1 or '') }}" placeholder="contato@techcell.com.br" required>
+        </div>
+
+        <div class="form-group">
+            <label for="whatsapp">WhatsApp (número completo com código do país, ex: 5511999999999):</label>
+            <input type="text" id="whatsapp" name="whatsapp" value="{{ contact.whatsapp or '' }}" placeholder="5511999999999" required>
+            <small style="color: #888; display: block; margin-top: 0.5rem;">Apenas números, sem espaços ou caracteres especiais. Exemplo: 5511999999999</small>
+        </div>
+
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">📍 Endereço</h3>
+
+        <div class="form-group">
+            <label for="address">Endereço:</label>
+            <input type="text" id="address" name="address" value="{{ contact.address or '' }}" placeholder="Rua Exemplo, 123">
+        </div>
+
+        <div class="form-group">
+            <label for="city">Cidade/Estado:</label>
+            <input type="text" id="city" name="city" value="{{ contact.city or '' }}" placeholder="São Paulo - SP">
+        </div>
+
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🕒 Horários</h3>
+
+        <div class="form-group">
+            <label for="hours_weekdays">Horário Dias Úteis:</label>
+            <input type="text" id="hours_weekdays" name="hours_weekdays" value="{{ contact.hours_weekdays or '' }}" placeholder="Segunda a Sexta: 9h - 18h">
+        </div>
+
+        <div class="form-group">
+            <label for="hours_saturday">Horário Sábado:</label>
+            <input type="text" id="hours_saturday" name="hours_saturday" value="{{ contact.hours_saturday or '' }}" placeholder="Sábado: 9h - 13h">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
+

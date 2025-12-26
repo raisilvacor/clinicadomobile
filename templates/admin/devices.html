@@ -1,0 +1,76 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Gerenciar Dispositivos{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>📱 Gerenciar Dispositivos</h2>
+    <p>Adicione, edite ou remova os módulos de dispositivos (Android, iPhone, MAC).</p>
+
+    <form method="POST" style="margin-bottom: 2rem;">
+        <input type="hidden" name="action" value="add">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">➕ Adicionar Novo Dispositivo</h3>
+        
+        <div class="form-group">
+            <label for="name">Nome do Dispositivo:</label>
+            <input type="text" id="name" name="name" placeholder="Android" required>
+        </div>
+
+        <div class="form-group">
+            <label for="image">URL da Imagem:</label>
+            <input type="text" id="image" name="image" placeholder="/static/images/android.jpg" required>
+            <small style="color: #888; display: block; margin-top: 0.5rem;">Exemplo: /static/images/android.jpg</small>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Descrição:</label>
+            <textarea id="description" name="description" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Adicionar Dispositivo</button>
+    </form>
+
+    <h3 style="color: #ff8c00; margin-bottom: 1rem;">📋 Dispositivos Existentes</h3>
+    
+    <div class="items-list">
+        {% for device in devices %}
+        <div class="item-card">
+            <h3>{{ device.name }}</h3>
+            <p><strong>Imagem:</strong> {{ device.image }}</p>
+            <p>{{ device.description }}</p>
+            
+            <form method="POST" style="margin-top: 1rem;">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="index" value="{{ loop.index0 }}">
+                
+                <div class="form-group">
+                    <label>Nome:</label>
+                    <input type="text" name="name" value="{{ device.name }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>URL da Imagem:</label>
+                    <input type="text" name="image" value="{{ device.image }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição:</label>
+                    <textarea name="description" required>{{ device.description }}</textarea>
+                </div>
+
+                <div class="item-actions">
+                    <button type="submit" class="btn btn-primary">Atualizar</button>
+                </div>
+            </form>
+            
+            <form method="POST" style="margin-top: 0.5rem;">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="index" value="{{ loop.index0 }}">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja excluir este dispositivo?')">Excluir</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,95 @@
+{
+  "admin_password": "admin123",
+  "site_content": {
+    "hero": {
+      "title": "Assistência Técnica Profissional",
+      "subtitle": "Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.",
+      "button_text": "Fale Conosco",
+      "background_image": "/static/images/head.jpg"
+    },
+    "services": [
+      {
+        "icon": "📱",
+        "title": "Troca de Tela",
+        "description": "Troca profissional de telas quebradas ou trincadas para Android e iPhone. Utilizamos peças originais e garantimos a qualidade do serviço."
+      },
+      {
+        "icon": "🔋",
+        "title": "Troca de Bateria",
+        "description": "Substituição de baterias com defeito ou desgastadas. Seu celular voltará a ter autonomia total com baterias de qualidade premium."
+      },
+      {
+        "icon": "💧",
+        "title": "Recuperação Após Água",
+        "description": "Limpeza e recuperação de aparelhos molhados ou com entrada de líquido. Atendimento de emergência para minimizar danos."
+      },
+      {
+        "icon": "⚙️",
+        "title": "Reparo de Placa",
+        "description": "Diagnóstico e reparo de problemas na placa-mãe, incluindo soldas, componentes e circuitos. Técnicos especializados em micro-soldagem."
+      },
+      {
+        "icon": "🔒",
+        "title": "Desbloqueio",
+        "description": "Desbloqueio de aparelhos Android e iPhone, remoção de contas Google, iCloud e senhas de segurança com segurança e garantia."
+      },
+      {
+        "icon": "🎨",
+        "title": "Customização",
+        "description": "Personalização completa do seu aparelho, incluindo troca de cores, capas e acessórios personalizados para deixar seu celular único."
+      }
+    ],
+    "about": {
+      "title": "Por Que Escolher Nosso Serviço?",
+      "heading": "Excelência em Cada Reparo",
+      "description1": "Somos uma assistência técnica especializada com anos de experiência no mercado, focada em oferecer o melhor serviço para seu dispositivo Android ou iPhone.",
+      "description2": "Nossa equipe é composta por técnicos certificados que utilizam equipamentos de última geração e peças de qualidade para garantir a satisfação dos nossos clientes.",
+      "features": [
+        "Atendimento rápido e eficiente",
+        "Garantia em todos os serviços",
+        "Orçamento gratuito e transparente",
+        "Peças originais e de qualidade",
+        "Técnicos especializados e certificados",
+        "Atendimento personalizado"
+      ],
+      "video": "/static/videos/iphone.mp4"
+    },
+    "devices": [
+      {
+        "name": "Android",
+        "image": "/static/images/andorid.png",
+        "description": "Reparos especializados para aparelhos Android de todas as marcas. Samsung, Xiaomi, Motorola, LG e muito mais. Diagnóstico preciso e reparo rápido."
+      },
+      {
+        "name": "iPhone",
+        "image": "/static/images/apple.png",
+        "description": "Serviços especializados para iPhone. Técnicos certificados Apple, peças originais e garantia em todos os reparos. Do iPhone 6 ao iPhone 15 Pro Max."
+      },
+      {
+        "name": "MAC",
+        "image": "/static/images/apple.png",
+        "description": "Assistência técnica completa para MacBook, iMac e Mac mini. Reparos de hardware, troca de peças e manutenção preventiva com técnicos especializados."
+      }
+    ],
+    "laboratory": {
+      "title": "Nosso Laboratório",
+      "images": [
+        "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1581091226033-d5c48150dbaa?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1521782462922-9318be1cfd04?w=800&h=600&fit=crop"
+      ]
+    },
+    "contact": {
+      "address": "Rua Exemplo, 123",
+      "city": "São Paulo - SP",
+      "hours_weekdays": "Segunda a Sexta: 9h - 18h",
+      "hours_saturday": "Sábado: 9h - 13h",
+      "phone": "(11) 9999-9999",
+      "email": "contato@techcell.com.br",
+      "whatsapp": "5586988959957"
+    }
+  }
+}
