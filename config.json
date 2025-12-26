@@ -11,12 +11,12 @@
       {
         "icon": "📱",
         "title": "Troca de Tela",
-        "description": "Troca profissional de telas quebradas ou trincadas para Android e iPhone. Utilizamos peças originais e garantimos a qualidade do serviço."
+        "description": "Troca profissional de telas quebradas ou trincadas para Android e iPhone. Utilizamos peças originais e garantimos a qualidade do serviço. A troca de tela do seu Iphone é feita com transpalnte de EEPROM apara evitar menssagem de peça desconhecida e manter \r\ninformações originais."
       },
       {
         "icon": "🔋",
         "title": "Troca de Bateria",
-        "description": "Substituição de baterias com defeito ou desgastadas. Seu celular voltará a ter autonomia total com baterias de qualidade premium."
+        "description": "Substituição de baterias com defeito ou desgastadas. Seu celular voltará a ter autonomia total com baterias de qualidade premium. A troca de bateria do seu Iphone é feita com transplante de flex original para evitar menssagem de peça desconhecida e bom reconhecimento da capacidade de 100%."
       },
       {
         "icon": "💧",
@@ -37,6 +37,21 @@
         "icon": "🎨",
         "title": "Customização",
         "description": "Personalização completa do seu aparelho, incluindo troca de cores, capas e acessórios personalizados para deixar seu celular único."
+      },
+      {
+        "icon": "🔬",
+        "title": "Reballing de C.I",
+        "description": "Realizamos o reballing de todos os circuitos integrados(C.I) do seu aparelho, processador, memoria, EEPROM e muito mais."
+      },
+      {
+        "icon": "🆔",
+        "title": "Reparo do Face ID",
+        "description": "Recuperamos o Face ID do seu Iphone com programadora profissional e avançada, qualidade e garantia."
+      },
+      {
+        "icon": "💡",
+        "title": "Restauração do True Tone",
+        "description": "O True Tone é uma tecnologia original da Apple que ajusta automaticamente as cores e o brilho da tela conforme a iluminação do ambiente, garantindo mais conforto visual e fidelidade de cores.\r\n\r\nQuando a tela do iPhone é substituída sem a transferência dos dados originais, a função True Tone pode ser perdida. Nosso serviço realiza a restauração do True Tone, copiando as informações da tela original para a nova, sempre que o aparelho permitir."
       }
     ],
     "about": {
@@ -74,12 +89,12 @@
     "laboratory": {
       "title": "Nosso Laboratório",
       "images": [
-        "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=600&fit=crop",
+        "https://i.ytimg.com/vi/R_pU3sbvjN0/maxresdefault.jpg?sqp=-oaymwEmCIAKENAF8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGFggYShlMA8=&rs=AOn4CLDkEXSVS40NnYDdwJL4RL8gSwXBCQ",
         "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1581091226033-d5c48150dbaa?w=800&h=600&fit=crop",
-        "https://images.unsplash.com/photo-1521782462922-9318be1cfd04?w=800&h=600&fit=crop"
+        "https://www.kmassistencia.com.br/img/arquivos/conserto_de_iphone_sbc.jpeg",
+        "https://fixtech.com.br/wp-content/uploads/2018/09/IMG_1019-1024x768.jpg",
+        "https://fixtech.com.br/wp-content/uploads/2019/03/assistencia.jpg",
+        "https://kingmanutencoes.com.br/wp-content/webp-express/webp-images/doc-root/wp-content/uploads/2023/08/O-que-precisa-para-trabalhar-com-manutencao-de-celular.jpeg.webp"
       ]
     },
     "contact": {

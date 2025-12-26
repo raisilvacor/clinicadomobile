@@ -199,16 +199,21 @@
         .service-icon {
             font-size: 3rem;
             margin-bottom: 1.5rem;
-            color: #ff8c00;
             display: flex;
             align-items: center;
             justify-content: center;
+            /* Emojis mantêm suas cores naturais automaticamente */
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
         }
         
-        /* Suporte para ícones Font Awesome */
+        /* Ícones Font Awesome com gradiente colorido */
         .service-icon i {
             font-size: 3rem;
-            color: #ff8c00;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 50%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 2px 4px rgba(255, 140, 0, 0.3));
         }
 
         .service-card h3 {
@@ -288,6 +293,25 @@
             height: auto;
             display: block;
             border-radius: 12px;
+            object-fit: cover;
+        }
+        
+        /* Loading state para o vídeo */
+        .about-video:not([src]) {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .about-video::before {
+            content: '▶';
+            position: absolute;
+            font-size: 3rem;
+            color: #ff8c00;
+            opacity: 0.5;
+            display: none;
         }
 
         /* Módulos de Dispositivos */
@@ -677,7 +701,7 @@
                 </ul>
             </div>
             <div class="about-image">
-                <video class="about-video" autoplay loop playsinline>
+                <video class="about-video" autoplay loop playsinline muted preload="auto" loading="eager">
                     <source src="{{ content.about.video if content and content.about and content.about.video else '/static/videos/iphone.mp4' }}" type="video/mp4">
                     Seu navegador não suporta vídeos HTML5.
                 </video>
@@ -762,7 +786,8 @@
                 <div class="contact-icon">🕒</div>
                 <h3>Horário</h3>
                 <p>{{ content.contact.hours_weekdays if content and content.contact and content.contact.hours_weekdays else 'Segunda a Sexta: 9h - 18h' }}</p>
-                <p>{{ content.contact.hours_saturday if content and content.contact and content.contact.hours_saturday else 'Sábado: 9h - 13h' }}</p>
+                <p>{{ content.contact.hours_saturday if content and content.contact and content.contact.hours_saturday else 'Sábado: 9h - 18h' }}</p>
+                <p>{{ content.contact.hours_sunday if content and content.contact and content.contact.hours_sunday else 'Domingo: somente agendado' }}</p>
             </div>
         </div>
     </section>
@@ -824,17 +849,46 @@
             observer.observe(card);
         });
 
-        // Configurar vídeo para autoplay com áudio
+        // Otimizar carregamento e reprodução do vídeo
         const video = document.querySelector('.about-video');
         if (video) {
-            video.muted = false;
-            video.play().catch(error => {
-                // Se autoplay com áudio for bloqueado, tenta tocar quando o usuário interagir com a página
-                document.addEventListener('click', function playVideoOnce() {
-                    video.play();
-                    document.removeEventListener('click', playVideoOnce);
-                }, { once: true });
-            });
+            // Carregar vídeo imediatamente
+            video.load();
+            
+            // Tentar reproduzir automaticamente (muted para melhor compatibilidade)
+            const playPromise = video.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    // Se autoplay for bloqueado, tenta quando o usuário interagir
+                    const playOnInteraction = () => {
+                        video.play().catch(() => {});
+                        document.removeEventListener('click', playOnInteraction);
+                        document.removeEventListener('scroll', playOnInteraction);
+                    };
+                    document.addEventListener('click', playOnInteraction, { once: true });
+                    document.addEventListener('scroll', playOnInteraction, { once: true });
+                });
+            }
+            
+            // Precarregar o vídeo quando a página estiver quase carregada
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    video.load();
+                });
+            }
+            
+            // Carregar vídeo quando estiver visível (Intersection Observer)
+            const videoObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        video.load();
+                        video.play().catch(() => {});
+                    }
+                });
+            }, { rootMargin: '50px' });
+            
+            videoObserver.observe(video);
         }
     </script>
 </body>

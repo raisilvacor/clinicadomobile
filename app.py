@@ -223,6 +223,7 @@ def admin_contact():
         contact['city'] = request.form.get('city', '')
         contact['hours_weekdays'] = request.form.get('hours_weekdays', '')
         contact['hours_saturday'] = request.form.get('hours_saturday', '')
+        contact['hours_sunday'] = request.form.get('hours_sunday', '')
         
         # Remover campos antigos se existirem
         contact.pop('phone1', None)

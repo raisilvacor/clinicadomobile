@@ -47,7 +47,12 @@
 
         <div class="form-group">
             <label for="hours_saturday">Horário Sábado:</label>
-            <input type="text" id="hours_saturday" name="hours_saturday" value="{{ contact.hours_saturday or '' }}" placeholder="Sábado: 9h - 13h">
+            <input type="text" id="hours_saturday" name="hours_saturday" value="{{ contact.hours_saturday or '' }}" placeholder="Sábado: 9h - 18h">
+        </div>
+
+        <div class="form-group">
+            <label for="hours_sunday">Horário Domingo:</label>
+            <input type="text" id="hours_sunday" name="hours_sunday" value="{{ contact.hours_sunday or '' }}" placeholder="Domingo: somente agendado">
         </div>
 
         <button type="submit" class="btn btn-primary">Salvar Alterações</button>
