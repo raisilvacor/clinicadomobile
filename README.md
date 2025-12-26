@@ -93,3 +93,47 @@ O painel administrativo permite gerenciar completamente o conteúdo do site:
 Tudo pode ser personalizado através do painel administrativo. Não é necessário editar código manualmente!
 
 Se preferir editar diretamente, o conteúdo está armazenado em `config.json`.
+
+## Ícones para Serviços
+
+Você pode usar dois tipos de ícones na seção "Nossos Serviços":
+
+### 1. Emojis (Mais Simples)
+Basta copiar e colar emojis diretamente no campo de ícone:
+- 📱 (celular)
+- 🔧 (ferramenta)
+- ⚙️ (engrenagem)
+- 💻 (computador)
+- 🔋 (bateria)
+- 📞 (telefone)
+- 🛠️ (chave inglesa)
+- ⚡ (raio)
+- 🔍 (lupa)
+- 📲 (celular com seta)
+
+**Onde encontrar mais emojis:**
+- Windows: `Win + .` (ponto) para abrir o seletor de emojis
+- Mac: `Cmd + Ctrl + Espaço`
+- Online: [emojipedia.org](https://emojipedia.org/)
+
+### 2. Font Awesome (Mais Profissional)
+Use códigos de ícones Font Awesome. Digite apenas o nome da classe:
+- `fa-mobile-alt` (celular)
+- `fa-tools` (ferramentas)
+- `fa-cog` (engrenagem)
+- `fa-laptop` (notebook)
+- `fa-battery-full` (bateria)
+- `fa-phone` (telefone)
+- `fa-wrench` (chave)
+- `fa-bolt` (raio)
+- `fa-search` (lupa)
+- `fa-screwdriver` (chave de fenda)
+
+**Onde encontrar ícones Font Awesome:**
+- Site oficial: [fontawesome.com/icons](https://fontawesome.com/icons)
+- Busque por palavras-chave (ex: "mobile", "repair", "phone")
+- Copie o nome da classe (ex: `fa-mobile-alt`) e cole no campo de ícone
+
+**Exemplos de uso:**
+- Emoji: `📱`
+- Font Awesome: `fa-mobile-alt`
