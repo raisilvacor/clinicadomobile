@@ -565,78 +565,294 @@
                 <h4 style="color: #ff8c00; margin-bottom: 1rem; font-size: 1.1rem;">🧪 Testes Realizados</h4>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
                     {% if checklist.type == 'inicial' %}
-                        {% if checklist.tests.test_before_screen %}
+                        {% if checklist.tests.test_before_power %}
                         <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="color: #28a745;">✅</span>
-                            <span style="color: #ffffff; font-size: 0.9rem;">Tela (Antes)</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Botão Power (Antes)</span>
                         </div>
                         {% endif %}
-                        {% if checklist.tests.test_before_touch %}
+                        {% if checklist.tests.test_before_volume %}
                         <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="color: #28a745;">✅</span>
-                            <span style="color: #ffffff; font-size: 0.9rem;">Touch (Antes)</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Botões de Volume (Antes)</span>
                         </div>
                         {% endif %}
-                        {% if checklist.tests.test_before_camera %}
+                        {% if checklist.tests.test_before_silent %}
                         <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="color: #28a745;">✅</span>
-                            <span style="color: #ffffff; font-size: 0.9rem;">Câmera (Antes)</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Botão Silenciar (Antes)</span>
                         </div>
                         {% endif %}
-                        {% if checklist.tests.test_before_battery %}
+                        {% if checklist.tests.test_before_home %}
                         <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="color: #28a745;">✅</span>
-                            <span style="color: #ffffff; font-size: 0.9rem;">Bateria (Antes)</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Botão Home (Antes)</span>
                         </div>
                         {% endif %}
-                        {% if checklist.tests.test_before_audio %}
+                        {% if checklist.tests.test_before_other_buttons %}
                         <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="color: #28a745;">✅</span>
-                            <span style="color: #ffffff; font-size: 0.9rem;">Áudio (Antes)</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Outros Botões (Antes)</span>
                         </div>
                         {% endif %}
-                        {% if checklist.tests.test_before_buttons %}
+                        {% if checklist.tests.test_before_display_touch %}
                         <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="color: #28a745;">✅</span>
-                            <span style="color: #ffffff; font-size: 0.9rem;">Botões (Antes)</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Display e Touch (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_signal %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Sinal da Operadora (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_proximity %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Sensor de Proximidade (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_speaker %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Auto-Falante (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_earpiece %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Auricular (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_microphone %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Microfone (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_touch_id %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Touch ID (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_vibration %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Vibra (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_front_camera %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Câmera Frontal (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_back_camera %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Câmera Traseira (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_flash %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Flash (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_face_id %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Face ID (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_wifi %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Wi-FI (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_bluetooth %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Bluetooth (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_charging %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Carregamento (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_headphone %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Fone de Ouvido (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_biometric %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Sensor Biométrico (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_nfc %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">NFC (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_wireless_charging %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Carga por Indução (Antes)</span>
                         </div>
                         {% endif %}
                     {% endif %}
                     
-                    {% if checklist.tests.test_after_screen %}
+                    {% if checklist.tests.test_after_power %}
                     <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                         <span style="color: #28a745;">✅</span>
-                        <span style="color: #ffffff; font-size: 0.9rem;">Tela (Depois)</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Botão Power (Depois)</span>
                     </div>
                     {% endif %}
-                    {% if checklist.tests.test_after_touch %}
+                    {% if checklist.tests.test_after_volume %}
                     <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                         <span style="color: #28a745;">✅</span>
-                        <span style="color: #ffffff; font-size: 0.9rem;">Touch (Depois)</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Botões de Volume (Depois)</span>
                     </div>
                     {% endif %}
-                    {% if checklist.tests.test_after_camera %}
+                    {% if checklist.tests.test_after_silent %}
                     <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                         <span style="color: #28a745;">✅</span>
-                        <span style="color: #ffffff; font-size: 0.9rem;">Câmera (Depois)</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Botão Silenciar (Depois)</span>
                     </div>
                     {% endif %}
-                    {% if checklist.tests.test_after_battery %}
+                    {% if checklist.tests.test_after_home %}
                     <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                         <span style="color: #28a745;">✅</span>
-                        <span style="color: #ffffff; font-size: 0.9rem;">Bateria (Depois)</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Botão Home (Depois)</span>
                     </div>
                     {% endif %}
-                    {% if checklist.tests.test_after_audio %}
+                    {% if checklist.tests.test_after_other_buttons %}
                     <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                         <span style="color: #28a745;">✅</span>
-                        <span style="color: #ffffff; font-size: 0.9rem;">Áudio (Depois)</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Outros Botões (Depois)</span>
                     </div>
                     {% endif %}
-                    {% if checklist.tests.test_after_buttons %}
+                    {% if checklist.tests.test_after_display_touch %}
                     <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                         <span style="color: #28a745;">✅</span>
-                        <span style="color: #ffffff; font-size: 0.9rem;">Botões (Depois)</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Display e Touch (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_signal %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Sinal da Operadora (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_proximity %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Sensor de Proximidade (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_speaker %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Auto-Falante (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_earpiece %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Auricular (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_microphone %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Microfone (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_touch_id %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Touch ID (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_vibration %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Vibra (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_front_camera %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Câmera Frontal (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_back_camera %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Câmera Traseira (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_flash %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Flash (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_face_id %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Face ID (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_wifi %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Wi-FI (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_bluetooth %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Bluetooth (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_charging %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Carregamento (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_headphone %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Fone de Ouvido (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_biometric %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Sensor Biométrico (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_nfc %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">NFC (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_wireless_charging %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Carga por Indução (Depois)</span>
                     </div>
                     {% endif %}
                 </div>
