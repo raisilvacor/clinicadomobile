@@ -15,17 +15,43 @@ dict_row = None
 try:
     import psycopg
     from psycopg.rows import dict_row
+    
+    # Tentar diferentes formas de importar ConnectionPool
+    ConnectionPool = None
+    import_error_msg = None
+    
+    # Tentativa 1: psycopg_pool (pacote separado)
     try:
-        from psycopg.pool import ConnectionPool
-    except ImportError:
-        # Tentar import alternativo para versões mais antigas
+        from psycopg_pool import ConnectionPool
+        print("✅ psycopg_pool.ConnectionPool importado com sucesso!")
+    except ImportError as e1:
+        import_error_msg = str(e1)
+        # Tentativa 2: psycopg.pool
         try:
-            import psycopg.pool as pool_module
-            ConnectionPool = pool_module.ConnectionPool
-        except (ImportError, AttributeError):
-            raise ImportError("psycopg.pool.ConnectionPool não encontrado")
+            from psycopg.pool import ConnectionPool
+            print("✅ psycopg.pool.ConnectionPool importado com sucesso!")
+        except ImportError as e2:
+            # Tentativa 3: psycopg import pool
+            try:
+                import psycopg.pool as pool_module
+                ConnectionPool = pool_module.ConnectionPool
+                print("✅ psycopg.pool.ConnectionPool importado via módulo!")
+            except (ImportError, AttributeError) as e3:
+                # Tentativa 4: verificar se está no psycopg diretamente
+                if hasattr(psycopg, 'pool'):
+                    ConnectionPool = getattr(psycopg.pool, 'ConnectionPool', None)
+                    if ConnectionPool:
+                        print("✅ ConnectionPool encontrado em psycopg.pool!")
+                    else:
+                        raise ImportError(f"ConnectionPool não encontrado. Erros: {e1}, {e2}, {e3}")
+                else:
+                    raise ImportError(f"ConnectionPool não encontrado. Erros: {e1}, {e2}, {e3}")
+    
+    if ConnectionPool is None:
+        raise ImportError("ConnectionPool não pôde ser importado")
+    
     PSYCOPG_VERSION = 3
-    print("✅ psycopg importado com sucesso!")
+    print("✅ psycopg e ConnectionPool importados com sucesso!")
 except ImportError as e:
     USE_DATABASE = False
     ConnectionPool = None
