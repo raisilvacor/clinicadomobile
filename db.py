@@ -101,10 +101,30 @@ def init_db():
         try:
             print(f"🔌 Conectando ao banco de dados PostgreSQL...")
             print(f"🔌 DATABASE_URL: {DATABASE_URL[:30]}...")  # Mostrar apenas início por segurança
-            pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=20)
+            # Configurar pool com timeout maior e parâmetros otimizados
+            # psycopg_pool ConnectionPool aceita: min_size, max_size, timeout, max_waiting, max_idle, reconnect_timeout
+            try:
+                pool = ConnectionPool(
+                    DATABASE_URL,
+                    min_size=1,
+                    max_size=10,  # Reduzir max_size para evitar esgotamento
+                    timeout=60,  # Aumentar timeout para 60 segundos
+                    max_waiting=10,  # Limitar número de requisições esperando
+                    max_idle=300,  # Fechar conexões idle após 5 minutos
+                    reconnect_timeout=10  # Timeout para reconexão
+                )
+            except TypeError:
+                # Se alguns parâmetros não forem suportados, usar apenas os básicos
+                print("⚠️  Usando configuração básica do pool (alguns parâmetros não suportados)")
+                pool = ConnectionPool(
+                    DATABASE_URL,
+                    min_size=1,
+                    max_size=10,
+                    timeout=60
+                )
             print("✅ Pool de conexões criado com sucesso!")
             # Testar conexão criando uma conexão direta primeiro
-            test_conn = pool.getconn()
+            test_conn = pool.getconn(timeout=10)  # Timeout de 10s para teste
             try:
                 test_cur = test_conn.cursor()
                 test_cur.execute("SELECT 1")
@@ -139,7 +159,31 @@ def get_db_connection():
     max_retries = 2
     for attempt in range(max_retries):
         try:
-            conn = pool.getconn()
+            # Obter conexão com timeout reduzido
+            try:
+                conn = pool.getconn(timeout=10)  # Timeout de 10s para obter conexão
+            except Exception as getconn_error:
+                error_msg = str(getconn_error).lower()
+                if 'timeout' in error_msg or "couldn't get a connection" in error_msg:
+                    print(f"⚠️  Timeout ao obter conexão do pool (tentativa {attempt + 1}/{max_retries})")
+                    if attempt < max_retries - 1:
+                        # Tentar reinicializar o pool
+                        try:
+                            if pool:
+                                pool.close()
+                        except:
+                            pass
+                        pool = None
+                        init_db()
+                        if pool is None:
+                            yield None
+                            return
+                        continue
+                    else:
+                        raise
+                else:
+                    raise
+            
             # Verificar se a conexão está válida
             try:
                 test_cur = conn.cursor()
@@ -184,7 +228,7 @@ def get_db_connection():
                 conn = None
             
             # Se for erro de conexão e ainda temos tentativas, tentar reconectar
-            if ('connection' in error_msg and ('lost' in error_msg or 'closed' in error_msg)) and attempt < max_retries - 1:
+            if ('connection' in error_msg and ('lost' in error_msg or 'closed' in error_msg or 'timeout' in error_msg)) and attempt < max_retries - 1:
                 print(f"⚠️  Erro de conexão detectado: {e}, tentando reconectar... (tentativa {attempt + 1}/{max_retries})")
                 # Tentar reinicializar o pool se necessário
                 try:
@@ -194,6 +238,9 @@ def get_db_connection():
                     pass
                 pool = None
                 init_db()
+                if pool is None:
+                    yield None
+                    return
                 continue
             else:
                 print(f"⚠️  Erro na transação: {e}")
