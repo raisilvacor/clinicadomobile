@@ -2,11 +2,26 @@
 Módulo de gerenciamento do banco de dados PostgreSQL
 """
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor, Json
-from psycopg2.pool import SimpleConnectionPool
 import json
 from contextlib import contextmanager
+
+# Tentar importar psycopg3 primeiro, depois psycopg2 como fallback
+try:
+    import psycopg
+    from psycopg.rows import dict_row
+    from psycopg.pool import ConnectionPool
+    PSYCOPG_VERSION = 3
+    dict_row_available = True
+except ImportError:
+    dict_row = None
+    dict_row_available = False
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor, Json
+        from psycopg2.pool import SimpleConnectionPool
+        PSYCOPG_VERSION = 2
+    except ImportError:
+        raise ImportError("É necessário instalar psycopg[binary] ou psycopg2-binary")
 
 # URL do banco de dados do Render
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://rai:nk1HAfaFPhbOvg34lqWl7YC5LfPNmNS3@dpg-d57kenggjchc739lcorg-a.virginia-postgres.render.com/mobiledb_p0w2')
@@ -18,27 +33,51 @@ def init_db():
     """Inicializa o pool de conexões"""
     global pool
     if pool is None:
-        pool = SimpleConnectionPool(1, 20, DATABASE_URL)
+        if PSYCOPG_VERSION == 3:
+            pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=20)
+        else:
+            pool = SimpleConnectionPool(1, 20, DATABASE_URL)
     return pool
 
 @contextmanager
 def get_db_connection():
     """Context manager para obter conexão do pool"""
     pool = init_db()
-    conn = pool.getconn()
-    try:
-        yield conn
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        pool.putconn(conn)
+    if PSYCOPG_VERSION == 3:
+        conn = pool.getconn()
+        try:
+            yield conn
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            pool.putconn(conn)
+    else:
+        conn = pool.getconn()
+        try:
+            yield conn
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            pool.putconn(conn)
+
+def _get_cursor(conn, dict_cursor=False):
+    """Helper para obter cursor compatível com psycopg2 e psycopg3"""
+    if dict_cursor:
+        if PSYCOPG_VERSION == 3:
+            return conn.cursor(row_factory=dict_row)
+        else:
+            return conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        return conn.cursor()
 
 def create_tables():
     """Cria as tabelas necessárias no banco de dados"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
+        cur = _get_cursor(conn)
         
         # Tabela para conteúdo do site (hero, serviços, sobre, etc.)
         cur.execute("""
@@ -103,7 +142,7 @@ def create_tables():
 def get_site_content():
     """Obtém todo o conteúdo do site"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT section, data FROM site_content")
         rows = cur.fetchall()
         
@@ -116,19 +155,28 @@ def get_site_content():
 def save_site_content_section(section, data):
     """Salva uma seção do conteúdo do site"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO site_content (section, data, updated_at)
-            VALUES (%s, %s, CURRENT_TIMESTAMP)
-            ON CONFLICT (section) 
-            DO UPDATE SET data = %s, updated_at = CURRENT_TIMESTAMP
-        """, (section, Json(data), Json(data)))
-        conn.commit()
+        cur = _get_cursor(conn)
+        if PSYCOPG_VERSION == 3:
+            import json as json_module
+            data_json = json_module.dumps(data)
+            cur.execute("""
+                INSERT INTO site_content (section, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (section) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (section, data_json, data_json))
+        else:
+            cur.execute("""
+                INSERT INTO site_content (section, data, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (section) 
+                DO UPDATE SET data = %s, updated_at = CURRENT_TIMESTAMP
+            """, (section, Json(data), Json(data)))
 
 def get_site_content_section(section):
     """Obtém uma seção específica do conteúdo do site"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM site_content WHERE section = %s", (section,))
         row = cur.fetchone()
         return row['data'] if row else None
@@ -138,7 +186,7 @@ def get_site_content_section(section):
 def get_admin_password():
     """Obtém a senha do admin"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT value FROM admin_settings WHERE key = 'password'")
         row = cur.fetchone()
         return row['value'] if row else 'admin123'  # Default
@@ -146,7 +194,7 @@ def get_admin_password():
 def save_admin_password(password):
     """Salva a senha do admin"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
+        cur = _get_cursor(conn)
         cur.execute("""
             INSERT INTO admin_settings (key, value, updated_at)
             VALUES ('password', %s, CURRENT_TIMESTAMP)
@@ -160,7 +208,7 @@ def save_admin_password(password):
 def get_all_repairs():
     """Obtém todos os reparos"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM repairs ORDER BY created_at DESC")
         rows = cur.fetchall()
         return [row['data'] for row in rows]
@@ -168,7 +216,7 @@ def get_all_repairs():
 def get_repair(repair_id):
     """Obtém um reparo específico"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM repairs WHERE id = %s", (repair_id,))
         row = cur.fetchone()
         return row['data'] if row else None
@@ -176,19 +224,28 @@ def get_repair(repair_id):
 def save_repair(repair_id, repair_data):
     """Salva ou atualiza um reparo"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO repairs (id, data, updated_at)
-            VALUES (%s, %s, CURRENT_TIMESTAMP)
-            ON CONFLICT (id) 
-            DO UPDATE SET data = %s, updated_at = CURRENT_TIMESTAMP
-        """, (repair_id, Json(repair_data), Json(repair_data)))
-        conn.commit()
+        cur = _get_cursor(conn)
+        if PSYCOPG_VERSION == 3:
+            import json as json_module
+            data_json = json_module.dumps(repair_data)
+            cur.execute("""
+                INSERT INTO repairs (id, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (repair_id, data_json, data_json))
+        else:
+            cur.execute("""
+                INSERT INTO repairs (id, data, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s, updated_at = CURRENT_TIMESTAMP
+            """, (repair_id, Json(repair_data), Json(repair_data)))
 
 def delete_repair(repair_id):
     """Deleta um reparo"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
+        cur = _get_cursor(conn)
         cur.execute("DELETE FROM repairs WHERE id = %s", (repair_id,))
         conn.commit()
 
@@ -197,7 +254,7 @@ def delete_repair(repair_id):
 def get_all_checklists():
     """Obtém todos os checklists"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM checklists ORDER BY created_at DESC")
         rows = cur.fetchall()
         return [row['data'] for row in rows]
@@ -205,7 +262,7 @@ def get_all_checklists():
 def get_checklist(checklist_id):
     """Obtém um checklist específico"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM checklists WHERE id = %s", (checklist_id,))
         row = cur.fetchone()
         return row['data'] if row else None
@@ -213,7 +270,7 @@ def get_checklist(checklist_id):
 def get_checklists_by_repair(repair_id):
     """Obtém todos os checklists de um reparo"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM checklists WHERE data->>'repair_id' = %s", (repair_id,))
         rows = cur.fetchall()
         return [row['data'] for row in rows]
@@ -221,19 +278,28 @@ def get_checklists_by_repair(repair_id):
 def save_checklist(checklist_id, checklist_data):
     """Salva ou atualiza um checklist"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO checklists (id, data, updated_at)
-            VALUES (%s, %s, CURRENT_TIMESTAMP)
-            ON CONFLICT (id) 
-            DO UPDATE SET data = %s, updated_at = CURRENT_TIMESTAMP
-        """, (checklist_id, Json(checklist_data), Json(checklist_data)))
-        conn.commit()
+        cur = _get_cursor(conn)
+        if PSYCOPG_VERSION == 3:
+            import json as json_module
+            data_json = json_module.dumps(checklist_data)
+            cur.execute("""
+                INSERT INTO checklists (id, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (checklist_id, data_json, data_json))
+        else:
+            cur.execute("""
+                INSERT INTO checklists (id, data, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s, updated_at = CURRENT_TIMESTAMP
+            """, (checklist_id, Json(checklist_data), Json(checklist_data)))
 
 def delete_checklist(checklist_id):
     """Deleta um checklist"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
+        cur = _get_cursor(conn)
         cur.execute("DELETE FROM checklists WHERE id = %s", (checklist_id,))
         conn.commit()
 
@@ -242,7 +308,7 @@ def delete_checklist(checklist_id):
 def get_all_orders():
     """Obtém todas as ordens de retirada"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM orders ORDER BY created_at DESC")
         rows = cur.fetchall()
         return [row['data'] for row in rows]
@@ -250,7 +316,7 @@ def get_all_orders():
 def get_order(order_id):
     """Obtém uma ordem específica"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM orders WHERE id = %s", (order_id,))
         row = cur.fetchone()
         return row['data'] if row else None
@@ -258,7 +324,7 @@ def get_order(order_id):
 def get_order_by_repair(repair_id):
     """Obtém a ordem de retirada de um reparo"""
     with get_db_connection() as conn:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = _get_cursor(conn, dict_cursor=True)
         cur.execute("SELECT data FROM orders WHERE repair_id = %s", (repair_id,))
         row = cur.fetchone()
         return row['data'] if row else None
@@ -266,19 +332,28 @@ def get_order_by_repair(repair_id):
 def save_order(order_id, repair_id, order_data):
     """Salva ou atualiza uma ordem de retirada"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO orders (id, repair_id, data, updated_at)
-            VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-            ON CONFLICT (id) 
-            DO UPDATE SET data = %s, updated_at = CURRENT_TIMESTAMP
-        """, (order_id, repair_id, Json(order_data), Json(order_data)))
-        conn.commit()
+        cur = _get_cursor(conn)
+        if PSYCOPG_VERSION == 3:
+            import json as json_module
+            data_json = json_module.dumps(order_data)
+            cur.execute("""
+                INSERT INTO orders (id, repair_id, data, updated_at)
+                VALUES (%s, %s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (order_id, repair_id, data_json, data_json))
+        else:
+            cur.execute("""
+                INSERT INTO orders (id, repair_id, data, updated_at)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s, updated_at = CURRENT_TIMESTAMP
+            """, (order_id, repair_id, Json(order_data), Json(order_data)))
 
 def delete_order(order_id):
     """Deleta uma ordem de retirada"""
     with get_db_connection() as conn:
-        cur = conn.cursor()
+        cur = _get_cursor(conn)
         cur.execute("DELETE FROM orders WHERE id = %s", (order_id,))
         conn.commit()
 
