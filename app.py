@@ -822,11 +822,14 @@ def public_save_checklist_signature(repair_id, checklist_id):
         signature_filename = f"checklist_signature_{checklist_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         signature_path = os.path.join(signatures_dir, signature_filename)
         
+        signature_bytes = base64.b64decode(signature_data)
         with open(signature_path, 'wb') as f:
-            f.write(base64.b64decode(signature_data))
+            f.write(signature_bytes)
         
         checklist['signature'] = f"/static/checklist_photos/{signature_filename}"
         checklist['signature_signed_at'] = datetime.now().isoformat()
+        # Salvar também como base64 no banco (para persistência no Render)
+        checklist['_signature_data'] = signature_data
         
         # Salvar checklist atualizado
         save_checklist(checklist_id, checklist)
@@ -1176,6 +1179,8 @@ def admin_checklist_conclusao(repair_id):
         
         # Salvar fotos (opcional na conclusão)
         photo_fields = ['imei_photo', 'placa_photo', 'conectores_photo']
+        if '_photo_data' not in checklist_data:
+            checklist_data['_photo_data'] = {}
         for field in photo_fields:
             if field in request.files:
                 file = request.files[field]
@@ -1184,6 +1189,10 @@ def admin_checklist_conclusao(repair_id):
                     filepath = os.path.join(photos_dir, filename)
                     file.save(filepath)
                     checklist_data['photos'][field] = f"/static/checklist_photos/{filename}"
+                    # Salvar também como base64 no banco (para persistência no Render)
+                    file.seek(0)  # Resetar posição do arquivo
+                    file_data = file.read()
+                    checklist_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
         
         # Salvar testes - apenas test_after na conclusão
         test_fields = [
@@ -2008,21 +2017,7 @@ def admin_repair_pdf(repair_id):
             story.append(Spacer(1, 0.3*cm))
     
     # Checklists Antifraude
-    checklists = config.get('checklists', [])
-    repair_checklist_ids = repair.get('checklists', [])
-    repair_checklists = []
-    
-    # Buscar checklists por IDs na lista do reparo
-    for checklist_id in repair_checklist_ids:
-        for cl in checklists:
-            if cl.get('id') == checklist_id:
-                repair_checklists.append(cl)
-                break
-    
-    # Também buscar checklists que têm repair_id diretamente
-    for cl in checklists:
-        if cl.get('repair_id') == repair_id and cl.get('id') not in repair_checklist_ids:
-            repair_checklists.append(cl)
+    repair_checklists = get_checklists_by_repair(repair_id)
     
     if repair_checklists:
         story.append(Spacer(1, 0.4*cm))
@@ -2204,6 +2199,78 @@ def admin_repair_pdf(repair_id):
             'Content-Disposition': f'attachment; filename=reparo_{repair_id}_{datetime.now().strftime("%Y%m%d")}.pdf'
         }
     )
+
+# Rotas para servir imagens do banco de dados (necessário no Render onde o sistema de arquivos é efêmero)
+@app.route('/static/checklist_photos/<path:filename>')
+def serve_checklist_photo(filename):
+    """Serve imagens de checklist do banco de dados"""
+    import base64
+    from flask import Response
+    
+    # Buscar em todos os checklists
+    checklists = get_all_checklists()
+    
+    for checklist in checklists:
+        photos = checklist.get('photos', {})
+        for field, photo_path in photos.items():
+            if isinstance(photo_path, str) and filename in photo_path:
+                # Verificar se há dados base64 salvos
+                photo_data = checklist.get('_photo_data', {}).get(filename)
+                if photo_data:
+                    try:
+                        img_data = base64.b64decode(photo_data)
+                        return Response(img_data, mimetype='image/png')
+                    except:
+                        pass
+        
+        # Verificar assinatura do checklist
+        signature = checklist.get('signature', '')
+        if isinstance(signature, str) and filename in signature:
+            sig_data = checklist.get('_signature_data')
+            if sig_data:
+                try:
+                    img_data = base64.b64decode(sig_data)
+                    return Response(img_data, mimetype='image/png')
+                except:
+                    pass
+    
+    # Se não encontrou no banco, tentar do disco (fallback)
+    photo_path = os.path.join('static', 'checklist_photos', filename)
+    if os.path.exists(photo_path):
+        with open(photo_path, 'rb') as f:
+            return Response(f.read(), mimetype='image/png')
+    
+    return "Imagem não encontrada", 404
+
+@app.route('/static/signatures/<path:filename>')
+def serve_signature(filename):
+    """Serve assinaturas do banco de dados"""
+    import base64
+    from flask import Response
+    
+    # Buscar em todos os reparos
+    repairs = get_all_repairs()
+    
+    for repair in repairs:
+        signature = repair.get('signature', {})
+        if isinstance(signature, dict):
+            sig_image = signature.get('image', '')
+            if filename in sig_image:
+                sig_data = repair.get('_signature_data')
+                if sig_data:
+                    try:
+                        img_data = base64.b64decode(sig_data)
+                        return Response(img_data, mimetype='image/png')
+                    except:
+                        pass
+    
+    # Se não encontrou no banco, tentar do disco (fallback)
+    sig_path = os.path.join('static', 'signatures', filename)
+    if os.path.exists(sig_path):
+        with open(sig_path, 'rb') as f:
+            return Response(f.read(), mimetype='image/png')
+    
+    return "Assinatura não encontrada", 404
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
