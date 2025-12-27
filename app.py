@@ -1273,8 +1273,14 @@ def admin_view_product(product_id):
 def admin_delete_product(product_id):
     """Deletar produto"""
     if request.method == 'POST':
-        delete_product(product_id)
-        return jsonify({'success': True})
+        try:
+            db_delete_product(product_id)
+            return jsonify({'success': True})
+        except Exception as e:
+            print(f"Erro ao deletar produto {product_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
     return jsonify({'success': False, 'error': 'Método não permitido'}), 405
 
 @app.route('/admin/products/<product_id>/sold', methods=['POST'])
@@ -1449,32 +1455,10 @@ def admin_emit_or(repair_id):
             'emitted_at': datetime.now().isoformat(),
             'emitted_by': session.get('admin_name', 'Raí Silva'),
             'observations': request.form.get('observations', ''),
-            'customer_received': request.form.get('customer_received', '') == 'on',
-            'customer_signature': None
+            'customer_received': request.form.get('customer_received', '') == 'on'
         }
         
-        # Salvar assinatura do cliente na retirada (se houver)
-        signature_data = request.form.get('signature_data', '')
-        if signature_data:
-            photos_dir = os.path.join('static', 'checklist_photos')
-            if not os.path.exists(photos_dir):
-                os.makedirs(photos_dir)
-            
-            signature_filename = f"or_signature_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-            signature_path = os.path.join(photos_dir, signature_filename)
-            
-            if ',' in signature_data:
-                signature_data_clean = signature_data.split(',')[1]
-            else:
-                signature_data_clean = signature_data
-            
-            signature_bytes = base64.b64decode(signature_data_clean)
-            with open(signature_path, 'wb') as f:
-                f.write(signature_bytes)
-            
-            or_data['customer_signature'] = f"/static/checklist_photos/{signature_filename}"
-            # Salvar também como base64 no banco (para persistência no Render)
-            or_data['_signature_data'] = signature_data_clean
+        # Assinaturas digitais são apenas no link do cliente, não na OR
         
         # Salvar OR diretamente no banco de dados
         save_order(order_id, repair_id, or_data)
@@ -1736,36 +1720,10 @@ def admin_or_pdf(repair_id):
         alignment=1  # Centralizado
     )
     
-    # Verificar se há assinatura digital do cliente
-    customer_sig_img = None
-    if order.get('customer_signature'):
-        signature_path = order['customer_signature']
-        if signature_path.startswith('/static/'):
-            signature_path = signature_path[1:]
-        elif not signature_path.startswith('static/'):
-            signature_path = 'static/' + signature_path.lstrip('/')
-        
-        if os.path.exists(signature_path):
-            try:
-                from PIL import Image as PILImage
-                pil_sig = PILImage.open(signature_path)
-                sig_width, sig_height = pil_sig.size
-                sig_aspect = sig_width / sig_height
-                max_width = 6*cm
-                sig_height_calc = max_width / sig_aspect
-                if sig_height_calc > 2.5*cm:
-                    sig_height_calc = 2.5*cm
-                    max_width = sig_height_calc * sig_aspect
-                customer_sig_img = Image(signature_path, width=max_width, height=sig_height_calc)
-            except:
-                pass
+    # Assinaturas digitais são apenas no link do cliente
+    # Na OR, as assinaturas são físicas (linha para assinar)
     
-    # Criar tabela com duas colunas para as assinaturas
-    # Coluna 1: Cliente
-    customer_col = []
-    customer_col.append(Paragraph("ASSINATURA DO CLIENTE", heading_style))
-    if customer_sig_img:
-        customer_col.append(customer_sig_img)
+    # Linha de assinatura do cliente (física)
     customer_line = Table([['']], colWidths=[7*cm])
     customer_line.setStyle(TableStyle([
         ('LINEBELOW', (0, 0), (-1, -1), 2, colors.black),
@@ -1776,12 +1734,8 @@ def admin_or_pdf(repair_id):
         ('TOPPADDING', (0, 0), (-1, -1), -2),  # Padding negativo para reduzir espaço
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
     ]))
-    customer_col.append(customer_line)
-    customer_col.append(Paragraph(f"<b>{repair.get('customer_name', 'Cliente')}</b>", signature_line_style))
     
-    # Coluna 2: Técnico
-    tech_col = []
-    tech_col.append(Paragraph("ASSINATURA DO TÉCNICO", heading_style))
+    # Linha de assinatura do técnico (física)
     tech_line = Table([['']], colWidths=[7*cm])
     tech_line.setStyle(TableStyle([
         ('LINEBELOW', (0, 0), (-1, -1), 2, colors.black),
@@ -1792,21 +1746,16 @@ def admin_or_pdf(repair_id):
         ('TOPPADDING', (0, 0), (-1, -1), -2),  # Padding negativo para reduzir espaço
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
     ]))
-    tech_col.append(tech_line)
-    tech_col.append(Paragraph(f"<b>{order.get('emitted_by', 'Raí Silva')}</b>", signature_line_style))
     
-    # Adicionar cada coluna separadamente (uma abaixo da outra para melhor organização)
+    # Adicionar assinatura do cliente (física)
     story.append(Paragraph("ASSINATURA DO CLIENTE", signature_heading_style))
-    if customer_sig_img:
-        story.append(customer_sig_img)
-    # Linha logo abaixo do título (sem espaçamento)
     story.append(customer_line)
     story.append(Paragraph(f"<b>{repair.get('customer_name', 'Cliente')}</b>", signature_line_style))
     
     story.append(Spacer(1, 0.3*cm))
     
+    # Adicionar assinatura do técnico (física)
     story.append(Paragraph("ASSINATURA DO TÉCNICO", signature_heading_style))
-    # Linha logo abaixo do título (sem espaçamento)
     story.append(tech_line)
     story.append(Paragraph(f"<b>{order.get('emitted_by', 'Raí Silva')}</b>", signature_line_style))
     
