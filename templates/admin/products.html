@@ -1,0 +1,215 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Produtos da Loja{% endblock %}
+
+{% block extra_css %}
+<style>
+    .products-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+
+    .product-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        border: 2px solid #333333;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .product-card:hover {
+        border-color: #ff8c00;
+        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+    }
+
+    .product-card.sold {
+        opacity: 0.6;
+        border-color: #dc3545;
+    }
+
+    .product-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        background: #0d0d0d;
+    }
+
+    .product-title {
+        font-size: 1.2rem;
+        color: #ff8c00;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .product-price {
+        font-size: 1.5rem;
+        color: #28a745;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .product-condition {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .condition-novo {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+
+    .condition-usado {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 1px solid #ffc107;
+    }
+
+    .sold-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: #dc3545;
+        color: #fff;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        border: 2px solid #333333;
+        margin-top: 2rem;
+    }
+
+    .empty-state h3 {
+        color: #ff8c00;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>🛒 Produtos da Loja</h2>
+    <p>Gerencie os produtos da sua loja: cadastre, edite, exclua e marque como vendido.</p>
+
+    <div style="margin-bottom: 2rem; text-align: right;">
+        <a href="{{ url_for('admin_new_product') }}" class="btn btn-primary">➕ Adicionar Novo Produto</a>
+    </div>
+
+    {% if products %}
+    <div class="products-container">
+        {% for product in products %}
+        <div class="product-card {% if product.sold %}sold{% endif %}">
+            {% if product.sold %}
+            <div class="sold-badge">VENDIDO</div>
+            {% endif %}
+
+            {% if product.photos and product.photos|length > 0 %}
+            <img src="{{ product.photos[0] }}" alt="{{ product.title }}" class="product-image" onerror="this.src='/static/images/placeholder.png'">
+            {% else %}
+            <div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #999;">
+                📷 Sem foto
+            </div>
+            {% endif %}
+
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-price">R$ {{ "%.2f"|format(product.price|float) }}</div>
+            <span class="product-condition condition-{{ product.condition }}">
+                {% if product.condition == 'novo' %}🆕 Novo{% else %}🔄 Usado{% endif %}
+            </span>
+
+            <div class="product-actions">
+                <a href="{{ url_for('admin_view_product', product_id=product.id) }}" class="btn btn-secondary" style="flex: 1;">👁️ Ver</a>
+                <a href="{{ url_for('admin_edit_product', product_id=product.id) }}" class="btn btn-primary" style="flex: 1;">✏️ Editar</a>
+                {% if not product.sold %}
+                <button onclick="markAsSold('{{ product.id }}')" class="btn btn-primary" style="background: #28a745; flex: 1;">✅ Vender</button>
+                {% endif %}
+                <button onclick="deleteProduct('{{ product.id }}')" class="btn btn-danger" style="flex: 1;">🗑️ Excluir</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>🛒 Nenhum produto cadastrado</h3>
+        <p>Comece adicionando seu primeiro produto clicando no botão acima.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function deleteProduct(productId) {
+        if (confirm('Tem certeza que deseja excluir este produto? Esta ação é irreversível.')) {
+            fetch(`/admin/products/${productId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: productId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Produto excluído com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao excluir produto: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao excluir produto. Por favor, tente novamente.');
+            });
+        }
+    }
+
+    function markAsSold(productId) {
+        if (confirm('Deseja marcar este produto como vendido?')) {
+            fetch(`/admin/products/${productId}/sold`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: productId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Produto marcado como vendido!');
+                    location.reload();
+                } else {
+                    alert('Erro ao marcar produto como vendido: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao marcar produto como vendido. Por favor, tente novamente.');
+            });
+        }
+    }
+</script>
+{% endblock %}
+

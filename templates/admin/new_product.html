@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Novo Produto{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>➕ Adicionar Novo Produto</h2>
+    <p>Preencha os dados do produto para cadastrá-lo na loja.</p>
+
+    <form method="POST" enctype="multipart/form-data">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📋 Informações do Produto</h3>
+        
+        <div class="form-group">
+            <label for="title">Título do Produto:</label>
+            <input type="text" id="title" name="title" placeholder="Ex: iPhone 13 Pro 128GB" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Descrição:</label>
+            <textarea id="description" name="description" rows="5" placeholder="Descreva o produto em detalhes..." required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="price">Preço (R$):</label>
+            <input type="number" id="price" name="price" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+
+        <div class="form-group">
+            <label style="display: block; margin-bottom: 0.5rem; color: #ffffff; font-weight: bold;">Condição do Produto:</label>
+            <div style="display: flex; gap: 2rem; margin-top: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #ffffff;">
+                    <input type="radio" name="condition" value="novo" checked style="width: auto; cursor: pointer;">
+                    <span>🆕 Novo</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #ffffff;">
+                    <input type="radio" name="condition" value="usado" style="width: auto; cursor: pointer;">
+                    <span>🔄 Usado</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="photos">Fotos do Produto:</label>
+            <input type="file" id="photos" name="photos" accept="image/*" multiple>
+            <small style="color: #999; display: block; margin-top: 0.5rem;">Você pode selecionar múltiplas fotos</small>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary">💾 Salvar Produto</button>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

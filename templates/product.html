@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.title }} - Loja</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #ffffff; line-height: 1.6; }
+        header { background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 1.5rem 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 20px rgba(255, 140, 0, 0.2); }
+        nav { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; }
+        .logo img { height: 60px; width: auto; max-width: 300px; object-fit: contain; }
+        .nav-links { display: flex; list-style: none; gap: 2rem; }
+        .nav-links a { color: #ffffff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
+        .nav-links a:hover { color: #ff8c00; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <a href="/"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica do Mobile"></a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/#servicos">Serviços</a></li>
+                <li><a href="/#sobre">Sobre</a></li>
+                <li><a href="/#dispositivos">Dispositivos</a></li>
+                <li><a href="/#laboratorio">Laboratório</a></li>
+                <li><a href="/loja" style="color: #ff8c00;">Loja</a></li>
+                <li><a href="/#contato">Contato</a></li>
+            </ul>
+        </nav>
+    </header>
+
+<!-- Detalhes do Produto -->
+<section id="product-detail" style="padding: 4rem 2rem; background: #000000;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <div style="margin-bottom: 2rem;">
+            <a href="{{ url_for('public_shop') }}" style="color: #ff8c00; text-decoration: none;">← Voltar para a loja</a>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); padding: 2rem; border-radius: 15px; border: 2px solid #333333;">
+            <!-- Fotos do Produto -->
+            <div>
+                {% if product.photos and product.photos|length > 0 %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                    {% for photo in product.photos %}
+                    <img src="{{ photo }}" alt="{{ product.title }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 10px; border: 2px solid #333333; cursor: pointer;" onclick="openImageModal('{{ photo }}')">
+                    {% endfor %}
+                </div>
+                <img id="main-product-image" src="{{ product.photos[0] }}" alt="{{ product.title }}" style="width: 100%; height: 400px; object-fit: cover; border-radius: 10px; border: 2px solid #333333;">
+                {% else %}
+                <div style="width: 100%; height: 400px; background: #0d0d0d; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #999; border: 2px solid #333333;">
+                    📷 Sem foto
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Informações do Produto -->
+            <div>
+                <h1 style="color: #ff8c00; font-size: 2rem; margin-bottom: 1rem;">{{ product.title }}</h1>
+                
+                <div style="font-size: 2.5rem; color: #28a745; font-weight: bold; margin-bottom: 1rem;">R$ {{ "%.2f"|format(product.price|float) }}</div>
+                
+                <span style="display: inline-block; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; margin-bottom: 1.5rem; {% if product.condition == 'novo' %}background: rgba(40, 167, 69, 0.2); color: #28a745; border: 2px solid #28a745;{% else %}background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 2px solid #ffc107;{% endif %}">
+                    {% if product.condition == 'novo' %}🆕 Novo{% else %}🔄 Usado{% endif %}
+                </span>
+
+                <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333333; margin-bottom: 1.5rem;">
+                    <h3 style="color: #ff8c00; margin-bottom: 1rem;">Descrição</h3>
+                    <p style="color: #ffffff; white-space: pre-wrap; line-height: 1.8;">{{ product.description }}</p>
+                </div>
+
+                {% if whatsapp %}
+                {% set whatsapp_clean = whatsapp.replace('+', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '') %}
+                {% set product_url = request.url_root + 'loja/' + product.id %}
+                {% set message = 'Tenho interesse nesse produto: ' + product_url %}
+                <a href="https://wa.me/{{ whatsapp_clean }}?text={{ message|urlencode }}" target="_blank" style="display: inline-block; background: #25D366; color: #ffffff; padding: 1rem 2rem; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 1.1rem; text-align: center; width: 100%; transition: all 0.3s ease;">
+                    💬 Falar com o Vendedor
+                </a>
+                {% else %}
+                <div style="background: #dc3545; color: #ffffff; padding: 1rem; border-radius: 10px; text-align: center;">
+                    WhatsApp não configurado no admin
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal para ampliar imagem -->
+<div id="imageModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); cursor: pointer;" onclick="closeImageModal()">
+    <img id="modalImage" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 90%; max-height: 90%; border-radius: 10px;">
+</div>
+
+<script>
+    function openImageModal(imageSrc) {
+        document.getElementById('modalImage').src = imageSrc;
+        document.getElementById('imageModal').style.display = 'block';
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+
+    // Fechar modal com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeImageModal();
+        }
+    });
+
+    // Trocar imagem principal ao clicar nas miniaturas
+    {% if product.photos and product.photos|length > 0 %}
+    document.querySelectorAll('img[onclick*="openImageModal"]').forEach(img => {
+        img.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('main-product-image').src = this.src;
+        });
+    });
+    {% endif %}
+</script>
+</body>
+</html>

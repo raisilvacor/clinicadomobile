@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loja - Clínica do Mobile</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #ffffff; line-height: 1.6; }
+        header { background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 1.5rem 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 20px rgba(255, 140, 0, 0.2); }
+        nav { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; }
+        .logo img { height: 60px; width: auto; max-width: 300px; object-fit: contain; }
+        .nav-links { display: flex; list-style: none; gap: 2rem; }
+        .nav-links a { color: #ffffff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
+        .nav-links a:hover { color: #ff8c00; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <a href="/"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica do Mobile"></a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/#servicos">Serviços</a></li>
+                <li><a href="/#sobre">Sobre</a></li>
+                <li><a href="/#dispositivos">Dispositivos</a></li>
+                <li><a href="/#laboratorio">Laboratório</a></li>
+                <li><a href="/loja" style="color: #ff8c00;">Loja</a></li>
+                <li><a href="/#contato">Contato</a></li>
+            </ul>
+        </nav>
+    </header>
+
+<!-- Hero Section da Loja -->
+<section id="loja-hero" style="background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%); padding: 4rem 2rem; text-align: center;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <h1 style="font-size: 3rem; color: #ff8c00; margin-bottom: 1rem;">🛒 Nossa Loja</h1>
+        <p style="font-size: 1.2rem; color: #ffffff; margin-bottom: 2rem;">Produtos de qualidade para você</p>
+    </div>
+</section>
+
+<!-- Produtos -->
+<section id="produtos" style="padding: 4rem 2rem; background: #000000;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        {% if products %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem;">
+            {% for product in products %}
+            <div style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 1.5rem; border: 2px solid #333333; transition: all 0.3s ease; cursor: pointer;" onclick="window.location.href='{{ url_for('public_product', product_id=product.id) }}'">
+                {% if product.photos and product.photos|length > 0 %}
+                <img src="{{ product.photos[0] }}" alt="{{ product.title }}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 1rem;" onerror="this.src='/static/images/placeholder.png'">
+                {% else %}
+                <div style="width: 100%; height: 200px; background: #0d0d0d; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #999; margin-bottom: 1rem;">
+                    📷 Sem foto
+                </div>
+                {% endif %}
+                
+                <h3 style="color: #ff8c00; font-size: 1.2rem; margin-bottom: 0.5rem;">{{ product.title }}</h3>
+                <div style="font-size: 1.5rem; color: #28a745; font-weight: bold; margin-bottom: 0.5rem;">R$ {{ "%.2f"|format(product.price|float) }}</div>
+                <span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem; font-weight: bold; margin-bottom: 1rem; {% if product.condition == 'novo' %}background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;{% else %}background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107;{% endif %}">
+                    {% if product.condition == 'novo' %}🆕 Novo{% else %}🔄 Usado{% endif %}
+                </span>
+                <div style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 4rem 2rem; background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; border: 2px solid #333333;">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem; font-size: 1.5rem;">🛒 Nenhum produto disponível no momento</h3>
+            <p style="color: #999;">Volte em breve para ver nossos produtos!</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+</body>
+</html>
+

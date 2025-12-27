@@ -241,6 +241,16 @@ def create_tables():
                 )
             """)
             
+            # Tabela para produtos da loja
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS products (
+                    id VARCHAR(50) PRIMARY KEY,
+                    data JSONB NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
             # Índices para melhor performance
             cur.execute("CREATE INDEX IF NOT EXISTS idx_repairs_repair_id ON repairs(id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_checklists_id ON checklists(id)")
@@ -993,6 +1003,142 @@ def delete_supplier(supplier_id):
             conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao deletar do banco: {e}")
+
+# ========== FUNÇÕES DE PRODUTOS (LOJA) ==========
+
+def get_all_products():
+    """Obtém todos os produtos"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('products', [])
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('products', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM products ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            return [row['data'] for row in rows]
+    except Exception as e:
+        print(f"⚠️  Erro ao ler produtos do banco, usando config.json: {e}")
+        config = _load_config_file()
+        return config.get('products', [])
+
+def get_product(product_id):
+    """Obtém um produto específico"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        products = config.get('products', [])
+        for product in products:
+            if product.get('id') == product_id:
+                return product
+        return None
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                products = config.get('products', [])
+                for product in products:
+                    if product.get('id') == product_id:
+                        return product
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM products WHERE id = %s", (product_id,))
+            row = cur.fetchone()
+            return row['data'] if row else None
+    except Exception as e:
+        print(f"⚠️  Erro ao ler produto do banco, usando config.json: {e}")
+        config = _load_config_file()
+        products = config.get('products', [])
+        for product in products:
+            if product.get('id') == product_id:
+                return product
+        return None
+
+def save_product(product_id, product_data):
+    """Salva ou atualiza um produto"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'products' not in config:
+            config['products'] = []
+        products = config.get('products', [])
+        found = False
+        for i, p in enumerate(products):
+            if p.get('id') == product_id:
+                products[i] = product_data
+                found = True
+                break
+        if not found:
+            products.append(product_data)
+        config['products'] = products
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'products' not in config:
+                    config['products'] = []
+                products = config.get('products', [])
+                found = False
+                for i, p in enumerate(products):
+                    if p.get('id') == product_id:
+                        products[i] = product_data
+                        found = True
+                        break
+                if not found:
+                    products.append(product_data)
+                config['products'] = products
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(product_data)
+            cur.execute("""
+                INSERT INTO products (id, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (product_id, data_json, data_json))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar produto no banco, salvando em config.json: {e}")
+        config = _load_config_file()
+        if 'products' not in config:
+            config['products'] = []
+        products = config.get('products', [])
+        found = False
+        for i, p in enumerate(products):
+            if p.get('id') == product_id:
+                products[i] = product_data
+                found = True
+                break
+        if not found:
+            products.append(product_data)
+        config['products'] = products
+        _save_config_file(config)
+
+def delete_product(product_id):
+    """Deleta um produto"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        products = config.get('products', [])
+        config['products'] = [p for p in products if p.get('id') != product_id]
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM products WHERE id = %s", (product_id,))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao deletar produto do banco: {e}")
 
 # ========== FUNÇÃO DE COMPATIBILIDADE ==========
 

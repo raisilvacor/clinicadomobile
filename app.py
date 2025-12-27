@@ -27,10 +27,10 @@ from db import (
     get_supplier as db_get_supplier,
     save_supplier,
     delete_supplier as db_delete_supplier,
-    get_all_suppliers,
-    get_supplier as db_get_supplier,
-    save_supplier,
-    delete_supplier as db_delete_supplier
+    get_all_products,
+    get_product as db_get_product,
+    save_product,
+    delete_product as db_delete_product
 )
 
 app = Flask(__name__)
@@ -1149,6 +1149,165 @@ def admin_view_supplier(supplier_id):
         return redirect(url_for('admin_suppliers'))
     
     return render_template('admin/view_supplier.html', supplier=supplier)
+
+# ========== ROTAS DE PRODUTOS (LOJA) ==========
+
+@app.route('/admin/products', methods=['GET'])
+@login_required
+def admin_products():
+    """Página principal para gerenciar Produtos da Loja"""
+    products = get_all_products()
+    return render_template('admin/products.html', products=products)
+
+@app.route('/admin/products/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_product():
+    """Criar novo produto"""
+    if request.method == 'POST':
+        import uuid
+        from datetime import datetime
+        import base64
+        
+        product_id = str(uuid.uuid4())[:8]
+        product_data = {
+            'id': product_id,
+            'title': request.form.get('title', ''),
+            'description': request.form.get('description', ''),
+            'price': request.form.get('price', '0'),
+            'condition': request.form.get('condition', 'novo'),  # novo ou usado
+            'sold': False,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+            'photos': [],
+            '_photo_data': {}
+        }
+        
+        # Salvar fotos
+        photos_dir = os.path.join('static', 'product_photos')
+        if not os.path.exists(photos_dir):
+            os.makedirs(photos_dir)
+        
+        if 'photos' in request.files:
+            files = request.files.getlist('photos')
+            for file in files:
+                if file and file.filename:
+                    filename = f"product_{product_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+                    filepath = os.path.join(photos_dir, filename)
+                    file.save(filepath)
+                    product_data['photos'].append(f"/static/product_photos/{filename}")
+                    # Salvar também como base64 no banco
+                    file.seek(0)
+                    file_data = file.read()
+                    product_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
+        
+        save_product(product_id, product_data)
+        return redirect(url_for('admin_products'))
+    
+    return render_template('admin/new_product.html')
+
+@app.route('/admin/products/<product_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_product(product_id):
+    """Editar produto existente"""
+    product = db_get_product(product_id)
+    if not product:
+        return redirect(url_for('admin_products'))
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        import base64
+        
+        product['title'] = request.form.get('title', '')
+        product['description'] = request.form.get('description', '')
+        product['price'] = request.form.get('price', '0')
+        product['condition'] = request.form.get('condition', 'novo')
+        product['updated_at'] = datetime.now().isoformat()
+        
+        # Adicionar novas fotos
+        if 'photos' in request.files:
+            photos_dir = os.path.join('static', 'product_photos')
+            if not os.path.exists(photos_dir):
+                os.makedirs(photos_dir)
+            
+            if '_photo_data' not in product:
+                product['_photo_data'] = {}
+            
+            files = request.files.getlist('photos')
+            for file in files:
+                if file and file.filename:
+                    filename = f"product_{product_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+                    filepath = os.path.join(photos_dir, filename)
+                    file.save(filepath)
+                    product['photos'].append(f"/static/product_photos/{filename}")
+                    # Salvar também como base64 no banco
+                    file.seek(0)
+                    file_data = file.read()
+                    product['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
+        
+        save_product(product_id, product)
+        return redirect(url_for('admin_products'))
+    
+    return render_template('admin/edit_product.html', product=product)
+
+@app.route('/admin/products/<product_id>', methods=['GET'])
+@login_required
+def admin_view_product(product_id):
+    """Visualizar detalhes de um produto"""
+    product = db_get_product(product_id)
+    if not product:
+        return redirect(url_for('admin_products'))
+    
+    return render_template('admin/view_product.html', product=product)
+
+@app.route('/admin/products/<product_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_product(product_id):
+    """Deletar produto"""
+    if request.method == 'POST':
+        delete_product(product_id)
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'Método não permitido'}), 405
+
+@app.route('/admin/products/<product_id>/sold', methods=['POST'])
+@login_required
+def admin_mark_product_sold(product_id):
+    """Marcar produto como vendido"""
+    if request.method == 'POST':
+        from datetime import datetime
+        product = db_get_product(product_id)
+        if product:
+            product['sold'] = True
+            product['sold_at'] = datetime.now().isoformat()
+            product['updated_at'] = datetime.now().isoformat()
+            save_product(product_id, product)
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Produto não encontrado'}), 404
+    return jsonify({'success': False, 'error': 'Método não permitido'}), 405
+
+# ========== ROTAS PÚBLICAS DA LOJA ==========
+
+@app.route('/loja', methods=['GET'])
+def public_shop():
+    """Página pública da loja"""
+    products = get_all_products()
+    # Filtrar apenas produtos não vendidos
+    available_products = [p for p in products if not p.get('sold', False)]
+    return render_template('shop.html', products=available_products)
+
+@app.route('/loja/<product_id>', methods=['GET'])
+def public_product(product_id):
+    """Página pública de detalhes do produto"""
+    product = db_get_product(product_id)
+    if not product:
+        return redirect(url_for('public_shop'))
+    
+    # Buscar WhatsApp do admin
+    from db import get_site_content as db_get_site_content
+    site_content = db_get_site_content()
+    contact = site_content.get('contact', {})
+    whatsapp = contact.get('whatsapp', '')
+    
+    return render_template('product.html', product=product, whatsapp=whatsapp)
 
 @app.route('/admin/repairs/<repair_id>/checklist/conclusao', methods=['GET', 'POST'])
 @login_required
@@ -2303,6 +2462,51 @@ def serve_signature(filename):
             return Response(f.read(), mimetype='image/png')
     
     return "Assinatura não encontrada", 404
+
+@app.route('/static/product_photos/<path:filename>')
+def serve_product_photo(filename):
+    """Serve fotos de produtos do banco de dados"""
+    import base64
+    from flask import Response
+    
+    # Buscar em todos os produtos
+    products = get_all_products()
+    
+    for product in products:
+        photos = product.get('photos', [])
+        for photo_path in photos:
+            if isinstance(photo_path, str) and filename in photo_path:
+                # Verificar se há dados base64 salvos
+                photo_data = product.get('_photo_data', {})
+                if photo_data:
+                    for stored_filename, stored_data in photo_data.items():
+                        if filename in stored_filename or stored_filename in filename:
+                            try:
+                                img_data = base64.b64decode(stored_data)
+                                # Detectar tipo MIME
+                                mimetype = 'image/png'
+                                if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                                    mimetype = 'image/jpeg'
+                                elif filename.lower().endswith('.png'):
+                                    mimetype = 'image/png'
+                                return Response(img_data, mimetype=mimetype)
+                            except Exception as e:
+                                print(f"Erro ao decodificar imagem {filename}: {e}")
+    
+    # Se não encontrou no banco, tentar do disco (fallback)
+    photo_path = os.path.join('static', 'product_photos', filename)
+    if os.path.exists(photo_path):
+        try:
+            with open(photo_path, 'rb') as f:
+                img_data = f.read()
+                mimetype = 'image/png'
+                if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                    mimetype = 'image/jpeg'
+                return Response(img_data, mimetype=mimetype)
+        except Exception as e:
+            print(f"Erro ao ler arquivo {photo_path}: {e}")
+    
+    return "Imagem não encontrada", 404
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
