@@ -385,6 +385,8 @@ def admin_checklist():
         
         # Salvar fotos
         photo_fields = ['imei_photo', 'placa_photo', 'conectores_photo']
+        if '_photo_data' not in checklist_data:
+            checklist_data['_photo_data'] = {}
         for field in photo_fields:
             if field in request.files:
                 file = request.files[field]
@@ -393,6 +395,10 @@ def admin_checklist():
                     filepath = os.path.join(photos_dir, filename)
                     file.save(filepath)
                     checklist_data['photos'][field] = f"/static/checklist_photos/{filename}"
+                    # Salvar também como base64 no banco (para persistência no Render)
+                    file.seek(0)  # Resetar posição do arquivo
+                    file_data = file.read()
+                    checklist_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
         
         # Salvar testes - para conclusão, só test_after
         if checklist_type == 'conclusao':
@@ -1290,12 +1296,17 @@ def admin_emit_or(repair_id):
             signature_path = os.path.join(photos_dir, signature_filename)
             
             if ',' in signature_data:
-                signature_data = signature_data.split(',')[1]
+                signature_data_clean = signature_data.split(',')[1]
+            else:
+                signature_data_clean = signature_data
             
+            signature_bytes = base64.b64decode(signature_data_clean)
             with open(signature_path, 'wb') as f:
-                f.write(base64.b64decode(signature_data))
+                f.write(signature_bytes)
             
             or_data['customer_signature'] = f"/static/checklist_photos/{signature_filename}"
+            # Salvar também como base64 no banco (para persistência no Render)
+            or_data['_signature_data'] = signature_data_clean
         
         # Salvar OR diretamente no banco de dados
         save_order(order_id, repair_id, or_data)
@@ -2211,17 +2222,28 @@ def serve_checklist_photo(filename):
     checklists = get_all_checklists()
     
     for checklist in checklists:
+        # Verificar fotos do checklist
         photos = checklist.get('photos', {})
         for field, photo_path in photos.items():
             if isinstance(photo_path, str) and filename in photo_path:
                 # Verificar se há dados base64 salvos
-                photo_data = checklist.get('_photo_data', {}).get(filename)
+                photo_data = checklist.get('_photo_data', {})
                 if photo_data:
-                    try:
-                        img_data = base64.b64decode(photo_data)
-                        return Response(img_data, mimetype='image/png')
-                    except:
-                        pass
+                    # Tentar buscar pelo filename completo ou parcial
+                    for stored_filename, stored_data in photo_data.items():
+                        if filename in stored_filename or stored_filename in filename or filename in photo_path:
+                            try:
+                                img_data = base64.b64decode(stored_data)
+                                # Detectar tipo MIME baseado na extensão
+                                mimetype = 'image/png'
+                                if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                                    mimetype = 'image/jpeg'
+                                elif filename.lower().endswith('.png'):
+                                    mimetype = 'image/png'
+                                return Response(img_data, mimetype=mimetype)
+                            except Exception as e:
+                                print(f"Erro ao decodificar imagem {filename}: {e}")
+                                continue
         
         # Verificar assinatura do checklist
         signature = checklist.get('signature', '')
@@ -2231,14 +2253,24 @@ def serve_checklist_photo(filename):
                 try:
                     img_data = base64.b64decode(sig_data)
                     return Response(img_data, mimetype='image/png')
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Erro ao decodificar assinatura {filename}: {e}")
     
     # Se não encontrou no banco, tentar do disco (fallback)
     photo_path = os.path.join('static', 'checklist_photos', filename)
     if os.path.exists(photo_path):
-        with open(photo_path, 'rb') as f:
-            return Response(f.read(), mimetype='image/png')
+        try:
+            with open(photo_path, 'rb') as f:
+                img_data = f.read()
+                # Detectar tipo MIME baseado na extensão
+                mimetype = 'image/png'
+                if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                    mimetype = 'image/jpeg'
+                elif filename.lower().endswith('.png'):
+                    mimetype = 'image/png'
+                return Response(img_data, mimetype=mimetype)
+        except Exception as e:
+            print(f"Erro ao ler arquivo {photo_path}: {e}")
     
     return "Imagem não encontrada", 404
 
