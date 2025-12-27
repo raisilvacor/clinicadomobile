@@ -2,69 +2,42 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import json
 import os
 from functools import wraps
+from db import (
+    create_tables,
+    load_config,
+    save_config,
+    get_site_content as db_get_site_content,
+    save_site_content_section,
+    get_admin_password,
+    save_admin_password,
+    get_all_repairs,
+    get_repair as db_get_repair,
+    save_repair,
+    delete_repair as db_delete_repair,
+    get_all_checklists,
+    get_checklist as db_get_checklist,
+    get_checklists_by_repair,
+    save_checklist,
+    delete_checklist as db_delete_checklist,
+    get_all_orders,
+    get_order as db_get_order,
+    get_order_by_repair,
+    save_order
+)
 
 app = Flask(__name__)
 app.secret_key = 'sua-chave-secreta-mude-isso-em-producao'
 
-CONFIG_FILE = 'config.json'
-
-def load_config():
-    """Carrega o arquivo de configuração"""
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-            
-            # Converter garantias antigas de 90 para 30 dias
-            if 'repairs' in config:
-                from datetime import datetime, timedelta
-                for repair in config['repairs']:
-                    if repair.get('warranty') and repair['warranty'].get('period') == '90 dias':
-                        repair['warranty']['period'] = '30 dias'
-                        # Recalcular data de validade se houver completed_at
-                        if repair.get('completed_at'):
-                            try:
-                                completed_date = datetime.fromisoformat(repair['completed_at'].replace('Z', '+00:00'))
-                                if completed_date.tzinfo:
-                                    completed_date = completed_date.replace(tzinfo=None)
-                                new_valid_until = completed_date + timedelta(days=30)
-                                repair['warranty']['valid_until'] = new_valid_until.isoformat()
-                            except:
-                                pass
-                        # Atualizar mensagens e histórico
-                        for msg in repair.get('messages', []):
-                            if '90 dias' in msg.get('content', ''):
-                                msg['content'] = msg['content'].replace('90 dias', '30 dias')
-                        for hist in repair.get('history', []):
-                            if '90 dias' in hist.get('action', ''):
-                                hist['action'] = hist['action'].replace('90 dias', '30 dias')
-                        save_config(config)  # Salvar automaticamente
-            
-            # Converter "Admin" para "Raí Silva" em todos os lugares
-            updated = False
-            
-            # Atualizar em orders (Ordens de Retirada)
-            if 'orders' in config:
-                for order in config['orders']:
-                    if order.get('emitted_by') == 'Admin' or order.get('emitted_by') == 'admin' or order.get('emitted_by') == 'Técnico':
-                        order['emitted_by'] = 'Raí Silva'
-                        updated = True
-            
-            # Salvar se houver atualizações
-            if updated:
-                save_config(config)
-            
-            return config
-    return {}
-
-def save_config(config):
-    """Salva o arquivo de configuração"""
-    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
+# Inicializar banco de dados na inicialização do app
+try:
+    create_tables()
+    print("✅ Banco de dados inicializado com sucesso!")
+except Exception as e:
+    print(f"⚠️  Erro ao inicializar banco de dados: {e}")
 
 def get_site_content():
-    """Obtém o conteúdo do site do config"""
-    config = load_config()
-    return config.get('site_content', {})
+    """Obtém o conteúdo do site do banco de dados"""
+    return db_get_site_content()
 
 def login_required(f):
     """Decorator para proteger rotas administrativas"""
@@ -86,9 +59,9 @@ def index():
 def admin_login():
     if request.method == 'POST':
         password = request.form.get('password')
-        config = load_config()
+        admin_password = get_admin_password()
         
-        if password == config.get('admin_password', 'admin123'):
+        if password == admin_password:
             session['logged_in'] = True
             session['admin_name'] = 'Raí Silva'  # Nome do administrador
             return redirect(url_for('admin_dashboard'))
@@ -130,10 +103,9 @@ def admin_search():
             # Formatar CPF para exibição
             formatted_cpf = f"{cpf_clean[:3]}.{cpf_clean[3:6]}.{cpf_clean[6:9]}-{cpf_clean[9:]}"
             
-            config = load_config()
-            repairs = config.get('repairs', [])
-            orders = config.get('orders', [])
-            checklists = config.get('checklists', [])
+            repairs = get_all_repairs()
+            orders = get_all_orders()
+            checklists = get_all_checklists()
             
             # Buscar reparos pelo CPF
             matching_repairs = []
@@ -176,8 +148,7 @@ def admin_search():
 @app.route('/admin/hero', methods=['GET', 'POST'])
 @login_required
 def admin_hero():
-    config = load_config()
-    site_content = config.get('site_content', {})
+    site_content = db_get_site_content()
     hero = site_content.get('hero', {})
     
     if request.method == 'POST':
@@ -186,9 +157,7 @@ def admin_hero():
         hero['button_text'] = request.form.get('button_text', '')
         hero['background_image'] = request.form.get('background_image', '')
         
-        site_content['hero'] = hero
-        config['site_content'] = site_content
-        save_config(config)
+        save_site_content_section('hero', hero)
         
         return redirect(url_for('admin_hero'))
     
@@ -197,8 +166,7 @@ def admin_hero():
 @app.route('/admin/services', methods=['GET', 'POST'])
 @login_required
 def admin_services():
-    config = load_config()
-    site_content = config.get('site_content', {})
+    site_content = db_get_site_content()
     services = site_content.get('services', [])
     
     if request.method == 'POST':
@@ -223,9 +191,7 @@ def admin_services():
             if 0 <= index < len(services):
                 services.pop(index)
         
-        site_content['services'] = services
-        config['site_content'] = site_content
-        save_config(config)
+        save_site_content_section('services', services)
         
         return redirect(url_for('admin_services'))
     
@@ -234,8 +200,7 @@ def admin_services():
 @app.route('/admin/about', methods=['GET', 'POST'])
 @login_required
 def admin_about():
-    config = load_config()
-    site_content = config.get('site_content', {})
+    site_content = db_get_site_content()
     about = site_content.get('about', {})
     
     if request.method == 'POST':
@@ -249,9 +214,7 @@ def admin_about():
         features_text = request.form.get('features', '')
         about['features'] = [f.strip() for f in features_text.split('\n') if f.strip()]
         
-        site_content['about'] = about
-        config['site_content'] = site_content
-        save_config(config)
+        save_site_content_section('about', about)
         
         return redirect(url_for('admin_about'))
     
@@ -260,8 +223,7 @@ def admin_about():
 @app.route('/admin/devices', methods=['GET', 'POST'])
 @login_required
 def admin_devices():
-    config = load_config()
-    site_content = config.get('site_content', {})
+    site_content = db_get_site_content()
     devices = site_content.get('devices', [])
     
     if request.method == 'POST':
@@ -286,9 +248,7 @@ def admin_devices():
             if 0 <= index < len(devices):
                 devices.pop(index)
         
-        site_content['devices'] = devices
-        config['site_content'] = site_content
-        save_config(config)
+        save_site_content_section('devices', devices)
         
         return redirect(url_for('admin_devices'))
     
@@ -297,8 +257,7 @@ def admin_devices():
 @app.route('/admin/laboratory', methods=['GET', 'POST'])
 @login_required
 def admin_laboratory():
-    config = load_config()
-    site_content = config.get('site_content', {})
+    site_content = db_get_site_content()
     laboratory = site_content.get('laboratory', {})
     
     if request.method == 'POST':
@@ -308,9 +267,7 @@ def admin_laboratory():
         images_text = request.form.get('images', '')
         laboratory['images'] = [img.strip() for img in images_text.split('\n') if img.strip()]
         
-        site_content['laboratory'] = laboratory
-        config['site_content'] = site_content
-        save_config(config)
+        save_site_content_section('laboratory', laboratory)
         
         return redirect(url_for('admin_laboratory'))
     
@@ -319,8 +276,7 @@ def admin_laboratory():
 @app.route('/admin/contact', methods=['GET', 'POST'])
 @login_required
 def admin_contact():
-    config = load_config()
-    site_content = config.get('site_content', {})
+    site_content = db_get_site_content()
     contact = site_content.get('contact', {})
     
     if request.method == 'POST':
@@ -339,9 +295,7 @@ def admin_contact():
         contact.pop('email1', None)
         contact.pop('email2', None)
         
-        site_content['contact'] = contact
-        config['site_content'] = site_content
-        save_config(config)
+        save_site_content_section('contact', contact)
         
         return redirect(url_for('admin_contact'))
     
@@ -352,9 +306,7 @@ def admin_contact():
 def admin_password():
     if request.method == 'POST':
         new_password = request.form.get('new_password', '')
-        config = load_config()
-        config['admin_password'] = new_password
-        save_config(config)
+        save_admin_password(new_password)
         return redirect(url_for('admin_dashboard'))
     
     return render_template('admin/password.html')
@@ -465,15 +417,7 @@ def admin_delete_checklist(checklist_id):
     import json
     import os
     
-    config = load_config()
-    checklists = config.get('checklists', [])
-    repairs = config.get('repairs', [])
-    
-    checklist_to_delete = None
-    for checklist in checklists:
-        if checklist.get('id') == checklist_id:
-            checklist_to_delete = checklist
-            break
+    checklist_to_delete = db_get_checklist(checklist_id)
     
     if not checklist_to_delete:
         return jsonify({'success': False, 'error': 'Checklist não encontrado'})
@@ -508,24 +452,23 @@ def admin_delete_checklist(checklist_id):
     # Remover referência do checklist no reparo
     repair_id = checklist_to_delete.get('repair_id')
     if repair_id:
-        for repair in repairs:
-            if repair.get('id') == repair_id:
-                # Remover ID do checklist da lista do reparo
-                if 'checklists' in repair:
-                    if checklist_id in repair['checklists']:
-                        repair['checklists'].remove(checklist_id)
-                
-                # Remover referências específicas
-                if repair.get('conclusion_checklist_id') == checklist_id:
-                    repair.pop('conclusion_checklist_id', None)
-                if repair.get('initial_checklist_id') == checklist_id:
-                    repair.pop('initial_checklist_id', None)
-                break
+        repair = db_get_repair(repair_id)
+        if repair:
+            # Remover ID do checklist da lista do reparo
+            if 'checklists' in repair:
+                if checklist_id in repair['checklists']:
+                    repair['checklists'].remove(checklist_id)
+            
+            # Remover referências específicas
+            if repair.get('conclusion_checklist_id') == checklist_id:
+                repair.pop('conclusion_checklist_id', None)
+            if repair.get('initial_checklist_id') == checklist_id:
+                repair.pop('initial_checklist_id', None)
+            
+            save_repair(repair_id, repair)
     
-    # Remover checklist do config
-    checklists.remove(checklist_to_delete)
-    config['checklists'] = checklists
-    save_config(config)
+    # Remover checklist do banco
+    db_delete_checklist(checklist_id)
     
     return jsonify({'success': True})
 
@@ -534,8 +477,7 @@ def admin_delete_checklist(checklist_id):
 @app.route('/admin/repairs', methods=['GET'])
 @login_required
 def admin_repairs():
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repairs = get_all_repairs()
     # Ordenar por data mais recente
     repairs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     return render_template('admin/repairs.html', repairs=repairs)
