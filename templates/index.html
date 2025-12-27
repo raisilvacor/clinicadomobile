@@ -37,6 +37,13 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
     
+    <!-- Preload imagens de marcas para carregamento mais rápido -->
+    {% if brands %}
+    {% for brand in brands[:6] %}
+    <link rel="preload" as="image" href="{{ brand.image }}" fetchpriority="high">
+    {% endfor %}
+    {% endif %}
+    
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
