@@ -1684,7 +1684,7 @@ def admin_or_pdf(repair_id):
     )
     
     company_info = Paragraph(
-        f"<b>Clínica do Reparo</b><br/>"
+        f"<b>Clínica CEL</b><br/>"
         f"CNPJ: 62.891.287/0001-44<br/>"
         f"www.clinicadomobile.com.br",
         company_style
@@ -1716,7 +1716,7 @@ def admin_or_pdf(repair_id):
             leading=14
         )
         company_info_center = Paragraph(
-            f"<b>Clínica do Reparo</b><br/>"
+            f"<b>Clínica CEL</b><br/>"
             f"CNPJ: 62.891.287/0001-44<br/>"
             f"www.clinicadomobile.com.br",
             company_style_center
@@ -1979,7 +1979,7 @@ def admin_repair_pdf(repair_id):
     )
     
     company_info = Paragraph(
-        f"<b>Clínica do Reparo</b><br/>"
+        f"<b>Clínica CEL</b><br/>"
         f"CNPJ: 62.891.287/0001-44<br/>"
         f"www.clinicadomobile.com.br",
         company_style
