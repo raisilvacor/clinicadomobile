@@ -1126,7 +1126,7 @@ def admin_view_or(repair_id):
     if not order_id:
         return redirect(url_for('admin_emit_or', repair_id=repair_id))
     
-    order = db_get_order(order_id, repair_id)
+    order = db_get_order(order_id)
     if not order:
         return "Ordem de Retirada não encontrada", 404
     
@@ -1152,7 +1152,7 @@ def admin_or_pdf(repair_id):
     if not order_id:
         return "Ordem de Retirada não encontrada", 404
     
-    order = db_get_order(order_id, repair_id)
+    order = db_get_order(order_id)
     if not order:
         return "Ordem de Retirada não encontrada", 404
     
