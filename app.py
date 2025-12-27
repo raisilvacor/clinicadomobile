@@ -1321,6 +1321,8 @@ def admin_new_brand():
         from datetime import datetime
         import uuid
         import base64
+        from PIL import Image
+        from io import BytesIO
         
         brand_id = str(uuid.uuid4())[:8]
         brand_data = {
@@ -1332,14 +1334,45 @@ def admin_new_brand():
             'updated_at': datetime.now().isoformat()
         }
         
-        # Salvar imagem como base64
+        # Salvar imagem como base64 com otimização
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:
-                file.seek(0)
-                file_data = file.read()
-                brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
-                brand_data['image'] = f"/static/brand_images/{brand_id}_{file.filename}"
+                try:
+                    # Abrir e otimizar imagem
+                    img = Image.open(file)
+                    
+                    # Converter para RGB se necessário (remove transparência para JPEG)
+                    if img.mode in ('RGBA', 'LA', 'P'):
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'P':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                        img = background
+                    elif img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    # Redimensionar se muito grande (max 400px de largura ou altura)
+                    max_size = 400
+                    if img.width > max_size or img.height > max_size:
+                        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+                    
+                    # Comprimir e salvar como JPEG (menor que PNG)
+                    output = BytesIO()
+                    img.save(output, format='JPEG', quality=85, optimize=True)
+                    output.seek(0)
+                    
+                    # Converter para base64
+                    file_data = output.getvalue()
+                    brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
+                    brand_data['image'] = f"/static/brand_images/{brand_id}.jpg"
+                except Exception as e:
+                    print(f"Erro ao processar imagem: {e}")
+                    # Fallback: salvar sem otimização
+                    file.seek(0)
+                    file_data = file.read()
+                    brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
+                    brand_data['image'] = f"/static/brand_images/{brand_id}_{file.filename}"
         
         save_brand(brand_id, brand_data)
         return redirect(url_for('admin_brands'))
@@ -1363,9 +1396,10 @@ def admin_delete_brand(brand_id):
 
 @app.route('/static/brand_images/<path:filename>')
 def serve_brand_image(filename):
-    """Serve imagens de marcas do banco de dados"""
+    """Serve imagens de marcas do banco de dados com cache otimizado"""
     import base64
     from flask import Response
+    from datetime import datetime, timedelta
     
     brands = get_all_brands()
     for brand in brands:
@@ -1375,12 +1409,17 @@ def serve_brand_image(filename):
             if image_data:
                 try:
                     img_data = base64.b64decode(image_data)
-                    mimetype = 'image/png'
-                    if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
-                        mimetype = 'image/jpeg'
-                    elif filename.lower().endswith('.png'):
+                    mimetype = 'image/jpeg'  # Sempre JPEG após otimização
+                    if filename.lower().endswith('.png'):
                         mimetype = 'image/png'
-                    return Response(img_data, mimetype=mimetype)
+                    
+                    # Headers de cache para performance
+                    expires = datetime.now() + timedelta(days=365)  # Cache por 1 ano
+                    response = Response(img_data, mimetype=mimetype)
+                    response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+                    response.headers['Expires'] = expires.strftime('%a, %d %b %Y %H:%M:%S GMT')
+                    response.headers['ETag'] = f'"{brand.get("id", "")}"'
+                    return response
                 except Exception as e:
                     print(f"Erro ao decodificar imagem de marca {filename}: {e}")
                     continue
