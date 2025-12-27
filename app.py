@@ -37,11 +37,16 @@ app = Flask(__name__)
 app.secret_key = 'sua-chave-secreta-mude-isso-em-producao'
 
 # Inicializar banco de dados na inicialização do app
+print("🚀 Inicializando aplicação...")
 try:
-    create_tables()
+    from db import init_db
+    init_db()  # Inicializar pool primeiro
+    create_tables()  # Depois criar tabelas
     print("✅ Banco de dados inicializado com sucesso!")
 except Exception as e:
     print(f"⚠️  Erro ao inicializar banco de dados: {e}")
+    import traceback
+    traceback.print_exc()
 
 def get_site_content():
     """Obtém o conteúdo do site do banco de dados"""

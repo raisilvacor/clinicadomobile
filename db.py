@@ -8,19 +8,31 @@ from contextlib import contextmanager
 
 # Usar psycopg (psycopg3) que é compatível com Python 3.13
 USE_DATABASE = True
+CONFIG_FILE = 'config.json'  # Definir sempre para fallback
+
 try:
     import psycopg
     from psycopg.rows import dict_row
     from psycopg.pool import ConnectionPool
     PSYCOPG_VERSION = 3
-except ImportError:
+    print("✅ psycopg importado com sucesso!")
+except ImportError as e:
     USE_DATABASE = False
-    # Fallback: usar config.json
-    CONFIG_FILE = 'config.json'
-    print("⚠️  psycopg não encontrado, usando config.json como fallback")
+    print(f"⚠️  psycopg não encontrado ({e}), usando config.json como fallback")
+    print("⚠️  ATENÇÃO: Dados serão perdidos após deploy! Instale psycopg[binary]>=3.1.0")
 
 # URL do banco de dados do Render
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://rai:nk1HAfaFPhbOvg34lqWl7YC5LfPNmNS3@dpg-d57kenggjchc739lcorg-a.virginia-postgres.render.com/mobiledb_p0w2')
+# Priorizar variável de ambiente, senão usar fallback
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    # Fallback para URL hardcoded (não recomendado, mas necessário se env var não estiver configurada)
+    DATABASE_URL = 'postgresql://rai:nk1HAfaFPhbOvg34lqWl7YC5LfPNmNS3@dpg-d57kenggjchc739lcorg-a.virginia-postgres.render.com/mobiledb_p0w2'
+    print("⚠️  DATABASE_URL não encontrada em variáveis de ambiente, usando fallback")
+
+if DATABASE_URL:
+    print(f"✅ DATABASE_URL configurada: {DATABASE_URL[:40]}...")
+else:
+    print("❌ DATABASE_URL não configurada!")
 
 # Pool de conexões
 pool = None
@@ -40,10 +52,30 @@ def _save_config_file(config):
 def init_db():
     """Inicializa o pool de conexões"""
     if not USE_DATABASE:
+        print("⚠️  Banco de dados desabilitado - usando config.json")
         return None
     global pool
     if pool is None:
-        pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=20)
+        try:
+            print(f"🔌 Conectando ao banco de dados PostgreSQL...")
+            print(f"🔌 DATABASE_URL: {DATABASE_URL[:30]}...")  # Mostrar apenas início por segurança
+            pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=20)
+            print("✅ Pool de conexões criado com sucesso!")
+            # Testar conexão criando uma conexão direta primeiro
+            test_conn = pool.getconn()
+            try:
+                test_cur = test_conn.cursor()
+                test_cur.execute("SELECT 1")
+                test_cur.fetchone()
+                print("✅ Conexão com banco de dados estabelecida!")
+            except Exception as e:
+                print(f"⚠️  Falha ao testar conexão: {e}")
+            finally:
+                pool.putconn(test_conn)
+        except Exception as e:
+            print(f"❌ Erro ao criar pool de conexões: {e}")
+            USE_DATABASE = False
+            return None
     return pool
 
 @contextmanager
@@ -52,16 +84,29 @@ def get_db_connection():
     if not USE_DATABASE:
         yield None
         return
-    pool = init_db()
-    conn = pool.getconn()
+    
+    # Garantir que o pool está inicializado
+    global pool
+    if pool is None:
+        init_db()
+        if pool is None:
+            yield None
+            return
+    
+    conn = None
     try:
+        conn = pool.getconn()
         yield conn
-        conn.commit()
+        if conn:
+            conn.commit()
     except Exception as e:
-        conn.rollback()
-        raise e
+        if conn:
+            conn.rollback()
+        print(f"⚠️  Erro na transação: {e}")
+        raise
     finally:
-        pool.putconn(conn)
+        if conn:
+            pool.putconn(conn)
 
 def _get_cursor(conn, dict_cursor=False):
     """Helper para obter cursor"""
@@ -150,8 +195,11 @@ def create_tables():
             cur.execute("CREATE INDEX IF NOT EXISTS idx_suppliers_id ON suppliers(id)")
             
             conn.commit()
+            print("✅ Tabelas criadas/verificadas com sucesso!")
     except Exception as e:
-        print(f"⚠️  Erro ao criar tabelas: {e}")
+        print(f"❌ Erro ao criar tabelas: {e}")
+        import traceback
+        traceback.print_exc()
         pass
 
 # ========== FUNÇÕES DE SITE CONTENT ==========
