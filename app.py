@@ -2502,6 +2502,69 @@ def serve_product_photo(filename):
     
     return "Imagem não encontrada", 404
 
+# Rota para servir vídeos com streaming adequado (evita timeout)
+@app.route('/static/videos/<path:filename>')
+def serve_video(filename):
+    """Serve vídeos com range requests para streaming adequado"""
+    from flask import Response, request
+    import os
+    
+    video_path = os.path.join('static', 'videos', filename)
+    if not os.path.exists(video_path):
+        return "Vídeo não encontrado", 404
+    
+    # Suportar range requests para streaming
+    range_header = request.headers.get('Range', None)
+    if not range_header:
+        # Se não há range request, servir arquivo completo
+        try:
+            with open(video_path, 'rb') as f:
+                video_data = f.read()
+            return Response(
+                video_data,
+                mimetype='video/mp4',
+                headers={
+                    'Accept-Ranges': 'bytes',
+                    'Content-Length': str(len(video_data))
+                }
+            )
+        except Exception as e:
+            print(f"Erro ao servir vídeo {filename}: {e}")
+            return "Erro ao servir vídeo", 500
+    
+    # Processar range request
+    try:
+        file_size = os.path.getsize(video_path)
+        byte_start = 0
+        byte_end = file_size - 1
+        
+        # Parse do range header (ex: "bytes=0-1023")
+        range_match = range_header.replace('bytes=', '').split('-')
+        if range_match[0]:
+            byte_start = int(range_match[0])
+        if len(range_match) > 1 and range_match[1]:
+            byte_end = int(range_match[1])
+        
+        content_length = byte_end - byte_start + 1
+        
+        with open(video_path, 'rb') as f:
+            f.seek(byte_start)
+            video_data = f.read(content_length)
+        
+        return Response(
+            video_data,
+            status=206,  # Partial Content
+            mimetype='video/mp4',
+            headers={
+                'Content-Range': f'bytes {byte_start}-{byte_end}/{file_size}',
+                'Accept-Ranges': 'bytes',
+                'Content-Length': str(content_length)
+            }
+        )
+    except Exception as e:
+        print(f"Erro ao processar range request para {filename}: {e}")
+        return "Erro ao processar vídeo", 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)

@@ -868,7 +868,8 @@
                 <!-- Conteúdo padrão -->
                 <div class="device-card">
                     <div class="device-image-container">
-                        <img src="/static/images/android.jpg" alt="Android" class="device-image" onerror="this.parentElement.innerHTML='<div class=\'device-image-placeholder\'>🤖</div>'">
+                        <img src="/static/images/android.jpg" alt="Android" class="device-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="display: block;">
+                        <div class="device-image-placeholder" style="display: none; width: 100%; height: 200px; background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 4rem; border: 2px solid #333333;">🤖</div>
                     </div>
                     <div class="device-content">
                         <h3>Android</h3>

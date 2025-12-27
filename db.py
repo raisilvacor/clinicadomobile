@@ -122,7 +122,7 @@ def init_db():
 
 @contextmanager
 def get_db_connection():
-    """Context manager para obter conexão do pool"""
+    """Context manager para obter conexão do pool com retry automático"""
     if not USE_DATABASE:
         yield None
         return
@@ -136,19 +136,75 @@ def get_db_connection():
             return
     
     conn = None
-    try:
-        conn = pool.getconn()
-        yield conn
-        if conn:
-            conn.commit()
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        print(f"⚠️  Erro na transação: {e}")
-        raise
-    finally:
-        if conn:
-            pool.putconn(conn)
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            conn = pool.getconn()
+            # Verificar se a conexão está válida
+            try:
+                test_cur = conn.cursor()
+                test_cur.execute("SELECT 1")
+                test_cur.fetchone()
+                test_cur.close()
+            except Exception as conn_check_error:
+                # Conexão inválida, descartar e tentar novamente
+                if conn:
+                    try:
+                        pool.putconn(conn, close=True)  # Fechar conexão inválida
+                    except:
+                        pass
+                conn = None
+                if attempt < max_retries - 1:
+                    print(f"⚠️  Conexão inválida detectada, tentando reconectar... (tentativa {attempt + 1}/{max_retries})")
+                    continue
+                else:
+                    raise
+            
+            # Conexão válida, usar normalmente
+            yield conn
+            if conn:
+                conn.commit()
+            break  # Sucesso, sair do loop
+        except Exception as e:
+            error_msg = str(e).lower()
+            # Verificar se é erro de conexão perdida
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+                try:
+                    # Tentar retornar conexão ao pool, mas fechar se estiver ruim
+                    if 'connection is lost' in error_msg or 'connection' in error_msg and 'lost' in error_msg:
+                        pool.putconn(conn, close=True)
+                    else:
+                        pool.putconn(conn)
+                except:
+                    pass
+                conn = None
+            
+            # Se for erro de conexão e ainda temos tentativas, tentar reconectar
+            if ('connection' in error_msg and ('lost' in error_msg or 'closed' in error_msg)) and attempt < max_retries - 1:
+                print(f"⚠️  Erro de conexão detectado: {e}, tentando reconectar... (tentativa {attempt + 1}/{max_retries})")
+                # Tentar reinicializar o pool se necessário
+                try:
+                    if pool:
+                        pool.close()
+                except:
+                    pass
+                pool = None
+                init_db()
+                continue
+            else:
+                print(f"⚠️  Erro na transação: {e}")
+                if attempt == max_retries - 1:
+                    raise
+        finally:
+            if conn and attempt == max_retries - 1:
+                try:
+                    pool.putconn(conn)
+                except:
+                    pass
 
 def _get_cursor(conn, dict_cursor=False):
     """Helper para obter cursor"""
