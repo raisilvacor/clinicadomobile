@@ -294,7 +294,15 @@
                 <div class="repair-card-summary" onclick="toggleRepairDetails('{{ repair.id }}')">
                     <div class="repair-info">
                         <h3 style="margin: 0; color: #ff8c00;">{{ repair.device_name or 'Dispositivo não informado' }}</h3>
-                        <div class="repair-id" style="margin-top: 0.25rem;">ID: {{ repair.id }} | Cliente: {{ repair.customer_name or 'N/A' }} | {{ repair.created_at[:10] if repair.created_at else 'N/A' }}</div>
+                        <div class="repair-id" style="margin-top: 0.25rem;">
+                            ID: {{ repair.id }} | 
+                            {% if repair.get('repair_type') == 'retorno' %}
+                                <span style="color: #ff8c00; font-weight: bold;">🔄 RETORNO</span> | 
+                            {% else %}
+                                <span style="color: #28a745; font-weight: bold;">🆕 NOVO</span> | 
+                            {% endif %}
+                            Cliente: {{ repair.customer_name or 'N/A' }} | {{ repair.created_at[:10] if repair.created_at else 'N/A' }}
+                        </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <span class="status-badge status-{{ repair.status }}">{{ repair.status|replace('_', ' ')|title }}</span>
@@ -306,9 +314,30 @@
                 <div class="repair-header" style="margin-top: 0;">
                     <div class="repair-info">
                         <h3>{{ repair.device_name or 'Dispositivo não informado' }}</h3>
-                        <div class="repair-id">ID: {{ repair.id }}</div>
+                        <div class="repair-id">
+                            ID: {{ repair.id }} | 
+                            {% if repair.get('repair_type') == 'retorno' %}
+                                <span style="color: #ff8c00; font-weight: bold; padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); border-radius: 15px; border: 1px solid #ff8c00;">🔄 RETORNO</span>
+                            {% else %}
+                                <span style="color: #28a745; font-weight: bold; padding: 0.25rem 0.75rem; background: rgba(40, 167, 69, 0.2); border-radius: 15px; border: 1px solid #28a745;">🆕 NOVO</span>
+                            {% endif %}
+                        </div>
                     </div>
                     <span class="status-badge status-{{ repair.status }}">{{ repair.status|replace('_', ' ')|title }}</span>
+                </div>
+
+                <!-- Tipo de Reparo -->
+                <div style="background: #0d0d0d; padding: 1rem; border-radius: 10px; margin-bottom: 1rem; border: 1px solid #333333;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <strong style="color: #ff8c00;">Tipo de Reparo:</strong>
+                        {% if repair.get('repair_type') == 'retorno' %}
+                            <span style="color: #ff8c00; font-weight: bold; padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); border-radius: 15px; border: 1px solid #ff8c00;">🔄 RETORNO</span>
+                            <span style="color: #999; font-size: 0.9rem; margin-left: 0.5rem;">(Aparelho retornando para reparo novamente)</span>
+                        {% else %}
+                            <span style="color: #28a745; font-weight: bold; padding: 0.25rem 0.75rem; background: rgba(40, 167, 69, 0.2); border-radius: 15px; border: 1px solid #28a745;">🆕 NOVO</span>
+                            <span style="color: #999; font-size: 0.9rem; margin-left: 0.5rem;">(Primeiro reparo do aparelho)</span>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <div class="repair-details">

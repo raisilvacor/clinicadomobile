@@ -8,7 +8,26 @@
     <p>Cadastre um novo reparo para acompanhamento do cliente.</p>
 
     <form method="POST">
-        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📱 Informações do Dispositivo</h3>
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📋 Tipo de Reparo</h3>
+        
+        <div class="form-group">
+            <label style="display: block; margin-bottom: 0.5rem; color: #ffffff; font-weight: bold;">Tipo de Reparo:</label>
+            <div style="display: flex; gap: 2rem; margin-top: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #ffffff;">
+                    <input type="radio" name="repair_type" value="novo" checked style="width: auto; cursor: pointer;">
+                    <span>🆕 Novo Reparo</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #ffffff;">
+                    <input type="radio" name="repair_type" value="retorno" style="width: auto; cursor: pointer;">
+                    <span>🔄 Retorno (Reparo Novamente)</span>
+                </label>
+            </div>
+            <small style="color: #999; display: block; margin-top: 0.5rem;">
+                Selecione se é um reparo novo ou se o aparelho está retornando para reparo novamente
+            </small>
+        </div>
+
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">📱 Informações do Dispositivo</h3>
         
         <div class="form-group">
             <label for="device_name">Nome do Dispositivo:</label>

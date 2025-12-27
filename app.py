@@ -497,8 +497,11 @@ def admin_new_repair():
     if request.method == 'POST':
         repair_id = str(uuid.uuid4())[:8]
         
+        repair_type = request.form.get('repair_type', 'novo')  # 'novo' ou 'retorno'
+        
         repair = {
             'id': repair_id,
+            'repair_type': repair_type,  # 'novo' ou 'retorno'
             'device_name': request.form.get('device_name', ''),
             'device_model': request.form.get('device_model', ''),
             'device_imei': request.form.get('device_imei', ''),
@@ -515,7 +518,7 @@ def admin_new_repair():
             'messages': [],
             'history': [{
                 'timestamp': datetime.now().isoformat(),
-                'action': 'Reparo criado',
+                'action': f'Reparo {"novo" if repair_type == "novo" else "de retorno"} criado',
                 'status': 'aguardando'
             }]
         }
@@ -653,6 +656,7 @@ def admin_edit_repair(repair_id):
         return redirect(url_for('admin_repairs'))
     
     if request.method == 'POST':
+        repair['repair_type'] = request.form.get('repair_type', 'novo')  # 'novo' ou 'retorno'
         repair['device_name'] = request.form.get('device_name', '')
         repair['device_model'] = request.form.get('device_model', '')
         repair['device_imei'] = request.form.get('device_imei', '')
