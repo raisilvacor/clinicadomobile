@@ -1,9 +1,23 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" itemscope itemtype="https://schema.org/Store">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loja - Clínica do Mobile</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>Loja - Clínica do Mobile | Celulares e Acessórios</title>
+    <meta name="description" content="Loja de celulares e acessórios da Clínica do Mobile. Produtos novos e usados com garantia. Encontre o melhor celular para você.">
+    <meta name="keywords" content="loja celular, celular usado, celular novo, acessórios celular, comprar celular">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ request.url_root.rstrip('/') }}/loja">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url_root.rstrip('/') }}/loja">
+    <meta property="og:title" content="Loja - Clínica do Mobile">
+    <meta property="og:description" content="Loja de celulares e acessórios. Produtos novos e usados com garantia.">
+    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
+    
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>

@@ -2581,6 +2581,58 @@ def serve_video(filename):
         traceback.print_exc()
         return "Erro ao processar vídeo", 500
 
+# Rota para sitemap.xml (SEO)
+@app.route('/sitemap.xml')
+def sitemap():
+    """Gera sitemap.xml para SEO"""
+    from flask import Response
+    import xml.etree.ElementTree as ET
+    
+    url_root = request.url_root.rstrip('/')
+    
+    urlset = ET.Element('urlset')
+    urlset.set('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9')
+    
+    # Página principal
+    url = ET.SubElement(urlset, 'url')
+    ET.SubElement(url, 'loc').text = url_root
+    ET.SubElement(url, 'changefreq').text = 'daily'
+    ET.SubElement(url, 'priority').text = '1.0'
+    
+    # Loja
+    url = ET.SubElement(urlset, 'url')
+    ET.SubElement(url, 'loc').text = f'{url_root}/loja'
+    ET.SubElement(url, 'changefreq').text = 'daily'
+    ET.SubElement(url, 'priority').text = '0.8'
+    
+    # Produtos
+    products = get_all_products()
+    for product in products:
+        if not product.get('sold', False):
+            url = ET.SubElement(urlset, 'url')
+            ET.SubElement(url, 'loc').text = f'{url_root}/loja/{product.get("id")}'
+            ET.SubElement(url, 'changefreq').text = 'weekly'
+            ET.SubElement(url, 'priority').text = '0.7'
+    
+    xml_str = ET.tostring(urlset, encoding='utf-8', method='xml').decode('utf-8')
+    return Response(xml_str, mimetype='application/xml')
+
+# Rota para robots.txt (SEO)
+@app.route('/robots.txt')
+def robots():
+    """Gera robots.txt para SEO"""
+    from flask import Response
+    url_root = request.url_root.rstrip('/')
+    robots_content = f"""User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /status/
+Disallow: /repairs
+
+Sitemap: {url_root}/sitemap.xml
+"""
+    return Response(robots_content, mimetype='text/plain')
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)

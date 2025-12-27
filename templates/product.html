@@ -1,9 +1,47 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" itemscope itemtype="https://schema.org/Product">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ product.title }} - Loja</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>{{ product.title }} - Loja Clínica do Mobile</title>
+    <meta name="description" content="{{ product.description[:160] if product.description else 'Produto disponível na loja Clínica do Mobile' }}">
+    <meta name="keywords" content="{{ product.title }}, celular, smartphone, {{ 'novo' if product.condition == 'novo' else 'usado' }}">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ request.url_root.rstrip('/') }}/loja/{{ product.id }}">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="product">
+    <meta property="og:url" content="{{ request.url_root.rstrip('/') }}/loja/{{ product.id }}">
+    <meta property="og:title" content="{{ product.title }} - Loja Clínica do Mobile">
+    <meta property="og:description" content="{{ product.description[:160] if product.description else 'Produto disponível na loja' }}">
+    {% if product.photos and product.photos[0] %}
+    <meta property="og:image" content="{{ product.photos[0] if product.photos[0].startswith('http') else request.url_root.rstrip('/') + product.photos[0] }}">
+    {% endif %}
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "{{ product.title }}",
+        "description": "{{ product.description|replace('"', '\\"') if product.description else '' }}",
+        "image": {% if product.photos and product.photos[0] %}"{{ product.photos[0] if product.photos[0].startswith('http') else request.url_root.rstrip('/') + product.photos[0] }}"{% else %}null{% endif %},
+        "offers": {
+            "@type": "Offer",
+            "price": "{{ product.price }}",
+            "priceCurrency": "BRL",
+            "availability": "{% if product.sold %}https://schema.org/SoldOut{% else %}https://schema.org/InStock{% endif %}",
+            "itemCondition": "{% if product.condition == 'novo' %}https://schema.org/NewCondition{% else %}https://schema.org/UsedCondition{% endif %}"
+        },
+        "brand": {
+            "@type": "Brand",
+            "name": "Clínica do Mobile"
+        }
+    }
+    </script>
+    
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
