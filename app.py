@@ -320,8 +320,6 @@ def admin_checklist():
     from datetime import datetime
     
     if request.method == 'POST':
-        config = load_config()
-        
         checklist_type = request.form.get('checklist_type', 'inicial')  # inicial ou conclusao
         repair_id = request.form.get('repair_id', '').strip()
         
@@ -334,8 +332,9 @@ def admin_checklist():
         if not os.path.exists(photos_dir):
             os.makedirs(photos_dir)
         
+        checklist_id = str(uuid.uuid4())[:8]
         checklist_data = {
-            'id': str(uuid.uuid4())[:8],
+            'id': checklist_id,
             'type': checklist_type,
             'repair_id': repair_id,
             'timestamp': datetime.now().isoformat(),
@@ -374,30 +373,25 @@ def admin_checklist():
         
         # Assinatura será feita pelo cliente no link de acompanhamento, não no admin
         
-        # Salvar no config
-        if 'checklists' not in config:
-            config['checklists'] = []
+        # Salvar checklist diretamente no banco de dados
+        save_checklist(checklist_id, checklist_data)
         
-        config['checklists'].append(checklist_data)
-        
-        # Associar checklist ao reparo se tiver repair_id
-        if repair_id:
-            repairs = config.get('repairs', [])
-            for repair in repairs:
-                if repair.get('id') == repair_id:
-                    if 'checklists' not in repair:
-                        repair['checklists'] = []
-                    repair['checklists'].append(checklist_data['id'])
-                    
-                    # Se for checklist de conclusão, marcar como conclusão
-                    if checklist_type == 'conclusao':
-                        repair['conclusion_checklist_id'] = checklist_data['id']
-                    # Se for checklist inicial, marcar como inicial
-                    elif checklist_type == 'inicial':
-                        repair['initial_checklist_id'] = checklist_data['id']
-                    break
-        
-        save_config(config)
+        # Associar checklist ao reparo
+        repair = db_get_repair(repair_id)
+        if repair:
+            if 'checklists' not in repair:
+                repair['checklists'] = []
+            if checklist_id not in repair['checklists']:
+                repair['checklists'].append(checklist_id)
+            
+            # Se for checklist de conclusão, marcar como conclusão
+            if checklist_type == 'conclusao':
+                repair['conclusion_checklist_id'] = checklist_id
+            # Se for checklist inicial, marcar como inicial
+            elif checklist_type == 'inicial':
+                repair['initial_checklist_id'] = checklist_id
+            
+            save_repair(repair_id, repair)
         
         if repair_id:
             return redirect(url_for('admin_repairs'))
@@ -405,9 +399,8 @@ def admin_checklist():
             return redirect(url_for('admin_checklist'))
     
     # GET - mostrar checklist
-    config = load_config()
-    checklists = config.get('checklists', [])
-    repairs = config.get('repairs', [])
+    checklists = get_all_checklists()
+    repairs = get_all_repairs()
     
     return render_template('admin/checklist.html', checklists=checklists, repairs=repairs)
 
@@ -489,10 +482,10 @@ def admin_new_repair():
     import uuid
     
     if request.method == 'POST':
-        config = load_config()
+        repair_id = str(uuid.uuid4())[:8]
         
         repair = {
-            'id': str(uuid.uuid4())[:8],
+            'id': repair_id,
             'device_name': request.form.get('device_name', ''),
             'device_model': request.form.get('device_model', ''),
             'device_imei': request.form.get('device_imei', ''),
@@ -529,11 +522,8 @@ def admin_new_repair():
                 'status': 'orcamento'
             })
         
-        if 'repairs' not in config:
-            config['repairs'] = []
-        
-        config['repairs'].append(repair)
-        save_config(config)
+        # Salvar diretamente no banco de dados
+        save_repair(repair_id, repair)
         
         return redirect(url_for('admin_repairs'))
     
@@ -548,23 +538,20 @@ def admin_update_status(repair_id):
     data = request.get_json()
     new_status = data.get('status', '')
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
     
-    for repair in repairs:
-        if repair.get('id') == repair_id:
-            old_status = repair.get('status', '')
-            repair['status'] = new_status
-            repair['updated_at'] = datetime.now().isoformat()
-            repair['history'].append({
-                'timestamp': datetime.now().isoformat(),
-                'action': f'Status alterado: {old_status} → {new_status}',
-                'status': new_status
-            })
-            save_config(config)
-            return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'error': 'Reparo não encontrado'})
+    old_status = repair.get('status', '')
+    repair['status'] = new_status
+    repair['updated_at'] = datetime.now().isoformat()
+    repair['history'].append({
+        'timestamp': datetime.now().isoformat(),
+        'action': f'Status alterado: {old_status} → {new_status}',
+        'status': new_status
+    })
+    save_repair(repair_id, repair)
+    return jsonify({'success': True})
 
 @app.route('/admin/repairs/<repair_id>/budget/approve', methods=['POST'])
 @login_required
@@ -572,28 +559,25 @@ def admin_approve_budget(repair_id):
     from datetime import datetime
     import json
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair = db_get_repair(repair_id)
+    if not repair or not repair.get('budget'):
+        return jsonify({'success': False})
     
-    for repair in repairs:
-        if repair.get('id') == repair_id and repair.get('budget'):
-            repair['budget']['status'] = 'approved'
-            repair['status'] = 'aprovado'
-            repair['updated_at'] = datetime.now().isoformat()
-            repair['history'].append({
-                'timestamp': datetime.now().isoformat(),
-                'action': 'Orçamento aprovado pelo administrador',
-                'status': 'aprovado'
-            })
-            repair['messages'].append({
-                'type': 'budget_approved',
-                'content': f'Orçamento de R$ {repair["budget"]["amount"]:.2f} foi aprovado. O reparo será iniciado em breve.',
-                'sent_at': datetime.now().isoformat()
-            })
-            save_config(config)
-            return jsonify({'success': True})
-    
-    return jsonify({'success': False})
+    repair['budget']['status'] = 'approved'
+    repair['status'] = 'aprovado'
+    repair['updated_at'] = datetime.now().isoformat()
+    repair['history'].append({
+        'timestamp': datetime.now().isoformat(),
+        'action': 'Orçamento aprovado pelo administrador',
+        'status': 'aprovado'
+    })
+    repair['messages'].append({
+        'type': 'budget_approved',
+        'content': f'Orçamento de R$ {repair["budget"]["amount"]:.2f} foi aprovado. O reparo será iniciado em breve.',
+        'sent_at': datetime.now().isoformat()
+    })
+    save_repair(repair_id, repair)
+    return jsonify({'success': True})
 
 @app.route('/admin/repairs/<repair_id>/budget/reject', methods=['POST'])
 @login_required
@@ -601,28 +585,25 @@ def admin_reject_budget(repair_id):
     from datetime import datetime
     import json
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair = db_get_repair(repair_id)
+    if not repair or not repair.get('budget'):
+        return jsonify({'success': False})
     
-    for repair in repairs:
-        if repair.get('id') == repair_id and repair.get('budget'):
-            repair['budget']['status'] = 'rejected'
-            repair['status'] = 'aguardando'
-            repair['updated_at'] = datetime.now().isoformat()
-            repair['history'].append({
-                'timestamp': datetime.now().isoformat(),
-                'action': 'Orçamento rejeitado pelo administrador',
-                'status': 'aguardando'
-            })
-            repair['messages'].append({
-                'type': 'budget_rejected',
-                'content': f'Orçamento de R$ {repair["budget"]["amount"]:.2f} foi rejeitado.',
-                'sent_at': datetime.now().isoformat()
-            })
-            save_config(config)
-            return jsonify({'success': True})
-    
-    return jsonify({'success': False})
+    repair['budget']['status'] = 'rejected'
+    repair['status'] = 'aguardando'
+    repair['updated_at'] = datetime.now().isoformat()
+    repair['history'].append({
+        'timestamp': datetime.now().isoformat(),
+        'action': 'Orçamento rejeitado pelo administrador',
+        'status': 'aguardando'
+    })
+    repair['messages'].append({
+        'type': 'budget_rejected',
+        'content': f'Orçamento de R$ {repair["budget"]["amount"]:.2f} foi rejeitado.',
+        'sent_at': datetime.now().isoformat()
+    })
+    save_repair(repair_id, repair)
+    return jsonify({'success': True})
 
 @app.route('/admin/repairs/<repair_id>/message', methods=['POST'])
 @login_required
@@ -633,39 +614,28 @@ def admin_send_message(repair_id):
     data = request.get_json()
     message_content = data.get('message', '')
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return jsonify({'success': False})
     
-    for repair in repairs:
-        if repair.get('id') == repair_id:
-            if 'messages' not in repair:
-                repair['messages'] = []
-            
-            repair['messages'].append({
-                'type': 'admin',
-                'content': message_content,
-                'sent_at': datetime.now().isoformat()
-            })
-            repair['updated_at'] = datetime.now().isoformat()
-            save_config(config)
-            return jsonify({'success': True})
+    if 'messages' not in repair:
+        repair['messages'] = []
     
-    return jsonify({'success': False})
+    repair['messages'].append({
+        'type': 'admin',
+        'content': message_content,
+        'sent_at': datetime.now().isoformat()
+    })
+    repair['updated_at'] = datetime.now().isoformat()
+    save_repair(repair_id, repair)
+    return jsonify({'success': True})
 
 @app.route('/admin/repairs/<repair_id>/edit', methods=['GET', 'POST'])
 @login_required
 def admin_edit_repair(repair_id):
     from datetime import datetime
     
-    config = load_config()
-    repairs = config.get('repairs', [])
-    repair = None
-    
-    for r in repairs:
-        if r.get('id') == repair_id:
-            repair = r
-            break
-    
+    repair = db_get_repair(repair_id)
     if not repair:
         return redirect(url_for('admin_repairs'))
     
@@ -681,7 +651,7 @@ def admin_edit_repair(repair_id):
         repair['customer_email'] = request.form.get('customer_email', '')
         repair['updated_at'] = datetime.now().isoformat()
         
-        save_config(config)
+        save_repair(repair_id, repair)
         return redirect(url_for('admin_repairs'))
     
     return render_template('admin/edit_repair.html', repair=repair)
@@ -689,43 +659,13 @@ def admin_edit_repair(repair_id):
 # Rota pública para cliente ver status
 @app.route('/status/<repair_id>', methods=['GET'])
 def public_repair_status(repair_id):
-    config = load_config()
-    repairs = config.get('repairs', [])
-    checklists = config.get('checklists', [])
-    
-    repair = None
-    for r in repairs:
-        if r.get('id') == repair_id:
-            repair = r
-            break
+    repair = db_get_repair(repair_id)
     
     # Buscar TODOS os checklists associados a este reparo (com e sem assinatura)
-    # A assinatura só aparece após o checklist ser concluído (salvo)
-    repair_checklists = []  # Checklists que precisam de assinatura
-    all_repair_checklists = []  # Todos os checklists para exibir dados completos
-    if repair:
-        # Buscar por IDs na lista do reparo
-        repair_checklist_ids = repair.get('checklists', [])
-        for checklist_id in repair_checklist_ids:
-            for checklist in checklists:
-                if checklist.get('id') == checklist_id:
-                    # Adicionar todos os checklists para exibir dados
-                    all_repair_checklists.append(checklist)
-                    # Adicionar apenas checklists que não têm assinatura para assinar
-                    if not checklist.get('signature'):
-                        repair_checklists.append(checklist)
-                    break
-        
-        # Também buscar checklists que têm repair_id diretamente (para garantir)
-        for checklist in checklists:
-            if checklist.get('repair_id') == repair_id:
-                # Adicionar se não estiver na lista e já foi salvo (tem timestamp)
-                if (checklist.get('id') not in repair_checklist_ids and 
-                    checklist.get('timestamp')):
-                    all_repair_checklists.append(checklist)
-                    # Adicionar para assinatura se não tiver assinatura
-                    if not checklist.get('signature'):
-                        repair_checklists.append(checklist)
+    all_repair_checklists = get_checklists_by_repair(repair_id)
+    
+    # Checklists que precisam de assinatura (sem assinatura)
+    repair_checklists = [cl for cl in all_repair_checklists if not cl.get('signature')]
     
     return render_template('status.html', repair=repair, repair_checklists=repair_checklists, all_repair_checklists=all_repair_checklists)
 
@@ -734,28 +674,25 @@ def public_approve_budget(repair_id):
     from datetime import datetime
     import json
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair = db_get_repair(repair_id)
+    if not repair or not repair.get('budget'):
+        return jsonify({'success': False})
     
-    for repair in repairs:
-        if repair.get('id') == repair_id and repair.get('budget'):
-            repair['budget']['status'] = 'approved'
-            repair['status'] = 'aprovado'
-            repair['updated_at'] = datetime.now().isoformat()
-            repair['history'].append({
-                'timestamp': datetime.now().isoformat(),
-                'action': 'Orçamento aprovado pelo cliente',
-                'status': 'aprovado'
-            })
-            repair['messages'].append({
-                'type': 'budget_approved',
-                'content': f'Você aprovou o orçamento de R$ {repair["budget"]["amount"]:.2f}. O reparo será iniciado em breve.',
-                'sent_at': datetime.now().isoformat()
-            })
-            save_config(config)
-            return jsonify({'success': True})
-    
-    return jsonify({'success': False})
+    repair['budget']['status'] = 'approved'
+    repair['status'] = 'aprovado'
+    repair['updated_at'] = datetime.now().isoformat()
+    repair['history'].append({
+        'timestamp': datetime.now().isoformat(),
+        'action': 'Orçamento aprovado pelo cliente',
+        'status': 'aprovado'
+    })
+    repair['messages'].append({
+        'type': 'budget_approved',
+        'content': f'Você aprovou o orçamento de R$ {repair["budget"]["amount"]:.2f}. O reparo será iniciado em breve.',
+        'sent_at': datetime.now().isoformat()
+    })
+    save_repair(repair_id, repair)
+    return jsonify({'success': True})
 
 @app.route('/repairs', methods=['GET'])
 def public_list_repairs():
@@ -765,8 +702,7 @@ def public_list_repairs():
     if not search_query:
         return render_template('repairs_list.html', repairs=None, search_query=None)
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repairs = get_all_repairs()
     
     # Filtrar reparos por telefone ou email
     client_repairs = []
@@ -792,28 +728,25 @@ def public_reject_budget(repair_id):
     from datetime import datetime
     import json
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair = db_get_repair(repair_id)
+    if not repair or not repair.get('budget'):
+        return jsonify({'success': False})
     
-    for repair in repairs:
-        if repair.get('id') == repair_id and repair.get('budget'):
-            repair['budget']['status'] = 'rejected'
-            repair['status'] = 'aguardando'
-            repair['updated_at'] = datetime.now().isoformat()
-            repair['history'].append({
-                'timestamp': datetime.now().isoformat(),
-                'action': 'Orçamento rejeitado pelo cliente',
-                'status': 'aguardando'
-            })
-            repair['messages'].append({
-                'type': 'budget_rejected',
-                'content': 'Você rejeitou o orçamento. Entre em contato conosco para mais informações.',
-                'sent_at': datetime.now().isoformat()
-            })
-            save_config(config)
-            return jsonify({'success': True})
-    
-    return jsonify({'success': False})
+    repair['budget']['status'] = 'rejected'
+    repair['status'] = 'aguardando'
+    repair['updated_at'] = datetime.now().isoformat()
+    repair['history'].append({
+        'timestamp': datetime.now().isoformat(),
+        'action': 'Orçamento rejeitado pelo cliente',
+        'status': 'aguardando'
+    })
+    repair['messages'].append({
+        'type': 'budget_rejected',
+        'content': 'Você rejeitou o orçamento. Entre em contato conosco para mais informações.',
+        'sent_at': datetime.now().isoformat()
+    })
+    save_repair(repair_id, repair)
+    return jsonify({'success': True})
 
 @app.route('/status/<repair_id>/checklist/<checklist_id>/signature', methods=['POST'])
 def public_save_checklist_signature(repair_id, checklist_id):
@@ -822,26 +755,12 @@ def public_save_checklist_signature(repair_id, checklist_id):
     from datetime import datetime
     import json
     
-    config = load_config()
-    repairs = config.get('repairs', [])
-    checklists = config.get('checklists', [])
-    
-    repair = None
-    for r in repairs:
-        if r.get('id') == repair_id:
-            repair = r
-            break
-    
+    repair = db_get_repair(repair_id)
     if not repair:
         return jsonify({'success': False, 'error': 'Reparo não encontrado'})
     
-    checklist = None
-    for cl in checklists:
-        if cl.get('id') == checklist_id and cl.get('repair_id') == repair_id:
-            checklist = cl
-            break
-    
-    if not checklist:
+    checklist = db_get_checklist(checklist_id)
+    if not checklist or checklist.get('repair_id') != repair_id:
         return jsonify({'success': False, 'error': 'Checklist não encontrado'})
     
     data = request.get_json()
@@ -865,6 +784,9 @@ def public_save_checklist_signature(repair_id, checklist_id):
         checklist['signature'] = f"/static/checklist_photos/{signature_filename}"
         checklist['signature_signed_at'] = datetime.now().isoformat()
         
+        # Salvar checklist atualizado
+        save_checklist(checklist_id, checklist)
+        
         # Atualizar histórico do reparo
         repair['updated_at'] = datetime.now().isoformat()
         repair['history'].append({
@@ -879,7 +801,7 @@ def public_save_checklist_signature(repair_id, checklist_id):
             'sent_at': datetime.now().isoformat()
         })
         
-        save_config(config)
+        save_repair(repair_id, repair)
         return jsonify({'success': True})
     
     return jsonify({'success': False, 'error': 'Assinatura não fornecida'})
@@ -894,48 +816,47 @@ def public_save_signature(repair_id):
     data = request.get_json()
     signature_data = data.get('signature', '')
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
     
     # Criar pasta para assinaturas se não existir
     signatures_dir = os.path.join('static', 'signatures')
     if not os.path.exists(signatures_dir):
         os.makedirs(signatures_dir)
     
-    for repair in repairs:
-        if repair.get('id') == repair_id:
-            # Salvar imagem da assinatura
-            if signature_data:
-                if ',' in signature_data:
-                    signature_data = signature_data.split(',')[1]
-                
-                signature_filename = f"signature_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-                signature_path = os.path.join(signatures_dir, signature_filename)
-                
-                with open(signature_path, 'wb') as f:
-                    f.write(base64.b64decode(signature_data))
-                
-                repair['signature'] = {
-                    'image': f"/static/signatures/{signature_filename}",
-                    'signed_at': datetime.now().isoformat()
-                }
-                
-                repair['updated_at'] = datetime.now().isoformat()
-                repair['history'].append({
-                    'timestamp': datetime.now().isoformat(),
-                    'action': 'Assinatura digital confirmada pelo cliente',
-                    'status': repair.get('status', 'aprovado')
-                })
-                repair['messages'].append({
-                    'type': 'signature',
-                    'content': 'Assinatura digital confirmada. O reparo será iniciado em breve.',
-                    'sent_at': datetime.now().isoformat()
-                })
-                
-                save_config(config)
-                return jsonify({'success': True})
+    # Salvar imagem da assinatura
+    if signature_data:
+        if ',' in signature_data:
+            signature_data = signature_data.split(',')[1]
+        
+        signature_filename = f"signature_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        signature_path = os.path.join(signatures_dir, signature_filename)
+        
+        with open(signature_path, 'wb') as f:
+            f.write(base64.b64decode(signature_data))
+        
+        repair['signature'] = {
+            'image': f"/static/signatures/{signature_filename}",
+            'signed_at': datetime.now().isoformat()
+        }
+        
+        repair['updated_at'] = datetime.now().isoformat()
+        repair['history'].append({
+            'timestamp': datetime.now().isoformat(),
+            'action': 'Assinatura digital confirmada pelo cliente',
+            'status': repair.get('status', 'aprovado')
+        })
+        repair['messages'].append({
+            'type': 'signature',
+            'content': 'Assinatura digital confirmada. O reparo será iniciado em breve.',
+            'sent_at': datetime.now().isoformat()
+        })
+        
+        save_repair(repair_id, repair)
+        return jsonify({'success': True})
     
-    return jsonify({'success': False})
+    return jsonify({'success': False, 'error': 'Assinatura não fornecida'})
 
 @app.route('/admin/repairs/<repair_id>/complete', methods=['POST'])
 @login_required
@@ -943,47 +864,43 @@ def admin_complete_repair(repair_id):
     from datetime import datetime, timedelta
     import json
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
     
-    for repair in repairs:
-        if repair.get('id') == repair_id:
-            repair['status'] = 'concluido'
-            repair['completed_at'] = datetime.now().isoformat()
-            repair['updated_at'] = datetime.now().isoformat()
-            
-            # Gerar garantia (30 dias)
-            warranty_until = datetime.now() + timedelta(days=30)
-            repair['warranty'] = {
-                'period': '30 dias',
-                'valid_until': warranty_until.isoformat(),
-                'coverage': 'Peças e mão de obra'
-            }
-            
-            repair['history'].append({
-                'timestamp': datetime.now().isoformat(),
-                'action': 'Reparo concluído - Garantia de 30 dias ativada',
-                'status': 'concluido'
-            })
-            repair['messages'].append({
-                'type': 'completed',
-                'content': 'Seu reparo foi concluído com sucesso! Você possui 30 dias de garantia. Obrigado pela confiança!',
-                'sent_at': datetime.now().isoformat()
-            })
-            
-            save_config(config)
-            return jsonify({'success': True})
+    repair['status'] = 'concluido'
+    repair['completed_at'] = datetime.now().isoformat()
+    repair['updated_at'] = datetime.now().isoformat()
     
-            return jsonify({'success': False})
+    # Gerar garantia (30 dias)
+    warranty_until = datetime.now() + timedelta(days=30)
+    repair['warranty'] = {
+        'period': '30 dias',
+        'valid_until': warranty_until.isoformat(),
+        'coverage': 'Peças e mão de obra'
+    }
+    
+    repair['history'].append({
+        'timestamp': datetime.now().isoformat(),
+        'action': 'Reparo concluído - Garantia de 30 dias ativada',
+        'status': 'concluido'
+    })
+    repair['messages'].append({
+        'type': 'completed',
+        'content': 'Seu reparo foi concluído com sucesso! Você possui 30 dias de garantia. Obrigado pela confiança!',
+        'sent_at': datetime.now().isoformat()
+    })
+    
+    save_repair(repair_id, repair)
+    return jsonify({'success': True})
 
 @app.route('/admin/orders', methods=['GET'])
 @login_required
 def admin_orders():
     """Página principal para gerenciar Ordens de Retirada"""
-    config = load_config()
-    orders = config.get('orders', [])
-    repairs = config.get('repairs', [])
-    checklists = config.get('checklists', [])
+    orders = get_all_orders()
+    repairs = get_all_repairs()
+    checklists = get_all_checklists()
     
     # Enriquecer orders com dados dos reparos e checklists
     enriched_orders = []
@@ -1010,20 +927,7 @@ def admin_orders():
     available_repairs = []
     for repair in completed_repairs:
         repair_id = repair.get('id')
-        repair_checklist_ids = repair.get('checklists', [])
-        repair_checklists = []
-        
-        # Buscar todos os checklists associados ao reparo
-        for checklist_id in repair_checklist_ids:
-            for cl in checklists:
-                if cl.get('id') == checklist_id:
-                    repair_checklists.append(cl)
-                    break
-        
-        # Também buscar por repair_id diretamente
-        for cl in checklists:
-            if cl.get('repair_id') == repair_id and cl.get('id') not in repair_checklist_ids:
-                repair_checklists.append(cl)
+        repair_checklists = get_checklists_by_repair(repair_id)
         
         # Verificar se existe checklist de conclusão
         conclusion_checklist = None
@@ -1057,15 +961,7 @@ def admin_checklist_conclusao(repair_id):
     import uuid
     from datetime import datetime
     
-    config = load_config()
-    repairs = config.get('repairs', [])
-    repair = None
-    
-    for r in repairs:
-        if r.get('id') == repair_id:
-            repair = r
-            break
-    
+    repair = db_get_repair(repair_id)
     if not repair:
         return "Reparo não encontrado", 404
     
@@ -1079,8 +975,9 @@ def admin_checklist_conclusao(repair_id):
         if not os.path.exists(photos_dir):
             os.makedirs(photos_dir)
         
+        checklist_id = str(uuid.uuid4())[:8]
         checklist_data = {
-            'id': str(uuid.uuid4())[:8],
+            'id': checklist_id,
             'type': 'conclusao',
             'repair_id': repair_id,
             'timestamp': datetime.now().isoformat(),
@@ -1110,19 +1007,17 @@ def admin_checklist_conclusao(repair_id):
         
         # Assinatura será feita pelo cliente no link de acompanhamento, não no admin
         
-        # Salvar no config
-        if 'checklists' not in config:
-            config['checklists'] = []
-        
-        config['checklists'].append(checklist_data)
+        # Salvar checklist diretamente no banco de dados
+        save_checklist(checklist_id, checklist_data)
         
         # Associar ao reparo
         if 'checklists' not in repair:
             repair['checklists'] = []
-        repair['checklists'].append(checklist_data['id'])
-        repair['conclusion_checklist_id'] = checklist_data['id']
+        if checklist_id not in repair['checklists']:
+            repair['checklists'].append(checklist_id)
+        repair['conclusion_checklist_id'] = checklist_id
         
-        save_config(config)
+        save_repair(repair_id, repair)
         
         return redirect(url_for('admin_repairs'))
     
@@ -1137,15 +1032,7 @@ def admin_emit_or(repair_id):
     import base64
     import os
     
-    config = load_config()
-    repairs = config.get('repairs', [])
-    repair = None
-    
-    for r in repairs:
-        if r.get('id') == repair_id:
-            repair = r
-            break
-    
+    repair = db_get_repair(repair_id)
     if not repair:
         return "Reparo não encontrado", 404
     
@@ -1154,21 +1041,7 @@ def admin_emit_or(repair_id):
         return "O reparo precisa estar concluído para emitir a Ordem de Retirada", 400
     
     # Buscar todos os checklists associados ao reparo
-    checklists = config.get('checklists', [])
-    repair_checklist_ids = repair.get('checklists', [])
-    repair_checklists = []
-    
-    # Buscar checklists por IDs na lista do reparo
-    for checklist_id in repair_checklist_ids:
-        for cl in checklists:
-            if cl.get('id') == checklist_id:
-                repair_checklists.append(cl)
-                break
-    
-    # Também buscar checklists que têm repair_id diretamente
-    for cl in checklists:
-        if cl.get('repair_id') == repair_id and cl.get('id') not in repair_checklist_ids:
-            repair_checklists.append(cl)
+    repair_checklists = get_checklists_by_repair(repair_id)
     
     # Verificar se existe checklist de conclusão
     conclusion_checklist = None
@@ -1198,8 +1071,9 @@ def admin_emit_or(repair_id):
     
     if request.method == 'POST':
         # Criar Ordem de Retirada
+        order_id = str(uuid.uuid4())[:8]
         or_data = {
-            'id': str(uuid.uuid4())[:8],
+            'id': order_id,
             'repair_id': repair_id,
             'emitted_at': datetime.now().isoformat(),
             'emitted_by': session.get('admin_name', 'Raí Silva'),
@@ -1226,17 +1100,13 @@ def admin_emit_or(repair_id):
             
             or_data['customer_signature'] = f"/static/checklist_photos/{signature_filename}"
         
-        # Salvar OR no config
-        if 'orders' not in config:
-            config['orders'] = []
-        
-        config['orders'].append(or_data)
+        # Salvar OR diretamente no banco de dados
+        save_order(order_id, repair_id, or_data)
         
         # Associar OR ao reparo
-        repair['order_id'] = or_data['id']
+        repair['order_id'] = order_id
         repair['order_emitted_at'] = or_data['emitted_at']
-        
-        save_config(config)
+        save_repair(repair_id, repair)
         
         # Redirecionar para visualizar/baixar a OR
         return redirect(url_for('admin_view_or', repair_id=repair_id))
@@ -1248,15 +1118,7 @@ def admin_emit_or(repair_id):
 @app.route('/admin/repairs/<repair_id>/or/view', methods=['GET'])
 @login_required
 def admin_view_or(repair_id):
-    config = load_config()
-    repairs = config.get('repairs', [])
-    repair = None
-    
-    for r in repairs:
-        if r.get('id') == repair_id:
-            repair = r
-            break
-    
+    repair = db_get_repair(repair_id)
     if not repair:
         return "Reparo não encontrado", 404
     
@@ -1264,13 +1126,7 @@ def admin_view_or(repair_id):
     if not order_id:
         return redirect(url_for('admin_emit_or', repair_id=repair_id))
     
-    orders = config.get('orders', [])
-    order = None
-    for o in orders:
-        if o.get('id') == order_id:
-            order = o
-            break
-    
+    order = db_get_order(order_id, repair_id)
     if not order:
         return "Ordem de Retirada não encontrada", 404
     
@@ -1288,15 +1144,7 @@ def admin_or_pdf(repair_id):
     import os
     from datetime import datetime
     
-    config = load_config()
-    repairs = config.get('repairs', [])
-    repair = None
-    
-    for r in repairs:
-        if r.get('id') == repair_id:
-            repair = r
-            break
-    
+    repair = db_get_repair(repair_id)
     if not repair:
         return "Reparo não encontrado", 404
     
@@ -1304,13 +1152,7 @@ def admin_or_pdf(repair_id):
     if not order_id:
         return "Ordem de Retirada não encontrada", 404
     
-    orders = config.get('orders', [])
-    order = None
-    for o in orders:
-        if o.get('id') == order_id:
-            order = o
-            break
-    
+    order = db_get_order(order_id, repair_id)
     if not order:
         return "Ordem de Retirada não encontrada", 404
     
@@ -1607,33 +1449,23 @@ def admin_delete_repair(repair_id):
     import json
     import os
     
-    config = load_config()
-    repairs = config.get('repairs', [])
+    repair_to_delete = db_get_repair(repair_id)
+    if not repair_to_delete:
+        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
     
-    repair_to_delete = None
-    for repair in repairs:
-        if repair.get('id') == repair_id:
-            repair_to_delete = repair
-            break
+    # Remover assinatura se existir
+    if repair_to_delete.get('signature') and repair_to_delete['signature'].get('image'):
+        signature_path = repair_to_delete['signature']['image'].replace('/static/', '')
+        if os.path.exists(signature_path):
+            try:
+                os.remove(signature_path)
+            except:
+                pass
     
-    if repair_to_delete:
-        # Remover assinatura se existir
-        if repair_to_delete.get('signature') and repair_to_delete['signature'].get('image'):
-            signature_path = repair_to_delete['signature']['image'].replace('/static/', '')
-            if os.path.exists(signature_path):
-                try:
-                    os.remove(signature_path)
-                except:
-                    pass
-        
-        # Remover do config
-        repairs.remove(repair_to_delete)
-        config['repairs'] = repairs
-        save_config(config)
-        
-        return jsonify({'success': True})
+    # Remover do banco de dados
+    db_delete_repair(repair_id)
     
-    return jsonify({'success': False, 'error': 'Reparo não encontrado'})
+    return jsonify({'success': True})
 
 @app.route('/admin/repairs/<repair_id>/pdf', methods=['GET'])
 @login_required
@@ -1647,15 +1479,7 @@ def admin_repair_pdf(repair_id):
     import os
     from datetime import datetime
     
-    config = load_config()
-    repairs = config.get('repairs', [])
-    
-    repair = None
-    for r in repairs:
-        if r.get('id') == repair_id:
-            repair = r
-            break
-    
+    repair = db_get_repair(repair_id)
     if not repair:
         return "Reparo não encontrado", 404
     
