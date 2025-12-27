@@ -396,8 +396,12 @@ def admin_checklist():
                     file.save(filepath)
                     checklist_data['photos'][field] = f"/static/checklist_photos/{filename}"
                     # Salvar também como base64 no banco (para persistência no Render)
+                    # Usar o campo como chave para garantir que cada foto seja única
                     file.seek(0)  # Resetar posição do arquivo
                     file_data = file.read()
+                    # Salvar usando o campo como chave para garantir unicidade
+                    checklist_data['_photo_data'][field] = base64.b64encode(file_data).decode('utf-8')
+                    # Também salvar pelo filename para compatibilidade
                     checklist_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
         
         # Salvar testes - para conclusão, só test_after
@@ -881,18 +885,23 @@ def public_save_signature(repair_id):
     # Salvar imagem da assinatura
     if signature_data:
         if ',' in signature_data:
-            signature_data = signature_data.split(',')[1]
+            signature_data_clean = signature_data.split(',')[1]
+        else:
+            signature_data_clean = signature_data
         
         signature_filename = f"signature_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         signature_path = os.path.join(signatures_dir, signature_filename)
         
+        signature_bytes = base64.b64decode(signature_data_clean)
         with open(signature_path, 'wb') as f:
-            f.write(base64.b64decode(signature_data))
+            f.write(signature_bytes)
         
         repair['signature'] = {
             'image': f"/static/signatures/{signature_filename}",
             'signed_at': datetime.now().isoformat()
         }
+        # Salvar também como base64 no banco (para persistência no Render)
+        repair['_signature_data'] = signature_data_clean
         
         repair['updated_at'] = datetime.now().isoformat()
         repair['history'].append({
@@ -2388,17 +2397,42 @@ def serve_checklist_photo(filename):
                 # Verificar se há dados base64 salvos
                 photo_data = checklist.get('_photo_data', {})
                 if photo_data:
-                    # Tentar buscar pelo filename completo ou parcial
+                    # PRIORIDADE 1: Buscar pelo campo (mais preciso - garante que cada campo tenha sua própria imagem)
+                    if field in photo_data:
+                        try:
+                            img_data = base64.b64decode(photo_data[field])
+                            # Detectar tipo MIME baseado na extensão
+                            mimetype = 'image/png'
+                            if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                                mimetype = 'image/jpeg'
+                            elif filename.lower().endswith('.png'):
+                                mimetype = 'image/png'
+                            return Response(img_data, mimetype=mimetype)
+                        except Exception as e:
+                            print(f"Erro ao decodificar imagem {filename} pelo campo {field}: {e}")
+                    
+                    # PRIORIDADE 2: Buscar pelo filename exato
+                    if filename in photo_data:
+                        try:
+                            img_data = base64.b64decode(photo_data[filename])
+                            mimetype = 'image/png'
+                            if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                                mimetype = 'image/jpeg'
+                            return Response(img_data, mimetype=mimetype)
+                        except Exception as e:
+                            print(f"Erro ao decodificar imagem {filename}: {e}")
+                    
+                    # PRIORIDADE 3: Buscar por correspondência parcial (apenas se o filename começar com o campo)
                     for stored_filename, stored_data in photo_data.items():
-                        if filename in stored_filename or stored_filename in filename or filename in photo_path:
+                        # Verificar se o filename corresponde exatamente ou se começa com o campo
+                        if (filename == stored_filename or 
+                            (filename.startswith(field + '_') and stored_filename.startswith(field + '_') and filename in stored_filename) or
+                            (stored_filename.startswith(field + '_') and stored_filename in filename)):
                             try:
                                 img_data = base64.b64decode(stored_data)
-                                # Detectar tipo MIME baseado na extensão
                                 mimetype = 'image/png'
                                 if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
                                     mimetype = 'image/jpeg'
-                                elif filename.lower().endswith('.png'):
-                                    mimetype = 'image/png'
                                 return Response(img_data, mimetype=mimetype)
                             except Exception as e:
                                 print(f"Erro ao decodificar imagem {filename}: {e}")
@@ -2446,20 +2480,31 @@ def serve_signature(filename):
         signature = repair.get('signature', {})
         if isinstance(signature, dict):
             sig_image = signature.get('image', '')
-            if filename in sig_image:
+            if isinstance(sig_image, str) and filename in sig_image:
+                # Verificar se há dados base64 salvos
                 sig_data = repair.get('_signature_data')
                 if sig_data:
                     try:
+                        # Se tem vírgula, remover o prefixo data:image/png;base64,
+                        if isinstance(sig_data, str) and ',' in sig_data:
+                            sig_data = sig_data.split(',')[1]
                         img_data = base64.b64decode(sig_data)
                         return Response(img_data, mimetype='image/png')
-                    except:
-                        pass
+                    except Exception as e:
+                        print(f"Erro ao decodificar assinatura {filename}: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
     
     # Se não encontrou no banco, tentar do disco (fallback)
     sig_path = os.path.join('static', 'signatures', filename)
     if os.path.exists(sig_path):
-        with open(sig_path, 'rb') as f:
-            return Response(f.read(), mimetype='image/png')
+        try:
+            with open(sig_path, 'rb') as f:
+                img_data = f.read()
+                return Response(img_data, mimetype='image/png')
+        except Exception as e:
+            print(f"Erro ao ler arquivo {sig_path}: {e}")
     
     return "Assinatura não encontrada", 404
 
