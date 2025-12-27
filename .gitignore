@@ -42,3 +42,9 @@ Thumbs.db
 .env
 .env.local
 
+# Checklist photos (dados sensíveis)
+static/checklist_photos/
+
+# Signatures (dados sensíveis)
+static/signatures/
+

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Reparos - Central de Status</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            color: #ff8c00;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #cccccc;
+            font-size: 1.1rem;
+        }
+
+        .search-section {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 2px solid #ff8c00;
+        }
+
+        .search-section h2 {
+            color: #ff8c00;
+            margin-bottom: 1rem;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-form input {
+            flex: 1;
+            min-width: 200px;
+            padding: 1rem;
+            background: #000000;
+            border: 2px solid #333333;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+
+        .search-form input:focus {
+            outline: none;
+            border-color: #ff8c00;
+        }
+
+        .search-form button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: #000000;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .search-form button:hover {
+            transform: translateY(-2px);
+        }
+
+        .repairs-list {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .repair-item {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .repair-item:hover {
+            border-color: #ff8c00;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+        }
+
+        .repair-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .repair-item-title {
+            color: #ff8c00;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .status-aguardando { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
+        .status-em_analise { background: rgba(0, 123, 255, 0.2); color: #007bff; border: 1px solid #007bff; }
+        .status-orcamento { background: rgba(255, 140, 0, 0.2); color: #ff8c00; border: 1px solid #ff8c00; }
+        .status-aprovado { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+        .status-em_reparo { background: rgba(23, 162, 184, 0.2); color: #17a2b8; border: 1px solid #17a2b8; }
+        .status-concluido { background: rgba(40, 167, 69, 0.3); color: #28a745; border: 2px solid #28a745; }
+
+        .repair-item-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .repair-detail {
+            color: #cccccc;
+            font-size: 0.9rem;
+        }
+
+        .repair-detail strong {
+            color: #ff8c00;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .no-repairs {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 15px;
+            border: 2px solid #333333;
+        }
+
+        .no-repairs h2 {
+            color: #ff8c00;
+            margin-bottom: 1rem;
+        }
+
+        .no-repairs p {
+            color: #cccccc;
+        }
+
+        .info-box {
+            background: rgba(255, 140, 0, 0.1);
+            border-left: 4px solid #ff8c00;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 2rem;
+        }
+
+        .info-box p {
+            color: #cccccc;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .search-form {
+                flex-direction: column;
+            }
+
+            .repair-item-header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 Meus Reparos</h1>
+            <p>Central de Status - Acompanhe todos os seus reparos</p>
+            {% if search_query %}
+            <div style="margin-top: 1rem;">
+                <a href="/repairs" style="color: #ff8c00; text-decoration: none; font-weight: bold; border: 1px solid #ff8c00; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block;">
+                    🔄 Nova Busca
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="info-box">
+            <p><strong>🔍 Como usar:</strong> Digite seu telefone ou e-mail para ver todos os seus reparos realizados. Você poderá acompanhar o status, aprovar orçamentos, assinar digitalmente e ver suas garantias.</p>
+        </div>
+
+        <div class="search-section">
+            <h2>🔎 Buscar Meus Reparos</h2>
+            <form class="search-form" method="GET" action="/repairs">
+                <input type="text" name="search" placeholder="Digite seu telefone ou e-mail" value="{{ search_query or '' }}" required>
+                <button type="submit">Buscar</button>
+            </form>
+        </div>
+
+        {% if repairs %}
+        <div class="repairs-list">
+            {% for repair in repairs %}
+            <a href="/status/{{ repair.id }}" class="repair-item">
+                <div class="repair-item-header">
+                    <div>
+                        <div class="repair-item-title">{{ repair.device_name or 'Dispositivo não informado' }}</div>
+                        <div style="color: #999; font-size: 0.85rem; margin-top: 0.25rem;">ID: {{ repair.id }}</div>
+                    </div>
+                    <span class="status-badge status-{{ repair.status }}">
+                        {% if repair.status == 'aguardando' %}
+                            ⏳ Aguardando
+                        {% elif repair.status == 'em_analise' %}
+                            🔍 Em Análise
+                        {% elif repair.status == 'orcamento' %}
+                            💰 Orçamento
+                        {% elif repair.status == 'aprovado' %}
+                            ✅ Aprovado
+                        {% elif repair.status == 'em_reparo' %}
+                            🔧 Em Reparo
+                        {% elif repair.status == 'concluido' %}
+                            🎉 Concluído
+                        {% else %}
+                            {{ repair.status|replace('_', ' ')|title }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="repair-item-details">
+                    <div class="repair-detail">
+                        <strong>Modelo:</strong>
+                        {{ repair.device_model or 'N/A' }}
+                    </div>
+                    <div class="repair-detail">
+                        <strong>Data de Entrada:</strong>
+                        {{ repair.created_at[:10] if repair.created_at else 'N/A' }}
+                    </div>
+                    {% if repair.budget %}
+                    <div class="repair-detail">
+                        <strong>Orçamento:</strong>
+                        R$ {{ "%.2f"|format(repair.budget.amount|float) }}
+                    </div>
+                    {% endif %}
+                    {% if repair.warranty %}
+                    <div class="repair-detail">
+                        <strong>🛡️ Garantia:</strong>
+                        {{ repair.warranty.period }} - Válida até {{ repair.warranty.valid_until[:10] if repair.warranty.valid_until else 'N/A' }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if repair.problem_description %}
+                <div style="margin-top: 1rem; color: #cccccc; font-size: 0.9rem;">
+                    <strong style="color: #ff8c00;">Problema:</strong> {{ repair.problem_description[:100] }}{% if repair.problem_description|length > 100 %}...{% endif %}
+                </div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% elif search_query %}
+        <div class="no-repairs">
+            <h2>❌ Nenhum reparo encontrado</h2>
+            <p>Não encontramos reparos para "{{ search_query }}". Verifique se digitou corretamente seu telefone ou e-mail.</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

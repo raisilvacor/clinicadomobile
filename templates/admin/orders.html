@@ -1,0 +1,229 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Ordem de Retirada (OR){% endblock %}
+
+{% block extra_css %}
+<style>
+    .orders-container {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .order-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid #333333;
+        transition: all 0.3s ease;
+    }
+
+    .order-card:hover {
+        border-color: #ff8c00;
+        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+    }
+
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #333333;
+    }
+
+    .order-id {
+        font-size: 1.2rem;
+        color: #ff8c00;
+        font-weight: bold;
+    }
+
+    .order-date {
+        color: #999;
+        font-size: 0.9rem;
+    }
+
+    .order-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-item {
+        background: #0d0d0d;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #333333;
+    }
+
+    .info-label {
+        color: #999;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        color: #ffffff;
+        font-weight: bold;
+    }
+
+    .order-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .available-repairs {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid #28a745;
+        margin-bottom: 2rem;
+    }
+
+    .available-repairs h3 {
+        color: #28a745;
+        margin-bottom: 1rem;
+    }
+
+    .repair-item {
+        background: #0d0d0d;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border: 1px solid #333333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .repair-info {
+        flex: 1;
+    }
+
+    .repair-info strong {
+        color: #ff8c00;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="margin: 0;">📋 Ordem de Retirada (OR)</h2>
+            <p style="margin-top: 0.5rem; color: #999;">Gerencie as ordens de retirada para reparos concluídos.</p>
+        </div>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            {% if available_repairs %}
+            <a href="{{ url_for('admin_emit_or', repair_id=available_repairs[0].repair.id) }}" class="btn btn-primary" style="background: #17a2b8; white-space: nowrap; font-size: 1rem; padding: 0.75rem 1.5rem;">📋 Emitir Nova OR</a>
+            {% else %}
+            <button class="btn btn-secondary" style="background: #6c757d; white-space: nowrap; font-size: 1rem; padding: 0.75rem 1.5rem;" disabled title="Não há reparos prontos para emitir OR">📋 Emitir Nova OR</button>
+            {% endif %}
+            <a href="{{ url_for('admin_repairs') }}" class="btn btn-secondary" style="white-space: nowrap; font-size: 1rem; padding: 0.75rem 1.5rem;">🔧 Ver Reparos</a>
+        </div>
+    </div>
+
+    <!-- Reparos disponíveis para emitir OR -->
+    {% if available_repairs %}
+    <div class="available-repairs">
+        <h3>✅ Reparos Prontos para Emitir OR</h3>
+        <p style="color: #999; margin-bottom: 1rem;">Estes reparos estão concluídos, têm checklist de conclusão realizado e todas as assinaturas dos checklists foram feitas pelo cliente:</p>
+        {% for item in available_repairs %}
+        <div class="repair-item">
+            <div class="repair-info">
+                <p><strong>ID:</strong> {{ item.repair.id }} | <strong>Dispositivo:</strong> {{ item.repair.device_name or 'N/A' }} | <strong>Cliente:</strong> {{ item.repair.customer_name or 'N/A' }}</p>
+                <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">Checklist de Conclusão: {{ item.conclusion_checklist.id }} - {{ item.conclusion_checklist.timestamp[:10] if item.conclusion_checklist.timestamp else 'N/A' }}</p>
+            </div>
+            <a href="{{ url_for('admin_emit_or', repair_id=item.repair.id) }}" class="btn btn-primary" style="background: #17a2b8;">📋 Emitir OR</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Lista de ORs emitidas -->
+    <div class="orders-container">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📄 Ordens de Retirada Emitidas</h3>
+        
+        {% if orders %}
+            {% for order in orders %}
+            <div class="order-card">
+                <div class="order-header">
+                    <div>
+                        <div class="order-id">OR #{{ order.id }}</div>
+                        <div class="order-date">Emitida em: {{ order.emitted_at[:16] if order.emitted_at else 'N/A' }}</div>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('admin_or_pdf', repair_id=order.repair_id) }}" target="_blank" class="btn btn-primary" style="background: #dc3545;">📥 Baixar PDF</a>
+                    </div>
+                </div>
+
+                {% if order.repair %}
+                <div class="order-info">
+                    <div class="info-item">
+                        <div class="info-label">ID do Reparo</div>
+                        <div class="info-value">{{ order.repair_id }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Dispositivo</div>
+                        <div class="info-value">{{ order.repair.device_name or 'N/A' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Cliente</div>
+                        <div class="info-value">{{ order.repair.customer_name or 'N/A' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Telefone</div>
+                        <div class="info-value">{{ order.repair.customer_phone or 'N/A' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Emitido por</div>
+                        <div class="info-value">{{ order.emitted_by or 'N/A' }}</div>
+                    </div>
+                    {% if order.customer_received %}
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value" style="color: #28a745;">✅ Cliente recebeu</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if order.observations %}
+                <div style="background: #0d0d0d; padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid #333333;">
+                    <div class="info-label">Observações</div>
+                    <div class="info-value" style="margin-top: 0.5rem;">{{ order.observations }}</div>
+                </div>
+                {% endif %}
+
+                {% if order.conclusion_checklist %}
+                <div style="background: #0d0d0d; padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid #28a745;">
+                    <div class="info-label">Checklist de Conclusão</div>
+                    <div class="info-value" style="margin-top: 0.5rem; color: #28a745;">ID: {{ order.conclusion_checklist.id }} - {{ order.conclusion_checklist.timestamp[:16] if order.conclusion_checklist.timestamp else 'N/A' }}</div>
+                </div>
+                {% endif %}
+
+                {% if order.customer_signature %}
+                <div style="background: #0d0d0d; padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid #28a745;">
+                    <div class="info-label">Assinatura do Cliente</div>
+                    <img src="{{ order.customer_signature }}" alt="Assinatura" style="max-width: 300px; margin-top: 0.5rem; border: 1px solid #333; border-radius: 8px;">
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <div class="order-actions">
+                    <a href="{{ url_for('admin_view_or', repair_id=order.repair_id) }}" class="btn btn-secondary">👁️ Ver Detalhes</a>
+                    <a href="{{ url_for('admin_repairs') }}" class="btn btn-secondary">🔧 Ver Reparo</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="admin-card" style="text-align: center; padding: 3rem;">
+                <p style="color: #999; font-size: 1.2rem;">Nenhuma Ordem de Retirada emitida ainda.</p>
+                <p style="color: #666; margin-top: 0.5rem;">Conclua reparos e realize o checklist de conclusão para poder emitir ORs.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

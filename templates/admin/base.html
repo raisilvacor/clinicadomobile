@@ -38,10 +38,22 @@
         }
 
         .admin-logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #ff8c00;
-            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            height: 50px;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+        
+        .admin-logo:hover {
+            opacity: 0.8;
+        }
+        
+        .admin-logo img {
+            height: 100%;
+            max-height: 50px;
+            width: auto;
+            object-fit: contain;
         }
 
         .admin-nav-links {
@@ -63,6 +75,53 @@
         .admin-nav-links a.active {
             color: #ff8c00;
             background: rgba(255, 140, 0, 0.1);
+        }
+
+        /* Menu Hambúrguer */
+        .admin-menu-toggle {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            z-index: 1001;
+        }
+
+        .admin-menu-toggle span {
+            width: 25px;
+            height: 3px;
+            background: #ff8c00;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .admin-menu-toggle.active span:nth-child(1) {
+            transform: rotate(45deg) translate(8px, 8px);
+        }
+
+        .admin-menu-toggle.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .admin-menu-toggle.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+
+        .admin-menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+
+        .admin-menu-overlay.active {
+            display: block;
         }
 
         .admin-container {
@@ -240,15 +299,49 @@
             margin-bottom: 1.5rem;
         }
 
+        /* Menu hambúrguer para mobile e desktop */
+        .admin-nav-links {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 70%;
+            max-width: 350px;
+            height: 100vh;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            flex-direction: column;
+            gap: 0;
+            padding: 5rem 2rem 2rem;
+            transition: right 0.3s ease;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .admin-nav-links.active {
+            right: 0;
+        }
+
+        .admin-nav-links li {
+            width: 100%;
+            border-bottom: 1px solid rgba(255, 140, 0, 0.2);
+        }
+
+        .admin-nav-links a {
+            display: block;
+            padding: 1rem 0;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .admin-nav-links a:hover,
+        .admin-nav-links a.active {
+            padding-left: 1rem;
+        }
+
         @media (max-width: 768px) {
             .admin-nav {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .admin-nav-links {
-                flex-wrap: wrap;
-                justify-content: center;
+                flex-direction: row;
+                justify-content: space-between;
             }
         }
     </style>
@@ -257,7 +350,15 @@
 <body>
     <header class="admin-header">
         <nav class="admin-nav">
-            <div class="admin-logo">🔧 Painel Admin</div>
+            <a href="{{ url_for('admin_dashboard') }}" class="admin-logo" style="text-decoration: none;">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Clínica do Mobile">
+            </a>
+            <button class="admin-menu-toggle" aria-label="Menu" onclick="toggleAdminMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="admin-menu-overlay" onclick="toggleAdminMenu()"></div>
             <ul class="admin-nav-links">
                 <li><a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">Dashboard</a></li>
                 <li><a href="{{ url_for('admin_hero') }}" class="{% if request.endpoint == 'admin_hero' %}active{% endif %}">Hero</a></li>
@@ -266,6 +367,8 @@
                 <li><a href="{{ url_for('admin_devices') }}" class="{% if request.endpoint == 'admin_devices' %}active{% endif %}">Dispositivos</a></li>
                 <li><a href="{{ url_for('admin_laboratory') }}" class="{% if request.endpoint == 'admin_laboratory' %}active{% endif %}">Laboratório</a></li>
                 <li><a href="{{ url_for('admin_contact') }}" class="{% if request.endpoint == 'admin_contact' %}active{% endif %}">Contato</a></li>
+                <li><a href="{{ url_for('admin_repairs') }}" class="{% if request.endpoint in ['admin_repairs', 'admin_new_repair', 'admin_edit_repair'] %}active{% endif %}">🔧 Reparos</a></li>
+                <li><a href="{{ url_for('admin_checklist') }}" class="{% if request.endpoint == 'admin_checklist' %}active{% endif %}">🛡️ Checklist</a></li>
                 <li><a href="{{ url_for('admin_password') }}">Senha</a></li>
                 <li><a href="{{ url_for('admin_logout') }}">Sair</a></li>
             </ul>
@@ -277,6 +380,25 @@
     </div>
 
     {% block extra_js %}{% endblock %}
+    <script>
+        function toggleAdminMenu() {
+            const menu = document.querySelector('.admin-nav-links');
+            const toggle = document.querySelector('.admin-menu-toggle');
+            const overlay = document.querySelector('.admin-menu-overlay');
+            
+            menu.classList.toggle('active');
+            toggle.classList.toggle('active');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // Fechar menu ao clicar em um link
+        document.querySelectorAll('.admin-nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                toggleAdminMenu();
+            });
+        });
+    </script>
 </body>
 </html>
 

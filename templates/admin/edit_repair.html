@@ -1,0 +1,68 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Editar Reparo{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>✏️ Editar Reparo</h2>
+    <p>Atualize as informações do reparo.</p>
+
+    <form method="POST">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📱 Informações do Dispositivo</h3>
+        
+        <div class="form-group">
+            <label for="device_name">Nome do Dispositivo:</label>
+            <input type="text" id="device_name" name="device_name" value="{{ repair.device_name }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="device_model">Modelo:</label>
+            <input type="text" id="device_model" name="device_model" value="{{ repair.device_model or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="device_imei">IMEI:</label>
+            <input type="text" id="device_imei" name="device_imei" value="{{ repair.device_imei or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="problem_description">Descrição do Problema:</label>
+            <textarea id="problem_description" name="problem_description" required>{{ repair.problem_description or '' }}</textarea>
+        </div>
+
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">👤 Informações do Cliente</h3>
+
+        <div class="form-group">
+            <label for="customer_name">Nome do Cliente:</label>
+            <input type="text" id="customer_name" name="customer_name" value="{{ repair.customer_name }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="customer_phone">Telefone:</label>
+            <input type="text" id="customer_phone" name="customer_phone" value="{{ repair.customer_phone }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="customer_cpf">CPF (11 dígitos):</label>
+            <input type="text" id="customer_cpf" name="customer_cpf" value="{{ repair.customer_cpf or '' }}" maxlength="11" pattern="[0-9]{11}">
+            <small style="color: #999; display: block; margin-top: 0.5rem;">Apenas números, sem pontos ou traços</small>
+        </div>
+
+        <div class="form-group">
+            <label for="customer_address">Endereço:</label>
+            <input type="text" id="customer_address" name="customer_address" value="{{ repair.customer_address or '' }}" placeholder="Rua, número, bairro">
+        </div>
+
+        <div class="form-group">
+            <label for="customer_email">E-mail (opcional):</label>
+            <input type="email" id="customer_email" name="customer_email" value="{{ repair.customer_email or '' }}">
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary">💾 Salvar Alterações</button>
+            <a href="{{ url_for('admin_repairs') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

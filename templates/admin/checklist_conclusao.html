@@ -1,0 +1,152 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Checklist Antifraude de Conclusão{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checklist-container {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .checklist-section {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .checklist-section h3 {
+        color: #ff8c00;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .repair-info-box {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        border: 1px solid #333333;
+    }
+
+    .repair-info-box h4 {
+        color: #ff8c00;
+        margin-bottom: 1rem;
+    }
+
+    .test-item {
+        background: #0d0d0d;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        border: 1px solid #333333;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .test-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .test-item label {
+        color: #ffffff;
+        cursor: pointer;
+        flex: 1;
+    }
+
+    .photo-upload-area {
+        border: 2px dashed #ff8c00;
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: center;
+        background: rgba(255, 140, 0, 0.05);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+
+    .photo-upload-area:hover {
+        background: rgba(255, 140, 0, 0.1);
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>✅ Checklist Antifraude de Conclusão</h2>
+    <p>Realize o teste final antes de emitir a Ordem de Retirada.</p>
+
+    <div class="repair-info-box">
+        <h4>Informações do Reparo</h4>
+        <p><strong>ID:</strong> {{ repair.id }}</p>
+        <p><strong>Dispositivo:</strong> {{ repair.device_name or 'N/A' }}</p>
+        <p><strong>Cliente:</strong> {{ repair.customer_name or 'N/A' }}</p>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="checklist_type" value="conclusao">
+        <input type="hidden" name="repair_id" value="{{ repair.id }}">
+
+        <!-- Testes Finais -->
+        <div class="checklist-section">
+            <h3>🧪 Testes Finais (Obrigatórios)</h3>
+            
+            <div class="test-item">
+                <input type="checkbox" id="test_after_screen" name="test_after_screen">
+                <label for="test_after_screen">Tela funcionando corretamente</label>
+            </div>
+            <div class="test-item">
+                <input type="checkbox" id="test_after_touch" name="test_after_touch">
+                <label for="test_after_touch">Touch funcionando corretamente</label>
+            </div>
+            <div class="test-item">
+                <input type="checkbox" id="test_after_camera" name="test_after_camera">
+                <label for="test_after_camera">Câmera funcionando corretamente</label>
+            </div>
+            <div class="test-item">
+                <input type="checkbox" id="test_after_battery" name="test_after_battery">
+                <label for="test_after_battery">Bateria funcionando corretamente</label>
+            </div>
+            <div class="test-item">
+                <input type="checkbox" id="test_after_audio" name="test_after_audio">
+                <label for="test_after_audio">Áudio funcionando corretamente</label>
+            </div>
+            <div class="test-item">
+                <input type="checkbox" id="test_after_buttons" name="test_after_buttons">
+                <label for="test_after_buttons">Botões funcionando corretamente</label>
+            </div>
+        </div>
+
+        <!-- Fotos (Opcional) -->
+        <div class="checklist-section">
+            <h3>📸 Fotos (Opcional)</h3>
+            
+            <div>
+                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem;">Foto do IMEI</label>
+                <input type="file" name="imei_photo" accept="image/*" class="form-control">
+            </div>
+            <div style="margin-top: 1rem;">
+                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem;">Foto da Placa</label>
+                <input type="file" name="placa_photo" accept="image/*" class="form-control">
+            </div>
+            <div style="margin-top: 1rem;">
+                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem;">Foto dos Conectores</label>
+                <input type="file" name="conectores_photo" accept="image/*" class="form-control">
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary">✅ Salvar Checklist de Conclusão</button>
+            <a href="{{ url_for('admin_repairs') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+

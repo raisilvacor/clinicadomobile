@@ -2,10 +2,191 @@
 
 {% block title %}Dashboard{% endblock %}
 
+{% block extra_css %}
+<style>
+    .search-container {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 2px solid #333333;
+    }
+    
+    .search-form {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .search-input {
+        flex: 1;
+        padding: 1rem;
+        background: #0d0d0d;
+        border: 2px solid #ff8c00;
+        border-radius: 10px;
+        color: #ffffff;
+        font-size: 1rem;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #ffaa00;
+        box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+    }
+    
+    .search-input::placeholder {
+        color: #666;
+    }
+    
+    .search-results {
+        margin-top: 2rem;
+    }
+    
+    .result-section {
+        background: #0d0d0d;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #333333;
+    }
+    
+    .result-section h3 {
+        color: #ff8c00;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+    }
+    
+    .result-item {
+        background: #1a1a1a;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        border: 1px solid #333333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .result-item-info {
+        flex: 1;
+    }
+    
+    .result-item-info strong {
+        color: #ff8c00;
+    }
+    
+    .result-item-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="admin-card">
     <h2>📊 Dashboard</h2>
     <p>Bem-vindo ao painel administrativo. Escolha uma seção abaixo para editar o conteúdo do site.</p>
+    
+    <!-- Barra de Pesquisa -->
+    <div class="search-container">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">🔍 Buscar por CPF do Cliente</h3>
+        <form method="GET" action="{{ url_for('admin_search') }}" class="search-form">
+            <input 
+                type="text" 
+                name="cpf" 
+                class="search-input" 
+                placeholder="Digite o CPF do cliente (apenas números)"
+                value="{{ search_cpf if search_cpf else '' }}"
+                maxlength="11"
+                pattern="[0-9]*"
+                inputmode="numeric"
+            >
+            <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem;">🔍 Buscar</button>
+        </form>
+    </div>
+    
+    {% if search_results %}
+    <div class="search-results">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Resultados da Busca para CPF: {{ formatted_cpf }}</h3>
+        
+        {% if search_results.repairs %}
+        <div class="result-section">
+            <h3>🔧 Reparos ({{ search_results.repairs|length }})</h3>
+            {% for repair in search_results.repairs %}
+            <div class="result-item">
+                <div class="result-item-info">
+                    <p><strong>ID:</strong> {{ repair.id }} | <strong>Cliente:</strong> {{ repair.customer_name or 'N/A' }} | <strong>Dispositivo:</strong> {{ repair.device_name or 'N/A' }}</p>
+                    <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">
+                        <strong>Status:</strong> {{ repair.status or 'N/A' }} | 
+                        <strong>Data:</strong> {{ repair.created_at[:10] if repair.created_at else 'N/A' }}
+                    </p>
+                </div>
+                <div class="result-item-actions">
+                    <a href="{{ url_for('admin_repairs') }}#repair-{{ repair.id }}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Ver Reparo</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if search_results.orders %}
+        <div class="result-section">
+            <h3>📋 Ordens de Retirada - OR ({{ search_results.orders|length }})</h3>
+            {% for order in search_results.orders %}
+            <div class="result-item">
+                <div class="result-item-info">
+                    <p><strong>OR #:</strong> {{ order.id }} | <strong>Reparo ID:</strong> {{ order.repair_id }} | <strong>Emitido por:</strong> {{ order.emitted_by or 'N/A' }}</p>
+                    <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">
+                        <strong>Data de Emissão:</strong> {{ order.emitted_at[:10] if order.emitted_at else 'N/A' }}
+                    </p>
+                </div>
+                <div class="result-item-actions">
+                    <a href="{{ url_for('admin_view_or', repair_id=order.repair_id) }}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Ver OR</a>
+                    <a href="{{ url_for('admin_or_pdf', repair_id=order.repair_id) }}" target="_blank" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">📥 PDF</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if search_results.checklists %}
+        <div class="result-section">
+            <h3>🛡️ Checklists Antifraude ({{ search_results.checklists|length }})</h3>
+            {% for checklist in search_results.checklists %}
+            <div class="result-item">
+                <div class="result-item-info">
+                    <p>
+                        <strong>ID:</strong> {{ checklist.id }} | 
+                        <strong>Tipo:</strong> 
+                        {% if checklist.type == 'inicial' %}
+                            📥 Checklist Inicial
+                        {% else %}
+                            ✅ Checklist de Conclusão
+                        {% endif %}
+                        | <strong>Reparo ID:</strong> {{ checklist.repair_id or 'N/A' }}
+                    </p>
+                    <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">
+                        <strong>Data:</strong> {{ checklist.timestamp[:10] if checklist.timestamp else 'N/A' }} |
+                        <strong>Assinado:</strong> {% if checklist.signature %}✅ Sim{% else %}❌ Não{% endif %}
+                    </p>
+                </div>
+                <div class="result-item-actions">
+                    {% if checklist.repair_id %}
+                    <a href="{{ url_for('admin_repairs') }}#repair-{{ checklist.repair_id }}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Ver Reparo</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if not search_results.repairs and not search_results.orders and not search_results.checklists %}
+        <div class="result-section" style="text-align: center; padding: 2rem;">
+            <p style="color: #999;">Nenhum resultado encontrado para este CPF.</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <div class="dashboard-grid">
         <div class="dashboard-card">
@@ -42,6 +223,24 @@
             <h3>📞 Contato</h3>
             <p>Edite informações de contato e horários</p>
             <a href="{{ url_for('admin_contact') }}" class="btn btn-primary">Editar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>🔧 Central de Reparos</h3>
+            <p>Gerencie reparos e permita clientes acompanharem status</p>
+            <a href="{{ url_for('admin_repairs') }}" class="btn btn-primary">Acessar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>🛡️ Checklist Antifraude</h3>
+            <p>Sistema de proteção com fotos, testes e assinatura digital</p>
+            <a href="{{ url_for('admin_checklist') }}" class="btn btn-primary">Acessar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>📋 Ordem de Retirada (OR)</h3>
+            <p>Emita ordens de retirada para reparos concluídos</p>
+            <a href="{{ url_for('admin_orders') }}" class="btn btn-primary">Acessar</a>
         </div>
     </div>
 

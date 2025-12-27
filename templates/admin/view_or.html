@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Ordem de Retirada{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>📋 Ordem de Retirada - OR #{{ order.id }}</h2>
+    
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('admin_or_pdf', repair_id=repair.id) }}" class="btn btn-primary" target="_blank">📥 Baixar PDF</a>
+        <a href="{{ url_for('admin_repairs') }}" class="btn btn-secondary">Voltar</a>
+    </div>
+
+    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-bottom: 1rem;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Informações da OR</h3>
+        <p><strong>Número da OR:</strong> {{ order.id }}</p>
+        <p><strong>ID do Reparo:</strong> {{ repair.id }}</p>
+        <p><strong>Data de Emissão:</strong> {{ order.emitted_at[:10] if order.emitted_at else 'N/A' }}</p>
+        <p><strong>Emitido por:</strong> {{ order.emitted_by or 'N/A' }}</p>
+    </div>
+
+    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-bottom: 1rem;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Cliente</h3>
+        <p><strong>Nome:</strong> {{ repair.customer_name or 'N/A' }}</p>
+        <p><strong>Telefone:</strong> {{ repair.customer_phone or 'N/A' }}</p>
+        {% if repair.customer_cpf %}
+        <p><strong>CPF:</strong> 
+            {% set cpf = repair.customer_cpf %}
+            {% if cpf|length == 11 %}
+                {{ cpf[:3] }}.{{ cpf[3:6] }}.{{ cpf[6:9] }}-{{ cpf[9:] }}
+            {% else %}
+                {{ cpf }}
+            {% endif %}
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-bottom: 1rem;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Dispositivo</h3>
+        <p><strong>Nome:</strong> {{ repair.device_name or 'N/A' }}</p>
+        <p><strong>Modelo:</strong> {{ repair.device_model or 'N/A' }}</p>
+        <p><strong>IMEI:</strong> {{ repair.device_imei or 'N/A' }}</p>
+    </div>
+
+    {% if order.observations %}
+    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-bottom: 1rem;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Observações</h3>
+        <p>{{ order.observations }}</p>
+    </div>
+    {% endif %}
+
+    {% if order.customer_signature %}
+    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Assinatura do Cliente</h3>
+        <img src="{{ order.customer_signature }}" alt="Assinatura" style="max-width: 100%; border: 1px solid #333; border-radius: 8px;">
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

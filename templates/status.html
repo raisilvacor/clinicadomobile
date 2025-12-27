@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhamento do Reparo - {{ repair.device_name if repair else 'N/A' }}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            color: #ff8c00;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #cccccc;
+            font-size: 1.1rem;
+        }
+
+        .status-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 2px solid #ff8c00;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+
+        .status-aguardando { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 2px solid #ffc107; }
+        .status-em_analise { background: rgba(0, 123, 255, 0.2); color: #007bff; border: 2px solid #007bff; }
+        .status-orcamento { background: rgba(255, 140, 0, 0.2); color: #ff8c00; border: 2px solid #ff8c00; }
+        .status-aprovado { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 2px solid #28a745; }
+        .status-em_reparo { background: rgba(23, 162, 184, 0.2); color: #17a2b8; border: 2px solid #17a2b8; }
+        .status-concluido { background: rgba(40, 167, 69, 0.3); color: #28a745; border: 2px solid #28a745; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-item {
+            background: #0d0d0d;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid #333333;
+        }
+
+        .info-label {
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .budget-section {
+            background: rgba(255, 140, 0, 0.1);
+            border: 2px solid #ff8c00;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .budget-amount {
+            font-size: 3rem;
+            color: #ff8c00;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .budget-description {
+            color: #cccccc;
+            margin: 1rem 0;
+            line-height: 1.6;
+        }
+
+        .budget-actions {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-approve {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: #ffffff;
+        }
+
+        .btn-approve:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-reject {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: #ffffff;
+        }
+
+        .btn-reject:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+
+        .messages-section {
+            background: #0d0d0d;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid #333333;
+        }
+
+        .message-item {
+            background: #1a1a1a;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #ff8c00;
+        }
+
+        .message-time {
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-content {
+            color: #cccccc;
+            line-height: 1.6;
+        }
+
+        .history-section {
+            background: #0d0d0d;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid #333333;
+        }
+
+        .history-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid #333333;
+            align-items: center;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-time {
+            color: #999;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .history-action {
+            color: #ffffff;
+            flex: 1;
+        }
+
+        .not-found {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .not-found h2 {
+            color: #ff8c00;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .not-found p {
+            color: #cccccc;
+            font-size: 1.1rem;
+        }
+
+        .signature-section {
+            background: #0d0d0d;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 2px solid #ff8c00;
+        }
+
+        .signature-canvas {
+            border: 2px solid #333333;
+            border-radius: 10px;
+            background: #ffffff;
+            cursor: crosshair;
+            width: 100%;
+            height: 200px;
+            margin: 1rem 0;
+        }
+
+        .signature-controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .signature-status {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+
+        .signature-pending {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+
+        .signature-completed {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+            border: 1px solid #28a745;
+        }
+
+        .warranty-section {
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(23, 162, 184, 0.1) 100%);
+            border: 2px solid #28a745;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .warranty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .warranty-title {
+            color: #28a745;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .warranty-info {
+            color: #cccccc;
+            line-height: 1.8;
+            margin: 1rem 0;
+        }
+
+        .warranty-details {
+            background: #0d0d0d;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+
+        .warranty-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #333333;
+        }
+
+        .warranty-detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .warranty-detail-label {
+            color: #999;
+        }
+
+        .warranty-detail-value {
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .feature-badge {
+            display: inline-block;
+            background: rgba(255, 140, 0, 0.1);
+            border: 1px solid #ff8c00;
+            color: #ff8c00;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin: 0.25rem;
+        }
+
+        .professional-header {
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.1) 0%, rgba(255, 107, 0, 0.05) 100%);
+            border-left: 4px solid #ff8c00;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .professional-header h2 {
+            color: #ff8c00;
+            margin-bottom: 0.5rem;
+        }
+
+        .professional-header p {
+            color: #cccccc;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .budget-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if repair %}
+        <div class="header">
+            <h1>📱 Acompanhamento do Reparo</h1>
+            <p>Status atualizado em tempo real</p>
+            <div style="margin-top: 1rem;">
+                <a href="/repairs" style="color: #ff8c00; text-decoration: none; font-weight: bold; border: 1px solid #ff8c00; padding: 0.5rem 1rem; border-radius: 20px; display: inline-block;">
+                    📋 Ver Todos os Meus Reparos
+                </a>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <div style="text-align: center;">
+                <div class="status-badge status-{{ repair.status }}">
+                    {% if repair.status == 'aguardando' %}
+                        ⏳ Aguardando
+                    {% elif repair.status == 'em_analise' %}
+                        🔍 Em Análise
+                    {% elif repair.status == 'orcamento' %}
+                        💰 Orçamento
+                    {% elif repair.status == 'aprovado' %}
+                        ✅ Aprovado
+                    {% elif repair.status == 'em_reparo' %}
+                        🔧 Em Reparo
+                    {% elif repair.status == 'concluido' %}
+                        🎉 Concluído
+                    {% else %}
+                        {{ repair.status|replace('_', ' ')|title }}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Dispositivo</div>
+                    <div class="info-value">{{ repair.device_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Modelo</div>
+                    <div class="info-value">{{ repair.device_model or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">IMEI</div>
+                    <div class="info-value">{{ repair.device_imei or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Data de Entrada</div>
+                    <div class="info-value">{{ repair.created_at[:10] if repair.created_at else 'N/A' }}</div>
+                </div>
+            </div>
+
+            {% if repair.problem_description %}
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; margin-top: 1.5rem;">
+                <div class="info-label">Descrição do Problema</div>
+                <div class="info-value" style="margin-top: 0.5rem; line-height: 1.6;">{{ repair.problem_description }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Informações do Cliente -->
+        <div class="status-card">
+            <h3 style="color: #ff8c00; margin-bottom: 1.5rem; font-size: 1.5rem;">👤 Informações do Cliente</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Nome</div>
+                    <div class="info-value">{{ repair.customer_name or 'Não informado' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Telefone</div>
+                    <div class="info-value">{{ repair.customer_phone or 'Não informado' }}</div>
+                </div>
+                {% if repair.customer_cpf %}
+                <div class="info-item">
+                    <div class="info-label">CPF</div>
+                    <div class="info-value">
+                        {% set cpf = repair.customer_cpf %}
+                        {% if cpf|length == 11 %}
+                            {{ cpf[:3] }}.{{ cpf[3:6] }}.{{ cpf[6:9] }}-{{ cpf[9:] }}
+                        {% else %}
+                            {{ cpf }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                {% if repair.customer_address %}
+                <div class="info-item">
+                    <div class="info-label">Endereço</div>
+                    <div class="info-value">{{ repair.customer_address }}</div>
+                </div>
+                {% endif %}
+                {% if repair.customer_email %}
+                <div class="info-item">
+                    <div class="info-label">E-mail</div>
+                    <div class="info-value">{{ repair.customer_email }}</div>
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <div class="info-label">ID do Reparo</div>
+                    <div class="info-value" style="font-family: monospace; color: #ff8c00;">{{ repair.id }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orçamento -->
+        {% if repair.budget %}
+        <div class="budget-section">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem;">💰 Orçamento</h3>
+            <div class="budget-amount">R$ {{ "%.2f"|format(repair.budget.amount|float) }}</div>
+            {% if repair.budget.description %}
+            <div class="budget-description">{{ repair.budget.description }}</div>
+            {% endif %}
+            
+            {% if repair.budget.status == 'pending' %}
+            <div style="margin-top: 2rem;">
+                <p style="color: #ffc107; margin-bottom: 1rem; font-weight: bold;">⏳ Aguardando sua aprovação</p>
+                <div class="budget-actions">
+                    <button class="btn btn-approve" onclick="approveBudget('{{ repair.id }}')">✅ Aprovar Orçamento</button>
+                    <button class="btn btn-reject" onclick="rejectBudget('{{ repair.id }}')">❌ Rejeitar Orçamento</button>
+                </div>
+            </div>
+            {% elif repair.budget.status == 'approved' %}
+            <p style="color: #28a745; margin-top: 1rem; font-weight: bold;">✅ Orçamento Aprovado</p>
+            {% elif repair.budget.status == 'rejected' %}
+            <p style="color: #dc3545; margin-top: 1rem; font-weight: bold;">❌ Orçamento Rejeitado</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Mensagens -->
+        {% if repair.messages %}
+        <div class="messages-section">
+            <h3 style="color: #ff8c00; margin-bottom: 1.5rem;">💬 Mensagens</h3>
+            {% for message in repair.messages %}
+            <div class="message-item">
+                <div class="message-time">{{ message.sent_at[:16] if message.sent_at else 'N/A' }}</div>
+                <div class="message-content">{{ message.content }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Checklists Antifraude -->
+        {% if all_repair_checklists %}
+        {% for checklist in all_repair_checklists %}
+        <div class="status-card">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem;">
+                {% if checklist.type == 'inicial' %}
+                    📥 Checklist Antifraude Inicial
+                {% else %}
+                    ✅ Checklist Antifraude de Conclusão
+                {% endif %}
+            </h3>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <p style="color: #999; margin-bottom: 0.5rem;"><strong>ID do Checklist:</strong> {{ checklist.id }}</p>
+                <p style="color: #999; margin-bottom: 0.5rem;"><strong>Data:</strong> {{ checklist.timestamp[:16] if checklist.timestamp else 'N/A' }}</p>
+            </div>
+
+            <!-- Fotos do Checklist -->
+            {% if checklist.photos %}
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: #ff8c00; margin-bottom: 1rem; font-size: 1.1rem;">📸 Fotos do Checklist</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    {% if checklist.photos.imei_photo %}
+                    <div style="background: #0d0d0d; padding: 1rem; border-radius: 8px; border: 1px solid #333333;">
+                        <p style="color: #ff8c00; font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: bold;">Foto do IMEI</p>
+                        <img src="{{ checklist.photos.imei_photo }}" alt="IMEI" style="width: 100%; border-radius: 5px; border: 1px solid #333333;">
+                    </div>
+                    {% endif %}
+                    {% if checklist.photos.placa_photo %}
+                    <div style="background: #0d0d0d; padding: 1rem; border-radius: 8px; border: 1px solid #333333;">
+                        <p style="color: #ff8c00; font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: bold;">Foto da Placa</p>
+                        <img src="{{ checklist.photos.placa_photo }}" alt="Placa" style="width: 100%; border-radius: 5px; border: 1px solid #333333;">
+                    </div>
+                    {% endif %}
+                    {% if checklist.photos.conectores_photo %}
+                    <div style="background: #0d0d0d; padding: 1rem; border-radius: 8px; border: 1px solid #333333;">
+                        <p style="color: #ff8c00; font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: bold;">Foto dos Conectores</p>
+                        <img src="{{ checklist.photos.conectores_photo }}" alt="Conectores" style="width: 100%; border-radius: 5px; border: 1px solid #333333;">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Testes do Checklist -->
+            {% if checklist.tests %}
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: #ff8c00; margin-bottom: 1rem; font-size: 1.1rem;">🧪 Testes Realizados</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
+                    {% if checklist.type == 'inicial' %}
+                        {% if checklist.tests.test_before_screen %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Tela (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_touch %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Touch (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_camera %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Câmera (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_battery %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Bateria (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_audio %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Áudio (Antes)</span>
+                        </div>
+                        {% endif %}
+                        {% if checklist.tests.test_before_buttons %}
+                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #28a745;">✅</span>
+                            <span style="color: #ffffff; font-size: 0.9rem;">Botões (Antes)</span>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if checklist.tests.test_after_screen %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Tela (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_touch %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Touch (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_camera %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Câmera (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_battery %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Bateria (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_audio %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Áudio (Depois)</span>
+                    </div>
+                    {% endif %}
+                    {% if checklist.tests.test_after_buttons %}
+                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #28a745;">✅</span>
+                        <span style="color: #ffffff; font-size: 0.9rem;">Botões (Depois)</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Assinatura do Checklist -->
+            {% if checklist.signature %}
+            <div style="margin-bottom: 1.5rem; background: rgba(40, 167, 69, 0.1); border: 2px solid #28a745; border-radius: 10px; padding: 1.5rem;">
+                <h4 style="color: #28a745; margin-bottom: 1rem; font-size: 1.1rem;">✍️ Assinatura Digital</h4>
+                <p style="color: #999; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                    Assinado em: {{ checklist.signature_signed_at[:16] if checklist.signature_signed_at else checklist.timestamp[:16] if checklist.timestamp else 'N/A' }}
+                </p>
+                <img src="{{ checklist.signature }}" alt="Assinatura" style="max-width: 100%; border: 2px solid #28a745; border-radius: 10px; padding: 1rem; background: #ffffff;">
+            </div>
+            {% else %}
+            <!-- Seção de Assinatura (se não tiver assinatura) -->
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #333333;">
+                <h4 style="color: #ff8c00; margin-bottom: 1rem; font-size: 1.1rem;">✍️ Assinatura Digital</h4>
+                <p style="color: #999; margin-bottom: 1.5rem;">
+                    Por favor, assine digitalmente o checklist para confirmar as informações do seu aparelho.
+                </p>
+                <div class="signature-section">
+                    <canvas id="checklist-signature-canvas-{{ checklist.id }}" class="signature-canvas"></canvas>
+                    <input type="hidden" id="checklist-signature-data-{{ checklist.id }}" name="checklist_signature_data">
+                    <div class="signature-controls">
+                        <button class="btn btn-secondary" onclick="clearChecklistSignature('{{ checklist.id }}')" style="background: #6c757d; color: #fff;">🗑️ Limpar</button>
+                        <button class="btn btn-approve" onclick="saveChecklistSignature('{{ repair.id }}', '{{ checklist.id }}', this)">✅ Confirmar Assinatura</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Assinatura Digital -->
+        {% if repair.budget and repair.budget.status == 'approved' %}
+        <div class="signature-section">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
+            <p style="color: #cccccc; margin-bottom: 1rem;">Assine digitalmente para confirmar a aprovação do orçamento e autorizar o reparo.</p>
+            
+            {% if repair.signature %}
+            <div class="signature-status signature-completed">
+                ✅ Assinatura realizada em {{ repair.signature.signed_at[:16] if repair.signature.signed_at else 'N/A' }}
+            </div>
+            <div style="margin-top: 1rem;">
+                <img src="{{ repair.signature.image }}" alt="Assinatura" style="max-width: 100%; border: 2px solid #28a745; border-radius: 10px; padding: 1rem; background: #ffffff;">
+            </div>
+            {% else %}
+            <div class="signature-status signature-pending">
+                ⏳ Aguardando assinatura
+            </div>
+            <canvas id="signature-canvas" class="signature-canvas"></canvas>
+            <input type="hidden" id="signature-data" name="signature_data">
+            <div class="signature-controls">
+                <button class="btn btn-secondary" onclick="clearSignature()" style="background: #6c757d; color: #fff;">🗑️ Limpar</button>
+                <button id="signature-submit-btn" class="btn btn-approve" onclick="saveSignature('{{ repair.id }}', this)">✅ Confirmar Assinatura</button>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Garantia -->
+        {% if repair.status == 'concluido' %}
+        <div class="warranty-section">
+            <div class="warranty-icon">🛡️</div>
+            <div class="warranty-title">Garantia do Reparo</div>
+            <div class="warranty-info">
+                Seu reparo está garantido! Em caso de problemas relacionados ao serviço realizado, entre em contato conosco.
+            </div>
+            
+            <div class="warranty-details">
+                <div class="warranty-detail-item">
+                    <span class="warranty-detail-label">Período de Garantia:</span>
+                    <span class="warranty-detail-value">{{ repair.warranty.period if repair.warranty and repair.warranty.period else '30 dias' }}</span>
+                </div>
+                <div class="warranty-detail-item">
+                    <span class="warranty-detail-label">Data de Conclusão:</span>
+                    <span class="warranty-detail-value">{{ repair.completed_at[:10] if repair.completed_at else repair.updated_at[:10] if repair.updated_at else 'N/A' }}</span>
+                </div>
+                <div class="warranty-detail-item">
+                    <span class="warranty-detail-label">Válida até:</span>
+                    <span class="warranty-detail-value" style="color: #28a745; font-weight: bold;">{{ repair.warranty.valid_until[:10] if repair.warranty and repair.warranty.valid_until else 'N/A' }}</span>
+                </div>
+                <div class="warranty-detail-item">
+                    <span class="warranty-detail-label">Cobertura:</span>
+                    <span class="warranty-detail-value">Peças e mão de obra</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 140, 0, 0.1); border-radius: 10px;">
+                <p style="color: #ff8c00; font-weight: bold; margin-bottom: 0.5rem;">📞 Precisa de suporte?</p>
+                <p style="color: #cccccc; font-size: 0.9rem;">Entre em contato conosco através do telefone ou WhatsApp informado no início desta página.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Histórico -->
+        {% if repair.history %}
+        <div class="history-section">
+            <h3 style="color: #ff8c00; margin-bottom: 1.5rem;">📋 Histórico</h3>
+            {% for item in repair.history %}
+            <div class="history-item">
+                <div class="history-time">{{ item.timestamp[:16] if item.timestamp else 'N/A' }}</div>
+                <div class="history-action">{{ item.action }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="not-found">
+            <h2>❌ Reparo não encontrado</h2>
+            <p>O link de acompanhamento é inválido ou o reparo foi removido.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function approveBudget(repairId) {
+            if (confirm('Confirmar aprovação do orçamento?')) {
+                fetch(`/status/${repairId}/budget/approve`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Orçamento aprovado com sucesso!');
+                        location.reload();
+                    } else {
+                        alert('Erro ao aprovar orçamento');
+                    }
+                });
+            }
+        }
+
+        function rejectBudget(repairId) {
+            if (confirm('Confirmar rejeição do orçamento? O reparo será cancelado.')) {
+                fetch(`/status/${repairId}/budget/reject`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Orçamento rejeitado.');
+                        location.reload();
+                    } else {
+                        alert('Erro ao rejeitar orçamento');
+                    }
+                });
+            }
+        }
+
+        // Assinaturas de Checklists
+        {% if all_repair_checklists %}
+        {% for checklist in all_repair_checklists %}
+        {% if not checklist.signature %}
+        (function() {
+            const checklistId = '{{ checklist.id }}';
+            const canvasId = 'checklist-signature-canvas-' + checklistId;
+            const canvas = document.getElementById(canvasId);
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                let isDrawing = false;
+                
+                // Ajustar tamanho do canvas
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = 200;
+                
+                function startDrawing(e) {
+                    isDrawing = true;
+                    const rect = canvas.getBoundingClientRect();
+                    ctx.beginPath();
+                    if (e.touches) {
+                        ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+                    } else {
+                        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                    }
+                }
+                
+                function draw(e) {
+                    if (!isDrawing) return;
+                    const rect = canvas.getBoundingClientRect();
+                    if (e.touches) {
+                        ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+                    } else {
+                        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+                    }
+                    ctx.stroke();
+                }
+                
+                function stopDrawing() {
+                    if (isDrawing) {
+                        isDrawing = false;
+                        const dataURL = canvas.toDataURL('image/png');
+                        document.getElementById('checklist-signature-data-' + checklistId).value = dataURL;
+                    }
+                }
+                
+                canvas.addEventListener('mousedown', startDrawing);
+                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mouseup', stopDrawing);
+                canvas.addEventListener('mouseout', stopDrawing);
+                canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); });
+                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+                canvas.addEventListener('touchend', (e) => { e.preventDefault(); stopDrawing(); });
+                
+                window['clearChecklistSignature_' + checklistId] = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    document.getElementById('checklist-signature-data-' + checklistId).value = '';
+                };
+            }
+        })();
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+        
+        function clearChecklistSignature(checklistId) {
+            const clearFunc = window['clearChecklistSignature_' + checklistId];
+            if (clearFunc) clearFunc();
+        }
+        
+        function saveChecklistSignature(repairId, checklistId, buttonElement) {
+            const signatureData = document.getElementById('checklist-signature-data-' + checklistId).value;
+            if (!signatureData) {
+                alert('Por favor, desenhe sua assinatura antes de confirmar.');
+                return;
+            }
+            
+            const button = buttonElement;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = '⏳ Salvando...';
+            
+            fetch(`/status/${repairId}/checklist/${checklistId}/signature`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ signature: signatureData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Assinatura do checklist confirmada com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao salvar assinatura: ' + (data.error || 'Erro desconhecido'));
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao salvar assinatura. Por favor, tente novamente.');
+                button.disabled = false;
+                button.textContent = originalText;
+            });
+        }
+
+        // Assinatura Digital
+        let signatureCanvas = document.getElementById('signature-canvas');
+        if (signatureCanvas) {
+            const ctx = signatureCanvas.getContext('2d');
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+
+            function resizeCanvas() {
+                const rect = signatureCanvas.getBoundingClientRect();
+                signatureCanvas.width = rect.width;
+                signatureCanvas.height = rect.height;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            signatureCanvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                const rect = signatureCanvas.getBoundingClientRect();
+                lastX = e.clientX - rect.left;
+                lastY = e.clientY - rect.top;
+            });
+
+            signatureCanvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                const rect = signatureCanvas.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(currentX, currentY);
+                ctx.stroke();
+                lastX = currentX;
+                lastY = currentY;
+            });
+
+            signatureCanvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+            });
+
+            signatureCanvas.addEventListener('mouseout', () => {
+                isDrawing = false;
+            });
+
+            // Touch events
+            signatureCanvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                isDrawing = true;
+                const touch = e.touches[0];
+                const rect = signatureCanvas.getBoundingClientRect();
+                lastX = touch.clientX - rect.left;
+                lastY = touch.clientY - rect.top;
+            });
+
+            signatureCanvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!isDrawing) return;
+                const touch = e.touches[0];
+                const rect = signatureCanvas.getBoundingClientRect();
+                const currentX = touch.clientX - rect.left;
+                const currentY = touch.clientY - rect.top;
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(currentX, currentY);
+                ctx.stroke();
+                lastX = currentX;
+                lastY = currentY;
+            });
+
+            signatureCanvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                isDrawing = false;
+            });
+
+            window.clearSignature = function() {
+                ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                document.getElementById('signature-data').value = '';
+            };
+
+            window.saveSignature = function(repairId, buttonElement) {
+                // Verificar se há algo desenhado
+                const blankCanvas = document.createElement('canvas');
+                blankCanvas.width = signatureCanvas.width;
+                blankCanvas.height = signatureCanvas.height;
+                const blankDataURL = blankCanvas.toDataURL('image/png');
+                const currentDataURL = signatureCanvas.toDataURL('image/png');
+                
+                if (currentDataURL === blankDataURL) {
+                    alert('Por favor, assine antes de confirmar!');
+                    return;
+                }
+
+                // Mostrar loading
+                const button = buttonElement || document.getElementById('signature-submit-btn');
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = '⏳ Salvando...';
+
+                fetch(`/status/${repairId}/signature`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ signature: currentDataURL })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro na resposta do servidor');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert('Assinatura confirmada com sucesso!');
+                        location.reload();
+                    } else {
+                        alert('Erro ao salvar assinatura: ' + (data.error || 'Erro desconhecido'));
+                        button.disabled = false;
+                        button.textContent = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao salvar assinatura. Por favor, tente novamente.');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                });
+            };
+        }
+
+        // Auto-refresh a cada 30 segundos
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
+

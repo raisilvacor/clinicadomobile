@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Novo Reparo{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>➕ Novo Reparo</h2>
+    <p>Cadastre um novo reparo para acompanhamento do cliente.</p>
+
+    <form method="POST">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📱 Informações do Dispositivo</h3>
+        
+        <div class="form-group">
+            <label for="device_name">Nome do Dispositivo:</label>
+            <input type="text" id="device_name" name="device_name" placeholder="iPhone 13 Pro" required>
+        </div>
+
+        <div class="form-group">
+            <label for="device_model">Modelo:</label>
+            <input type="text" id="device_model" name="device_model" placeholder="A2482" required>
+        </div>
+
+        <div class="form-group">
+            <label for="device_imei">IMEI:</label>
+            <input type="text" id="device_imei" name="device_imei" placeholder="123456789012345" required>
+        </div>
+
+        <div class="form-group">
+            <label for="problem_description">Descrição do Problema:</label>
+            <textarea id="problem_description" name="problem_description" required placeholder="Descreva o problema do dispositivo..."></textarea>
+        </div>
+
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">👤 Informações do Cliente</h3>
+
+        <div class="form-group">
+            <label for="customer_name">Nome do Cliente:</label>
+            <input type="text" id="customer_name" name="customer_name" placeholder="João Silva" required>
+        </div>
+
+        <div class="form-group">
+            <label for="customer_phone">Telefone:</label>
+            <input type="text" id="customer_phone" name="customer_phone" placeholder="(11) 99999-9999" required>
+        </div>
+
+        <div class="form-group">
+            <label for="customer_cpf">CPF (11 dígitos):</label>
+            <input type="text" id="customer_cpf" name="customer_cpf" placeholder="12345678901" maxlength="11" pattern="[0-9]{11}">
+            <small style="color: #999; display: block; margin-top: 0.5rem;">Apenas números, sem pontos ou traços</small>
+        </div>
+
+        <div class="form-group">
+            <label for="customer_address">Endereço:</label>
+            <input type="text" id="customer_address" name="customer_address" placeholder="Rua, número, bairro">
+        </div>
+
+        <div class="form-group">
+            <label for="customer_email">E-mail (opcional):</label>
+            <input type="email" id="customer_email" name="customer_email" placeholder="cliente@email.com">
+        </div>
+
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">💰 Orçamento (Opcional)</h3>
+
+        <div class="form-group">
+            <label for="budget_amount">Valor do Orçamento (R$):</label>
+            <input type="number" id="budget_amount" name="budget_amount" step="0.01" placeholder="0.00">
+        </div>
+
+        <div class="form-group">
+            <label for="budget_description">Descrição do Orçamento:</label>
+            <textarea id="budget_description" name="budget_description" placeholder="Descrição dos serviços e peças..."></textarea>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary">💾 Criar Reparo</button>
+            <a href="{{ url_for('admin_repairs') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

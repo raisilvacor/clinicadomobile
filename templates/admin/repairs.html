@@ -1,0 +1,601 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Central de Status do Reparo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .repairs-container {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .repair-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .repair-card:hover {
+        border-color: #ff8c00;
+        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+    }
+
+    .repair-card.expanded {
+        padding: 2rem;
+    }
+
+    .repair-card-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .repair-card-details {
+        display: none;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #333333;
+    }
+
+    .repair-card.expanded .repair-card-details {
+        display: block;
+    }
+
+    .expand-toggle {
+        color: #ff8c00;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+    .repair-card.expanded .expand-toggle {
+        transform: rotate(180deg);
+    }
+
+    .repair-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .repair-info h3 {
+        color: #ff8c00;
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+    }
+
+    .repair-id {
+        color: #999;
+        font-size: 0.9rem;
+        font-family: monospace;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1.5rem;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+
+    .status-aguardando { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
+    .status-analise { background: rgba(0, 123, 255, 0.2); color: #007bff; border: 1px solid #007bff; }
+    .status-orcamento { background: rgba(255, 140, 0, 0.2); color: #ff8c00; border: 1px solid #ff8c00; }
+    .status-aprovado { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+    .status-reparo { background: rgba(23, 162, 184, 0.2); color: #17a2b8; border: 1px solid #17a2b8; }
+    .status-concluido { background: rgba(40, 167, 69, 0.3); color: #28a745; border: 2px solid #28a745; }
+
+    .repair-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-item {
+        background: #0d0d0d;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #333333;
+    }
+
+    .detail-label {
+        color: #999;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .detail-value {
+        color: #ffffff;
+        font-weight: 500;
+    }
+
+    .repair-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .link-box {
+        background: #0d0d0d;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #333333;
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .link-box input {
+        flex: 1;
+        background: #000000;
+        border: 1px solid #333333;
+        color: #ffffff;
+        padding: 0.5rem;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+
+    .link-box button {
+        padding: 0.5rem 1rem;
+    }
+
+    .messages-section {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+        border: 1px solid #333333;
+    }
+
+    .message-item {
+        background: #1a1a1a;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border-left: 3px solid #ff8c00;
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .message-type {
+        font-size: 0.85rem;
+        color: #ff8c00;
+        font-weight: bold;
+    }
+
+    .message-time {
+        font-size: 0.85rem;
+        color: #999;
+    }
+
+    .message-content {
+        color: #cccccc;
+        line-height: 1.6;
+    }
+
+    .budget-section {
+        background: rgba(255, 140, 0, 0.1);
+        border: 2px solid #ff8c00;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+    }
+
+    .budget-amount {
+        font-size: 2rem;
+        color: #ff8c00;
+        font-weight: bold;
+        margin: 1rem 0;
+    }
+
+    .budget-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        display: inline-block;
+        font-weight: bold;
+    }
+
+    .budget-pending {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+
+    .budget-approved {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+
+    .budget-rejected {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+
+    .history-section {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+        border: 1px solid #333333;
+    }
+
+    .history-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #333333;
+    }
+
+    .history-item:last-child {
+        border-bottom: none;
+    }
+
+    .history-time {
+        color: #999;
+        font-size: 0.85rem;
+        min-width: 150px;
+    }
+
+    .history-action {
+        color: #ffffff;
+        flex: 1;
+    }
+
+    .history-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+        .repair-header {
+            flex-direction: column;
+        }
+
+        .repair-details {
+            grid-template-columns: 1fr;
+        }
+
+        .repair-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>🔧 Central de Status do Reparo</h2>
+    <p>Gerencie todos os reparos e permita que clientes acompanhem o status em tempo real.</p>
+
+    <div style="margin: 2rem 0;">
+        <a href="{{ url_for('admin_new_repair') }}" class="btn btn-primary">➕ Novo Reparo</a>
+    </div>
+
+        <div class="repairs-container">
+        {% if repairs %}
+            {% for repair in repairs %}
+            <div class="repair-card" id="repair-{{ repair.id }}">
+                <div class="repair-card-summary" onclick="toggleRepairDetails('{{ repair.id }}')">
+                    <div class="repair-info">
+                        <h3 style="margin: 0; color: #ff8c00;">{{ repair.device_name or 'Dispositivo não informado' }}</h3>
+                        <div class="repair-id" style="margin-top: 0.25rem;">ID: {{ repair.id }} | Cliente: {{ repair.customer_name or 'N/A' }} | {{ repair.created_at[:10] if repair.created_at else 'N/A' }}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span class="status-badge status-{{ repair.status }}">{{ repair.status|replace('_', ' ')|title }}</span>
+                        <span class="expand-toggle">▼</span>
+                    </div>
+                </div>
+
+                <div class="repair-card-details">
+                <div class="repair-header" style="margin-top: 0;">
+                    <div class="repair-info">
+                        <h3>{{ repair.device_name or 'Dispositivo não informado' }}</h3>
+                        <div class="repair-id">ID: {{ repair.id }}</div>
+                    </div>
+                    <span class="status-badge status-{{ repair.status }}">{{ repair.status|replace('_', ' ')|title }}</span>
+                </div>
+
+                <div class="repair-details">
+                    <div class="detail-item">
+                        <div class="detail-label">Cliente</div>
+                        <div class="detail-value">{{ repair.customer_name or 'Não informado' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Telefone</div>
+                        <div class="detail-value">{{ repair.customer_phone or 'Não informado' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Data de Entrada</div>
+                        <div class="detail-value">{{ repair.created_at[:10] if repair.created_at else 'N/A' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Última Atualização</div>
+                        <div class="detail-value">{{ repair.updated_at[:10] if repair.updated_at else 'N/A' }}</div>
+                    </div>
+                </div>
+
+                <!-- Link de Acompanhamento -->
+                <div class="link-box">
+                    <input type="text" id="link-{{ repair.id }}" value="{{ request.url_root }}status/{{ repair.id }}" readonly>
+                    <button class="btn btn-secondary" onclick="copyLink('{{ repair.id }}')">📋 Copiar Link</button>
+                </div>
+
+                <!-- Orçamento -->
+                {% if repair.budget %}
+                <div class="budget-section">
+                    <h4 style="color: #ff8c00; margin-bottom: 0.5rem;">💰 Orçamento</h4>
+                    <div class="budget-amount">R$ {{ "%.2f"|format(repair.budget.amount|float) }}</div>
+                    <div>
+                        <span class="budget-status budget-{{ repair.budget.status }}">
+                            {% if repair.budget.status == 'pending' %}
+                                ⏳ Aguardando Aprovação
+                            {% elif repair.budget.status == 'approved' %}
+                                ✅ Aprovado
+                            {% elif repair.budget.status == 'rejected' %}
+                                ❌ Rejeitado
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% if repair.budget.status == 'pending' %}
+                    <div style="margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="approveBudget('{{ repair.id }}')">✅ Aprovar</button>
+                        <button class="btn btn-danger" onclick="rejectBudget('{{ repair.id }}')">❌ Rejeitar</button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Mensagens -->
+                {% if repair.messages %}
+                <div class="messages-section">
+                    <h4 style="color: #ff8c00; margin-bottom: 1rem;">💬 Mensagens Automáticas</h4>
+                    {% for message in repair.messages %}
+                    <div class="message-item">
+                        <div class="message-header">
+                            <span class="message-type">{{ message.type|title }}</span>
+                            <span class="message-time">{{ message.sent_at[:16] if message.sent_at else 'N/A' }}</span>
+                        </div>
+                        <div class="message-content">{{ message.content }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Histórico -->
+                {% if repair.history %}
+                <div class="history-section">
+                    <h4 style="color: #ff8c00; margin-bottom: 1rem;">📋 Histórico</h4>
+                    {% for item in repair.history %}
+                    <div class="history-item">
+                        <div class="history-time">{{ item.timestamp[:16] if item.timestamp else 'N/A' }}</div>
+                        <div class="history-action">{{ item.action }}</div>
+                        <span class="status-badge status-{{ item.status }}">{{ item.status|replace('_', ' ')|title }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Garantia -->
+                {% if repair.warranty %}
+                <div class="budget-section" style="background: rgba(40, 167, 69, 0.1); border-color: #28a745;">
+                    <h4 style="color: #28a745; margin-bottom: 0.5rem;">🛡️ Garantia Ativa</h4>
+                    <p style="color: #cccccc;">Período: {{ repair.warranty.period }}</p>
+                    <p style="color: #cccccc;">Válida até: {{ repair.warranty.valid_until[:10] if repair.warranty.valid_until else 'N/A' }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Assinatura -->
+                {% if repair.signature %}
+                <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; margin-top: 1rem; border: 1px solid #28a745;">
+                    <h4 style="color: #28a745; margin-bottom: 1rem;">✍️ Assinatura Digital</h4>
+                    <p style="color: #999; margin-bottom: 1rem;">Assinada em: {{ repair.signature.signed_at[:16] if repair.signature.signed_at else 'N/A' }}</p>
+                    <img src="{{ repair.signature.image }}" alt="Assinatura" style="max-width: 100%; border: 2px solid #28a745; border-radius: 10px; padding: 1rem; background: #ffffff;">
+                </div>
+                {% endif %}
+
+                <!-- Ações -->
+                <div class="repair-actions" style="margin-top: 1.5rem;">
+                    <a href="{{ url_for('admin_edit_repair', repair_id=repair.id) }}" class="btn btn-primary">✏️ Editar</a>
+                    <button class="btn btn-secondary" onclick="sendMessage('{{ repair.id }}')">📨 Enviar Mensagem</button>
+                    <button class="btn btn-secondary" onclick="updateStatus('{{ repair.id }}')">🔄 Atualizar Status</button>
+                    <a href="{{ url_for('admin_repair_pdf', repair_id=repair.id) }}" target="_blank" class="btn btn-secondary" style="background: #dc3545; color: #fff;">📄 Gerar PDF</a>
+                    <button class="btn btn-danger" onclick="deleteRepair('{{ repair.id }}')">🗑️ Excluir</button>
+                    {% if repair.status != 'concluido' %}
+                    <button class="btn btn-primary" onclick="completeRepair('{{ repair.id }}')" style="background: #28a745;">✅ Concluir Reparo</button>
+                    {% endif %}
+                </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="admin-card" style="text-align: center; padding: 3rem;">
+                <p style="color: #999; font-size: 1.2rem;">Nenhum reparo cadastrado ainda.</p>
+                <a href="{{ url_for('admin_new_repair') }}" class="btn btn-primary" style="margin-top: 1rem;">Criar Primeiro Reparo</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function copyLink(repairId) {
+        const input = document.getElementById('link-' + repairId);
+        input.select();
+        document.execCommand('copy');
+        alert('Link copiado! Envie este link para o cliente acompanhar o status.');
+    }
+
+    function approveBudget(repairId) {
+        if (confirm('Confirmar aprovação do orçamento?')) {
+            fetch(`/admin/repairs/${repairId}/budget/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erro ao aprovar orçamento');
+                }
+            });
+        }
+    }
+
+    function rejectBudget(repairId) {
+        if (confirm('Confirmar rejeição do orçamento?')) {
+            fetch(`/admin/repairs/${repairId}/budget/reject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erro ao rejeitar orçamento');
+                }
+            });
+        }
+    }
+
+    function sendMessage(repairId) {
+        const message = prompt('Digite a mensagem para o cliente:');
+        if (message) {
+            fetch(`/admin/repairs/${repairId}/message`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Mensagem enviada com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao enviar mensagem');
+                }
+            });
+        }
+    }
+
+    function updateStatus(repairId) {
+        const statuses = [
+            'aguardando',
+            'em_analise',
+            'orcamento',
+            'aprovado',
+            'em_reparo',
+            'concluido'
+        ];
+        
+        const statusNames = {
+            'aguardando': 'Aguardando',
+            'em_analise': 'Em Análise',
+            'orcamento': 'Orçamento',
+            'aprovado': 'Aprovado',
+            'em_reparo': 'Em Reparo',
+            'concluido': 'Concluído'
+        };
+
+        let options = '';
+        statuses.forEach(status => {
+            options += `<option value="${status}">${statusNames[status]}</option>`;
+        });
+
+        const newStatus = prompt(`Selecione o novo status:\n${statuses.map((s, i) => `${i+1}. ${statusNames[s]}`).join('\n')}`);
+        
+        if (newStatus && statuses.includes(newStatus.toLowerCase())) {
+            fetch(`/admin/repairs/${repairId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: newStatus.toLowerCase() })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Status atualizado com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao atualizar status');
+                }
+            });
+        }
+    }
+
+    function completeRepair(repairId) {
+        if (confirm('Confirmar conclusão do reparo? Isso irá gerar a garantia de 30 dias automaticamente.')) {
+            fetch(`/admin/repairs/${repairId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Reparo concluído! Garantia de 30 dias ativada.');
+                    location.reload();
+                } else {
+                    alert('Erro ao concluir reparo');
+                }
+            });
+        }
+    }
+
+    function toggleRepairDetails(repairId) {
+        const card = document.getElementById('repair-' + repairId);
+        card.classList.toggle('expanded');
+    }
+
+    function deleteRepair(repairId) {
+        if (confirm('⚠️ ATENÇÃO: Tem certeza que deseja excluir este reparo? Esta ação não pode ser desfeita!')) {
+            fetch(`/admin/repairs/${repairId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Reparo excluído com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao excluir reparo: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao excluir reparo. Por favor, tente novamente.');
+            });
+        }
+    }
+</script>
+{% endblock %}
+

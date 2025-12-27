@@ -106,5 +106,18 @@
       "email": "contato@techcell.com.br",
       "whatsapp": "5586988959957"
     }
-  }
+  },
+  "repairs": [],
+  "checklists": [],
+  "orders": [
+    {
+      "id": "c6874aad",
+      "repair_id": "73f998fc",
+      "emitted_at": "2025-12-26T22:50:55.329980",
+      "emitted_by": "Raí Silva",
+      "observations": "",
+      "customer_received": false,
+      "customer_signature": "/static/checklist_photos/or_signature_73f998fc_20251226_225055.png"
+    }
+  ]
 }

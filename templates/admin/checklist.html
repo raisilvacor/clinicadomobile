@@ -1,0 +1,630 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Checklist Antifraude{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checklist-container {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .checklist-section {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .checklist-section:hover {
+        border-color: #ff8c00;
+        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+    }
+
+    .checklist-section h3 {
+        color: #ff8c00;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .checklist-item {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        border: 1px solid #333333;
+    }
+
+    .checklist-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .checklist-item-title {
+        color: #ffffff;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+
+    .status-pending {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 1px solid #ffc107;
+    }
+
+    .status-completed {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+
+    .photo-upload-area {
+        border: 2px dashed #ff8c00;
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: center;
+        background: rgba(255, 140, 0, 0.05);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+
+    .photo-upload-area:hover {
+        background: rgba(255, 140, 0, 0.1);
+        border-color: #ff6b00;
+    }
+
+    .photo-upload-area.has-photo {
+        border-color: #28a745;
+        background: rgba(40, 167, 69, 0.1);
+    }
+
+    .photo-preview {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 10px;
+        margin-top: 1rem;
+        display: none;
+    }
+
+    .photo-preview.show {
+        display: block;
+    }
+
+    .test-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .test-box {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 2px solid #333333;
+    }
+
+    .test-box h4 {
+        color: #ff8c00;
+        margin-bottom: 1rem;
+    }
+
+    .test-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .test-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .test-item label {
+        color: #cccccc;
+        cursor: pointer;
+    }
+
+    .signature-area {
+        border: 2px solid #ff8c00;
+        border-radius: 10px;
+        padding: 1.5rem;
+        background: #0d0d0d;
+        margin-top: 1rem;
+    }
+
+
+    .signature-controls {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .info-box {
+        background: rgba(255, 140, 0, 0.1);
+        border-left: 4px solid #ff8c00;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-top: 1rem;
+    }
+
+    .info-box p {
+        color: #cccccc;
+        margin: 0.5rem 0;
+        line-height: 1.6;
+    }
+
+    .info-box strong {
+        color: #ff8c00;
+    }
+
+    @media (max-width: 768px) {
+        .test-section {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>🛡️ Checklist Antifraude</h2>
+    <p>Sistema de proteção que elimina golpes e garante segurança jurídica.</p>
+
+    <div class="info-box">
+        <p><strong>👉 Elimina golpe do "chegou funcionando"</strong></p>
+        <p><strong>👉 Segurança jurídica</strong></p>
+        <p>Este sistema exige fotos automáticas, testes obrigatórios e assinatura digital do cliente.</p>
+    </div>
+
+    <!-- Seção de Seleção de Tipo de Checklist -->
+    <div class="admin-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border: 2px solid #333333; margin-bottom: 2rem;" id="typeSelectionSection">
+        <h3 style="color: #ff8c00; margin-bottom: 1.5rem;">Selecione o Tipo de Checklist</h3>
+        <p style="color: #999; margin-bottom: 1.5rem;">Escolha qual tipo de checklist você deseja realizar:</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid #ff8c00; cursor: pointer; transition: all 0.3s ease;" onclick="selectChecklistType('inicial')" id="type-inicial">
+                <h4 style="color: #ff8c00; margin-bottom: 0.5rem;">📥 Checklist Antifraude Inicial</h4>
+                <p style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">Realize quando receber o aparelho para reparo.</p>
+                <ul style="color: #ccc; font-size: 0.85rem; padding-left: 1.5rem; margin: 0;">
+                    <li>Fotos obrigatórias (IMEI, placa, conectores)</li>
+                    <li>Testes antes do reparo</li>
+                    <li>Testes depois do reparo</li>
+                    <li>Assinatura digital do cliente</li>
+                </ul>
+            </div>
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid #333333; cursor: pointer; transition: all 0.3s ease;" onclick="selectChecklistType('conclusao')" id="type-conclusao">
+                <h4 style="color: #28a745; margin-bottom: 0.5rem;">✅ Checklist Antifraude de Conclusão</h4>
+                <p style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">Realize antes de emitir a Ordem de Retirada.</p>
+                <ul style="color: #ccc; font-size: 0.85rem; padding-left: 1.5rem; margin: 0;">
+                    <li>Testes finais após o reparo</li>
+                    <li>Fotos opcionais</li>
+                    <li>Garante que tudo está funcionando</li>
+                    <li>Obrigatório para emitir OR</li>
+                </ul>
+            </div>
+        </div>
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <button type="button" class="btn btn-primary" onclick="startChecklist()" id="startChecklistBtn" style="padding: 1rem 2rem; font-size: 1.1rem; display: none;">
+                ➕ Iniciar Checklist
+            </button>
+        </div>
+    </div>
+
+    <form method="POST" id="checklistForm" enctype="multipart/form-data" style="display: none;">
+        <input type="hidden" name="checklist_type" id="checklistType" value="inicial">
+        <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; border: 2px solid #ff8c00;">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem;">🔗 Associar a um Reparo <span style="color: #dc3545;">* Obrigatório</span></h3>
+            <p style="color: #999; margin-bottom: 1rem; font-size: 0.9rem;">É obrigatório associar o checklist a um reparo para poder emitir a Ordem de Retirada (OR).</p>
+            <div>
+                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem; font-weight: bold;">Selecione um reparo:</label>
+                <select name="repair_id" id="repairSelect" class="form-control" required style="background: #1a1a1a; color: #ffffff; border: 2px solid #ff8c00; padding: 0.5rem; border-radius: 5px; width: 100%;">
+                    <option value="">-- Selecione um reparo (obrigatório) --</option>
+                    {% for repair in repairs %}
+                    <option value="{{ repair.id }}">{{ repair.id }} - {{ repair.device_name or 'N/A' }} - {{ repair.customer_name or 'N/A' }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="checklist-container">
+            
+            <!-- Seção 1: Fotos Automáticas -->
+            <div class="checklist-section">
+                <h3>📸 Fotos Automáticas (Obrigatórias)</h3>
+                
+                <div class="checklist-item">
+                    <div class="checklist-item-header">
+                        <span class="checklist-item-title">Foto do IMEI</span>
+                        <span class="status-badge status-pending" id="imei-status">Pendente</span>
+                    </div>
+                    <p style="color: #999; margin-bottom: 1rem;">Foto do número IMEI do dispositivo</p>
+                    <div class="photo-upload-area" onclick="document.getElementById('imei-photo').click()">
+                        <input type="file" id="imei-photo" name="imei_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'imei-preview', 'imei-status')">
+                        <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto do IMEI</p>
+                        <img id="imei-preview" class="photo-preview" alt="Preview IMEI">
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-item-header">
+                        <span class="checklist-item-title">Foto da Placa</span>
+                        <span class="status-badge status-pending" id="placa-status">Pendente</span>
+                    </div>
+                    <p style="color: #999; margin-bottom: 1rem;">Foto da placa mãe do dispositivo</p>
+                    <div class="photo-upload-area" onclick="document.getElementById('placa-photo').click()">
+                        <input type="file" id="placa-photo" name="placa_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'placa-preview', 'placa-status')">
+                        <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto da placa</p>
+                        <img id="placa-preview" class="photo-preview" alt="Preview Placa">
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-item-header">
+                        <span class="checklist-item-title">Foto dos Conectores</span>
+                        <span class="status-badge status-pending" id="conectores-status">Pendente</span>
+                    </div>
+                    <p style="color: #999; margin-bottom: 1rem;">Foto dos conectores e portas do dispositivo</p>
+                    <div class="photo-upload-area" onclick="document.getElementById('conectores-photo').click()">
+                        <input type="file" id="conectores-photo" name="conectores_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'conectores-preview', 'conectores-status')">
+                        <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto dos conectores</p>
+                        <img id="conectores-preview" class="photo-preview" alt="Preview Conectores">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção 2: Testes Obrigatórios -->
+            <div class="checklist-section">
+                <h3 id="testSectionTitle">✅ Teste Obrigatório (Antes e Depois)</h3>
+                
+                <div class="test-section">
+                    <div class="test-box" id="testBeforeBox">
+                        <h4>🔍 Teste ANTES do Reparo</h4>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-before-screen" name="test_before_screen">
+                            <label for="test-before-screen">Tela liga/desliga</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-before-touch" name="test_before_touch">
+                            <label for="test-before-touch">Touch funciona</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-before-camera" name="test_before_camera">
+                            <label for="test-before-camera">Câmera funciona</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-before-battery" name="test_before_battery">
+                            <label for="test-before-battery">Bateria carrega</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-before-audio" name="test_before_audio">
+                            <label for="test-before-audio">Áudio funciona</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-before-buttons" name="test_before_buttons">
+                            <label for="test-before-buttons">Botões físicos funcionam</label>
+                        </div>
+                    </div>
+
+                    <div class="test-box" id="testAfterBox">
+                        <h4>✅ Teste DEPOIS do Reparo</h4>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-screen" name="test_after_screen">
+                            <label for="test-after-screen">Tela liga/desliga</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-touch" name="test_after_touch">
+                            <label for="test-after-touch">Touch funciona</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-camera" name="test_after_camera">
+                            <label for="test-after-camera">Câmera funciona</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-battery" name="test_after_battery">
+                            <label for="test-after-battery">Bateria carrega</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-audio" name="test_after_audio">
+                            <label for="test-after-audio">Áudio funciona</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-buttons" name="test_after_buttons">
+                            <label for="test-after-buttons">Botões físicos funcionam</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 2rem; text-align: center;">
+            <button type="submit" class="btn btn-primary" style="padding: 1rem 3rem; font-size: 1.1rem;">
+                💾 Salvar Checklist Completo
+            </button>
+        </div>
+    </form>
+
+    <!-- Lista de Checklists Anteriores -->
+    {% if checklists %}
+    <div class="admin-card" style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="color: #ff8c00; margin: 0;">📋 Checklists Realizados</h3>
+            <button type="button" class="btn btn-primary" onclick="showTypeSelection()" style="background: #ff8c00;">
+                ➕ Novo Checklist
+            </button>
+        </div>
+        <div style="display: grid; gap: 1rem;">
+            {% for checklist in checklists|reverse %}
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333333;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                    <div>
+                        <h4 style="color: #ffffff; margin: 0 0 0.5rem 0;">
+                            {% if checklist.type == 'inicial' %}
+                                📥 Checklist Inicial
+                            {% else %}
+                                ✅ Checklist de Conclusão
+                            {% endif %}
+                        </h4>
+                        <p style="color: #999; margin: 0; font-size: 0.9rem;">
+                            ID: {{ checklist.id }} | 
+                            {% if checklist.repair_id %}
+                                Reparo: {{ checklist.repair_id }} | 
+                            {% endif %}
+                            Data: {{ checklist.timestamp[:16] if checklist.timestamp else 'N/A' }}
+                        </p>
+                    </div>
+                    <span style="padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: bold; 
+                        {% if checklist.type == 'inicial' %}
+                            background: rgba(255, 140, 0, 0.2); color: #ff8c00; border: 1px solid #ff8c00;
+                        {% else %}
+                            background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;
+                        {% endif %}">
+                        {{ checklist.type|title }}
+                    </span>
+                </div>
+                {% if checklist.photos %}
+                <div style="margin-top: 1rem;">
+                    <p style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">Fotos:</p>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        {% if checklist.photos.imei_photo %}
+                        <a href="{{ checklist.photos.imei_photo }}" target="_blank" style="color: #ff8c00; text-decoration: none;">📷 IMEI</a>
+                        {% endif %}
+                        {% if checklist.photos.placa_photo %}
+                        <a href="{{ checklist.photos.placa_photo }}" target="_blank" style="color: #ff8c00; text-decoration: none;">📷 Placa</a>
+                        {% endif %}
+                        {% if checklist.photos.conectores_photo %}
+                        <a href="{{ checklist.photos.conectores_photo }}" target="_blank" style="color: #ff8c00; text-decoration: none;">📷 Conectores</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                {% if checklist.signature %}
+                <div style="margin-top: 1rem;">
+                    <p style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">Assinatura:</p>
+                    <a href="{{ checklist.signature }}" target="_blank" style="color: #28a745; text-decoration: none;">✍️ Ver Assinatura</a>
+                </div>
+                {% endif %}
+                <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                    <button onclick="deleteChecklist('{{ checklist.id }}')" class="btn btn-secondary" style="background: #dc3545; color: #fff; padding: 0.5rem 1rem; font-size: 0.9rem; border: none; border-radius: 5px; cursor: pointer;">🗑️ Excluir</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentChecklistType = null;
+    
+    function selectChecklistType(type) {
+        currentChecklistType = type;
+        document.getElementById('checklistType').value = type;
+        
+        // Atualizar visual dos cards
+        const inicialCard = document.getElementById('type-inicial');
+        const conclusaoCard = document.getElementById('type-conclusao');
+        const startBtn = document.getElementById('startChecklistBtn');
+        
+        if (type === 'inicial') {
+            inicialCard.style.borderColor = '#ff8c00';
+            inicialCard.style.boxShadow = '0 5px 15px rgba(255, 140, 0, 0.3)';
+            conclusaoCard.style.borderColor = '#333333';
+            conclusaoCard.style.boxShadow = 'none';
+        } else {
+            conclusaoCard.style.borderColor = '#28a745';
+            conclusaoCard.style.boxShadow = '0 5px 15px rgba(40, 167, 69, 0.3)';
+            inicialCard.style.borderColor = '#333333';
+            inicialCard.style.boxShadow = 'none';
+        }
+        
+        // Mostrar botão de iniciar
+        if (startBtn) {
+            startBtn.style.display = 'inline-block';
+        }
+        
+        // Mostrar/ocultar seções
+        const beforeTests = document.querySelectorAll('[id*="test-before"]');
+        const afterTests = document.querySelectorAll('[id*="test-after"]');
+        const photosSection = document.querySelector('.checklist-section:has(#imei-photo)');
+        
+        const testBeforeBox = document.getElementById('testBeforeBox');
+        const testAfterBox = document.getElementById('testAfterBox');
+        const testSectionTitle = document.getElementById('testSectionTitle');
+        
+        if (type === 'conclusao') {
+            // Checklist de conclusão: apenas testes depois e fotos opcionais
+            if (testBeforeBox) testBeforeBox.style.display = 'none';
+            if (testAfterBox) testAfterBox.style.display = 'block';
+            if (testSectionTitle) testSectionTitle.innerHTML = '✅ Teste Final (Obrigatório)';
+            if (photosSection) {
+                photosSection.querySelector('h3').innerHTML = '📸 Fotos (Opcionais)';
+            }
+            document.getElementById('checklistForm').style.display = 'block';
+        } else {
+            // Checklist inicial: testes antes e depois, fotos obrigatórias
+            if (testBeforeBox) testBeforeBox.style.display = 'block';
+            if (testAfterBox) testAfterBox.style.display = 'block';
+            if (testSectionTitle) testSectionTitle.innerHTML = '✅ Teste Obrigatório (Antes e Depois)';
+            if (photosSection) {
+                photosSection.querySelector('h3').innerHTML = '📸 Fotos Automáticas (Obrigatórias)';
+            }
+            document.getElementById('checklistForm').style.display = 'block';
+        }
+    }
+    
+    function startChecklist() {
+        if (!currentChecklistType) {
+            alert('Por favor, selecione um tipo de checklist primeiro!');
+            return;
+        }
+        
+        // Ocultar seção de seleção
+        const typeSelectionSection = document.getElementById('typeSelectionSection');
+        if (typeSelectionSection) {
+            typeSelectionSection.style.display = 'none';
+        }
+        
+        // Mostrar formulário
+        const form = document.getElementById('checklistForm');
+        if (form) {
+            form.style.display = 'block';
+            // Scroll suave até o formulário
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // Aplicar configurações do tipo selecionado
+        selectChecklistType(currentChecklistType);
+    }
+    
+    function showTypeSelection() {
+        // Mostrar seção de seleção novamente
+        const typeSelectionSection = document.getElementById('typeSelectionSection');
+        if (typeSelectionSection) {
+            typeSelectionSection.style.display = 'block';
+            typeSelectionSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // Ocultar formulário
+        const form = document.getElementById('checklistForm');
+        if (form) {
+            form.style.display = 'none';
+        }
+        
+        // Resetar seleção
+        currentChecklistType = null;
+        const startBtn = document.getElementById('startChecklistBtn');
+        if (startBtn) {
+            startBtn.style.display = 'none';
+        }
+        
+        // Resetar visual dos cards
+        const inicialCard = document.getElementById('type-inicial');
+        const conclusaoCard = document.getElementById('type-conclusao');
+        if (inicialCard) {
+            inicialCard.style.borderColor = '#333333';
+            inicialCard.style.boxShadow = 'none';
+        }
+        if (conclusaoCard) {
+            conclusaoCard.style.borderColor = '#333333';
+            conclusaoCard.style.boxShadow = 'none';
+        }
+    }
+    
+    // Preview de fotos
+    function previewPhoto(input, previewId, statusId) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById(previewId);
+                preview.src = e.target.result;
+                preview.classList.add('show');
+                
+                const uploadArea = input.closest('.photo-upload-area');
+                uploadArea.classList.add('has-photo');
+                
+                const status = document.getElementById(statusId);
+                status.textContent = 'Concluído';
+                status.className = 'status-badge status-completed';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Validação do formulário
+    document.getElementById('checklistForm').addEventListener('submit', function(e) {
+        const checklistType = document.getElementById('checklistType').value;
+        const repairId = document.getElementById('repairSelect').value;
+        
+        // Validar se o reparo foi selecionado (obrigatório)
+        if (!repairId) {
+            e.preventDefault();
+            alert('⚠️ Por favor, selecione um reparo. É obrigatório associar o checklist a um reparo para poder emitir a OR.');
+            return false;
+        }
+        
+        // Para checklist inicial, fotos são obrigatórias
+        if (checklistType === 'inicial') {
+            const imeiPhoto = document.getElementById('imei-photo').files.length;
+            const placaPhoto = document.getElementById('placa-photo').files.length;
+            const conectoresPhoto = document.getElementById('conectores-photo').files.length;
+
+            if (!imeiPhoto || !placaPhoto || !conectoresPhoto) {
+                e.preventDefault();
+                alert('⚠️ Por favor, tire todas as fotos obrigatórias (IMEI, Placa e Conectores)');
+                return false;
+            }
+        } else {
+            // Para checklist de conclusão, apenas validar se há pelo menos um teste
+            const afterTests = document.querySelectorAll('[id*="test-after"]:checked');
+            if (afterTests.length === 0) {
+                e.preventDefault();
+                alert('⚠️ Por favor, marque pelo menos um teste final');
+                return false;
+            }
+        }
+
+        return true;
+    });
+    
+    function deleteChecklist(checklistId) {
+        if (confirm('Tem certeza que deseja excluir este checklist? Esta ação não pode ser desfeita.')) {
+            fetch(`/admin/checklist/${checklistId}/delete`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Checklist excluído com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao excluir checklist: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao excluir checklist');
+            });
+        }
+    }
+</script>
+{% endblock %}
+
