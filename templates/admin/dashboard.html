@@ -87,6 +87,33 @@
     <h2>📊 Dashboard</h2>
     <p>Bem-vindo ao painel administrativo. Escolha uma seção abaixo para editar o conteúdo do site.</p>
     
+    <!-- Alertas de Aparelhos Abandonados -->
+    {% if abandoned_count and abandoned_count > 0 %}
+    <div style="background: {% if critical_count > 0 %}linear-gradient(135deg, rgba(220, 53, 69, 0.2) 0%, rgba(220, 53, 69, 0.1) 100%){% else %}linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 193, 7, 0.1) 100%){% endif %}; border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem; border: 2px solid {% if critical_count > 0 %}#dc3545{% else %}#ffc107{% endif %};">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h3 style="color: {% if critical_count > 0 %}#dc3545{% else %}#ffc107{% endif %}; margin-bottom: 0.5rem; font-size: 1.2rem;">
+                    {% if critical_count > 0 %}
+                        🚨 ALERTA CRÍTICO: {{ critical_count }} aparelho(s) abandonado(s) há 60+ dias
+                    {% else %}
+                        ⚠️ AVISO: {{ abandoned_count }} aparelho(s) próximo(s) de completar 60 dias
+                    {% endif %}
+                </h3>
+                <p style="color: #ffffff; margin: 0;">
+                    {% if critical_count > 0 %}
+                        Há {{ critical_count }} reparo(s) concluído(s) há mais de 60 dias sem Ordem de Retirada emitida.
+                    {% else %}
+                        Há {{ abandoned_count }} reparo(s) concluído(s) há mais de 55 dias sem Ordem de Retirada emitida.
+                    {% endif %}
+                </p>
+            </div>
+            <a href="{{ url_for('admin_abandoned_alerts') }}" class="btn btn-primary" style="background: {% if critical_count > 0 %}#dc3545{% else %}#ffc107{% endif %}; color: #000000; font-weight: bold;">
+                Ver Detalhes
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Barra de Pesquisa -->
     <div class="search-container">
         <h3 style="color: #ff8c00; margin-bottom: 1rem;">🔍 Buscar por CPF do Cliente</h3>
@@ -247,6 +274,18 @@
             <h3>🏢 Fornecedores</h3>
             <p>Gerencie fornecedores e parceiros da assistência técnica</p>
             <a href="{{ url_for('admin_suppliers') }}" class="btn btn-primary">Acessar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>⚠️ Alerta de Aparelho Abandonado</h3>
+            <p>Sistema automático de alerta para reparos sem retirada há mais de 55 dias</p>
+            <a href="{{ url_for('admin_abandoned_alerts') }}" class="btn btn-primary">Ver Alertas</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>⚠️ Alerta de Aparelho Abandonado</h3>
+            <p>Sistema automático de alerta para reparos sem retirada há mais de 55 dias</p>
+            <a href="{{ url_for('admin_abandoned_alerts') }}" class="btn btn-primary">Ver Alertas</a>
         </div>
     </div>
 

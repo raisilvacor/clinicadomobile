@@ -1,0 +1,314 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Alerta de Aparelho Abandonado{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alerts-container {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .alert-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid #333333;
+        transition: all 0.3s ease;
+    }
+
+    .alert-card:hover {
+        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+    }
+
+    .alert-card.warning {
+        border-color: #ffc107;
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, #0d0d0d 100%);
+    }
+
+    .alert-card.critical {
+        border-color: #dc3545;
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, #0d0d0d 100%);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+        }
+        50% {
+            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+        }
+    }
+
+    .alert-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #333333;
+    }
+
+    .alert-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+    }
+
+    .alert-card.warning .alert-title {
+        color: #ffc107;
+    }
+
+    .alert-card.critical .alert-title {
+        color: #dc3545;
+    }
+
+    .days-badge {
+        padding: 0.75rem 1.5rem;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+
+    .days-badge.warning {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 2px solid #ffc107;
+    }
+
+    .days-badge.critical {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border: 2px solid #dc3545;
+    }
+
+    .alert-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-item {
+        background: #0d0d0d;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #333333;
+    }
+
+    .info-label {
+        color: #999;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-value {
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    .alert-message {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border-left: 4px solid;
+        margin-bottom: 1.5rem;
+    }
+
+    .alert-card.warning .alert-message {
+        border-left-color: #ffc107;
+        background: rgba(255, 193, 7, 0.05);
+    }
+
+    .alert-card.critical .alert-message {
+        border-left-color: #dc3545;
+        background: rgba(220, 53, 69, 0.05);
+    }
+
+    .alert-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #333333;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        border: 2px solid #333333;
+    }
+
+    .empty-state h3 {
+        color: #28a745;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+
+    .empty-state p {
+        color: #999;
+        font-size: 1.1rem;
+    }
+
+    .summary-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid #ff8c00;
+        margin-bottom: 2rem;
+    }
+
+    .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: #0d0d0d;
+        border-radius: 10px;
+        border: 1px solid #333333;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #ff8c00;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #999;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>⚠️ Sistema de Alerta de Aparelho Abandonado</h2>
+    <p>Sistema automático que alerta sobre reparos concluídos há mais de 55 dias sem Ordem de Retirada (OR) emitida.</p>
+
+    {% if alerts %}
+    <!-- Resumo -->
+    <div class="summary-card">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📊 Resumo dos Alertas</h3>
+        <div class="summary-stats">
+            <div class="stat-item">
+                <div class="stat-number">{{ alerts|length }}</div>
+                <div class="stat-label">Total de Alertas</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #ffc107;">{{ alerts|selectattr('alert_level', 'equalto', 'warning')|list|length }}</div>
+                <div class="stat-label">Avisos (55-59 dias)</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="color: #dc3545;">{{ alerts|selectattr('alert_level', 'equalto', 'critical')|list|length }}</div>
+                <div class="stat-label">Críticos (60+ dias)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alerts-container">
+        {% for alert in alerts %}
+        <div class="alert-card {{ alert.alert_level }}">
+            <div class="alert-header">
+                <div>
+                    <div class="alert-title">
+                        {% if alert.alert_level == 'critical' %}
+                            🚨 ALERTA CRÍTICO
+                        {% else %}
+                            ⚠️ AVISO
+                        {% endif %}
+                    </div>
+                    <div style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">
+                        Reparo ID: {{ alert.repair.id }} | Cliente: {{ alert.repair.customer_name or 'N/A' }}
+                    </div>
+                </div>
+                <div class="days-badge {{ alert.alert_level }}">
+                    {% if alert.days_remaining > 0 %}
+                        Faltam {{ alert.days_remaining }} dia(s)
+                    {% else %}
+                        {{ alert.days_since_completion }} dias abandonado
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="alert-message">
+                {% if alert.alert_level == 'critical' %}
+                    <p style="color: #dc3545; font-weight: bold; margin-bottom: 0.5rem;">
+                        🚨 ATENÇÃO: Este aparelho está abandonado há {{ alert.days_since_completion }} dias!
+                    </p>
+                    <p style="color: #ffffff;">
+                        O reparo foi concluído em {{ alert.completed_date.strftime('%d/%m/%Y') if alert.completed_date else 'N/A' }} e ainda não foi emitida a Ordem de Retirada (OR). 
+                        O aparelho ultrapassou o prazo de 60 dias sem retirada.
+                    </p>
+                {% else %}
+                    <p style="color: #ffc107; font-weight: bold; margin-bottom: 0.5rem;">
+                        ⚠️ Aviso: Faltam {{ alert.days_remaining }} dia(s) para completar 60 dias
+                    </p>
+                    <p style="color: #ffffff;">
+                        O reparo foi concluído em {{ alert.completed_date.strftime('%d/%m/%Y') if alert.completed_date else 'N/A' }} e ainda não foi emitida a Ordem de Retirada (OR). 
+                        Já se passaram {{ alert.days_since_completion }} dias desde a conclusão.
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="alert-info">
+                <div class="info-item">
+                    <div class="info-label">Dispositivo</div>
+                    <div class="info-value">{{ alert.repair.device_name or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Modelo</div>
+                    <div class="info-value">{{ alert.repair.device_model or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Cliente</div>
+                    <div class="info-value">{{ alert.repair.customer_name or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Telefone</div>
+                    <div class="info-value">{{ alert.repair.customer_phone or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Data de Conclusão</div>
+                    <div class="info-value">{{ alert.completed_date.strftime('%d/%m/%Y') if alert.completed_date else 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Dias desde Conclusão</div>
+                    <div class="info-value" style="color: {% if alert.alert_level == 'critical' %}#dc3545{% else %}#ffc107{% endif %};">
+                        {{ alert.days_since_completion }} dias
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert-actions">
+                <a href="{{ url_for('admin_repairs') }}#repair-{{ alert.repair.id }}" class="btn btn-primary">Ver Reparo</a>
+                {% if alert.repair.status == 'concluido' %}
+                    <a href="{{ url_for('admin_emit_or', repair_id=alert.repair.id) }}" class="btn btn-primary" style="background: #28a745;">📋 Emitir OR</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>✅ Nenhum Alerta no Momento</h3>
+        <p>Não há reparos concluídos há mais de 55 dias sem Ordem de Retirada emitida.</p>
+        <p style="margin-top: 1rem; color: #999;">O sistema monitora automaticamente reparos concluídos sem OR e alerta quando:</p>
+        <ul style="text-align: left; display: inline-block; margin-top: 1rem; color: #999;">
+            <li>Faltam 5 dias para completar 60 dias (55 dias desde a conclusão)</li>
+            <li>Já completou 60 dias ou mais</li>
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

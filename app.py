@@ -91,12 +91,39 @@ def admin_logout():
 @app.route('/admin')
 @login_required
 def admin_dashboard():
+    from datetime import datetime, timedelta
+    
     # Verificar se há parâmetros de busca na URL
     cpf = request.args.get('cpf', '').strip()
     if cpf:
         # Redirecionar para a rota de busca
         return redirect(url_for('admin_search', cpf=cpf))
-    return render_template('admin/dashboard.html')
+    
+    # Calcular alertas de aparelhos abandonados para mostrar no dashboard
+    repairs = get_all_repairs()
+    abandoned_count = 0
+    critical_count = 0
+    
+    now = datetime.now()
+    for repair in repairs:
+        if repair.get('status') != 'concluido' or repair.get('order_id'):
+            continue
+        
+        completed_at = repair.get('completed_at') or repair.get('created_at')
+        if completed_at:
+            try:
+                completed_date = datetime.fromisoformat(completed_at.replace('Z', '+00:00'))
+                if completed_date.tzinfo is None:
+                    completed_date = completed_date.replace(tzinfo=None)
+                days_since = (now - completed_date.replace(tzinfo=None)).days
+                if days_since >= 55:
+                    abandoned_count += 1
+                    if days_since >= 60:
+                        critical_count += 1
+            except:
+                pass
+    
+    return render_template('admin/dashboard.html', abandoned_count=abandoned_count, critical_count=critical_count)
 
 @app.route('/admin/search', methods=['GET'])
 @login_required
@@ -976,6 +1003,69 @@ def admin_suppliers():
     """Página principal para gerenciar Fornecedores"""
     suppliers = get_all_suppliers()
     return render_template('admin/suppliers.html', suppliers=suppliers)
+
+@app.route('/admin/abandoned-alerts', methods=['GET'])
+@login_required
+def admin_abandoned_alerts():
+    """Sistema de alerta de aparelhos abandonados"""
+    from datetime import datetime, timedelta
+    
+    repairs = get_all_repairs()
+    alerts = []
+    
+    # Data atual
+    now = datetime.now()
+    # 60 dias atrás
+    sixty_days_ago = now - timedelta(days=60)
+    # 55 dias atrás (5 dias antes de completar 60)
+    fifty_five_days_ago = now - timedelta(days=55)
+    
+    for repair in repairs:
+        # Verificar se o reparo está concluído
+        if repair.get('status') != 'concluido':
+            continue
+        
+        # Verificar se não tem OR emitida
+        if repair.get('order_id'):
+            continue
+        
+        # Verificar data de conclusão
+        completed_at = repair.get('completed_at')
+        if not completed_at:
+            # Se não tem completed_at, usar created_at como fallback
+            completed_at = repair.get('created_at')
+            if not completed_at:
+                continue
+        
+        try:
+            completed_date = datetime.fromisoformat(completed_at.replace('Z', '+00:00'))
+            if completed_date.tzinfo is None:
+                completed_date = completed_date.replace(tzinfo=None)
+            
+            # Calcular dias desde a conclusão
+            days_since_completion = (now - completed_date.replace(tzinfo=None)).days
+            
+            # Se passou mais de 55 dias, criar alerta
+            if days_since_completion >= 55:
+                days_remaining = 60 - days_since_completion
+                
+                alert_level = 'critical' if days_since_completion >= 60 else 'warning'
+                
+                alerts.append({
+                    'repair': repair,
+                    'days_since_completion': days_since_completion,
+                    'days_remaining': max(0, days_remaining),
+                    'completed_date': completed_date,
+                    'alert_level': alert_level
+                })
+        except Exception as e:
+            print(f"Erro ao processar reparo {repair.get('id')}: {e}")
+            continue
+    
+    # Ordenar por dias desde conclusão (mais antigos primeiro)
+    alerts.sort(key=lambda x: x['days_since_completion'], reverse=True)
+    
+    return render_template('admin/abandoned_alerts.html', alerts=alerts)
 
 @app.route('/admin/suppliers/new', methods=['GET', 'POST'])
 @login_required
