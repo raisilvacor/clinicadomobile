@@ -2505,7 +2505,7 @@ def serve_product_photo(filename):
 # Rota para servir vídeos com streaming adequado (evita timeout)
 @app.route('/static/videos/<path:filename>')
 def serve_video(filename):
-    """Serve vídeos com range requests para streaming adequado"""
+    """Serve vídeos com range requests para streaming adequado e eficiente"""
     from flask import Response, request
     import os
     
@@ -2513,28 +2513,25 @@ def serve_video(filename):
     if not os.path.exists(video_path):
         return "Vídeo não encontrado", 404
     
+    file_size = os.path.getsize(video_path)
+    
     # Suportar range requests para streaming
     range_header = request.headers.get('Range', None)
+    
     if not range_header:
-        # Se não há range request, servir arquivo completo
-        try:
-            with open(video_path, 'rb') as f:
-                video_data = f.read()
-            return Response(
-                video_data,
-                mimetype='video/mp4',
-                headers={
-                    'Accept-Ranges': 'bytes',
-                    'Content-Length': str(len(video_data))
-                }
-            )
-        except Exception as e:
-            print(f"Erro ao servir vídeo {filename}: {e}")
-            return "Erro ao servir vídeo", 500
+        # Se não há range request, retornar apenas headers para o navegador fazer range request
+        return Response(
+            status=200,
+            mimetype='video/mp4',
+            headers={
+                'Accept-Ranges': 'bytes',
+                'Content-Length': str(file_size),
+                'Content-Type': 'video/mp4'
+            }
+        )
     
     # Processar range request
     try:
-        file_size = os.path.getsize(video_path)
         byte_start = 0
         byte_end = file_size - 1
         
@@ -2544,25 +2541,44 @@ def serve_video(filename):
             byte_start = int(range_match[0])
         if len(range_match) > 1 and range_match[1]:
             byte_end = int(range_match[1])
+        else:
+            # Se não especificou fim, servir até o final
+            byte_end = file_size - 1
         
-        content_length = byte_end - byte_start + 1
+        # Limitar chunk size para evitar carregar muito na memória
+        max_chunk_size = 10 * 1024 * 1024  # 10MB por chunk
+        content_length = min(byte_end - byte_start + 1, max_chunk_size)
+        byte_end = byte_start + content_length - 1
         
-        with open(video_path, 'rb') as f:
-            f.seek(byte_start)
-            video_data = f.read(content_length)
+        # Usar generator para streaming eficiente
+        def generate():
+            with open(video_path, 'rb') as f:
+                f.seek(byte_start)
+                remaining = content_length
+                chunk_size = 1024 * 1024  # 1MB chunks
+                while remaining > 0:
+                    read_size = min(chunk_size, remaining)
+                    chunk = f.read(read_size)
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
         
         return Response(
-            video_data,
+            generate(),
             status=206,  # Partial Content
             mimetype='video/mp4',
             headers={
                 'Content-Range': f'bytes {byte_start}-{byte_end}/{file_size}',
                 'Accept-Ranges': 'bytes',
-                'Content-Length': str(content_length)
+                'Content-Length': str(content_length),
+                'Content-Type': 'video/mp4'
             }
         )
     except Exception as e:
         print(f"Erro ao processar range request para {filename}: {e}")
+        import traceback
+        traceback.print_exc()
         return "Erro ao processar vídeo", 500
 
 if __name__ == '__main__':
