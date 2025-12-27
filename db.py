@@ -7,17 +7,29 @@ import json
 from contextlib import contextmanager
 
 # Usar psycopg (psycopg3) que é compatível com Python 3.13
-USE_DATABASE = True
 CONFIG_FILE = 'config.json'  # Definir sempre para fallback
+USE_DATABASE = True
+ConnectionPool = None
+dict_row = None
 
 try:
     import psycopg
     from psycopg.rows import dict_row
-    from psycopg.pool import ConnectionPool
+    try:
+        from psycopg.pool import ConnectionPool
+    except ImportError:
+        # Tentar import alternativo para versões mais antigas
+        try:
+            import psycopg.pool as pool_module
+            ConnectionPool = pool_module.ConnectionPool
+        except (ImportError, AttributeError):
+            raise ImportError("psycopg.pool.ConnectionPool não encontrado")
     PSYCOPG_VERSION = 3
     print("✅ psycopg importado com sucesso!")
 except ImportError as e:
     USE_DATABASE = False
+    ConnectionPool = None
+    dict_row = None
     print(f"⚠️  psycopg não encontrado ({e}), usando config.json como fallback")
     print("⚠️  ATENÇÃO: Dados serão perdidos após deploy! Instale psycopg[binary]>=3.1.0")
 
@@ -51,10 +63,14 @@ def _save_config_file(config):
 
 def init_db():
     """Inicializa o pool de conexões"""
+    global USE_DATABASE, pool, ConnectionPool
     if not USE_DATABASE:
         print("⚠️  Banco de dados desabilitado - usando config.json")
         return None
-    global pool
+    if ConnectionPool is None:
+        print("❌ ConnectionPool não disponível - usando config.json")
+        USE_DATABASE = False
+        return None
     if pool is None:
         try:
             print(f"🔌 Conectando ao banco de dados PostgreSQL...")
@@ -119,11 +135,23 @@ def _get_cursor(conn, dict_cursor=False):
 
 def create_tables():
     """Cria as tabelas necessárias no banco de dados"""
+    global USE_DATABASE, pool
     if not USE_DATABASE:
+        print("⚠️  create_tables: Banco desabilitado, pulando criação de tabelas")
         return
+    
+    # Garantir que o pool está inicializado
+    if pool is None:
+        init_db()
+        if pool is None:
+            print("⚠️  create_tables: Pool não disponível")
+            return
+    
     try:
+        print("📋 Criando tabelas no banco de dados...")
         with get_db_connection() as conn:
             if not conn:
+                print("⚠️  create_tables: Sem conexão disponível")
                 return
             cur = _get_cursor(conn)
             
