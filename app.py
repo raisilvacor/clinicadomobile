@@ -30,7 +30,11 @@ from db import (
     get_all_products,
     get_product as db_get_product,
     save_product,
-    delete_product as db_delete_product
+    delete_product as db_delete_product,
+    get_all_brands,
+    get_brand as db_get_brand,
+    save_brand,
+    delete_brand as db_delete_brand
 )
 
 app = Flask(__name__)
@@ -64,7 +68,8 @@ def login_required(f):
 @app.route('/')
 def index():
     site_content = get_site_content()
-    return render_template('index.html', content=site_content)
+    brands = get_all_brands()
+    return render_template('index.html', content=site_content, brands=brands)
 
 # ========== ROTAS ADMINISTRATIVAS ==========
 
@@ -1298,6 +1303,89 @@ def admin_mark_product_sold(product_id):
             return jsonify({'success': True})
         return jsonify({'success': False, 'error': 'Produto não encontrado'}), 404
     return jsonify({'success': False, 'error': 'Método não permitido'}), 405
+
+# ========== ROTAS DE BRANDS ==========
+
+@app.route('/admin/brands')
+@login_required
+def admin_brands():
+    """Listar todas as marcas"""
+    brands = get_all_brands()
+    return render_template('admin/brands.html', brands=brands)
+
+@app.route('/admin/brands/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_brand():
+    """Criar nova marca"""
+    if request.method == 'POST':
+        from datetime import datetime
+        import uuid
+        import base64
+        
+        brand_id = str(uuid.uuid4())[:8]
+        brand_data = {
+            'id': brand_id,
+            'name': request.form.get('name', ''),
+            'image': '',
+            '_image_data': None,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Salvar imagem como base64
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                file.seek(0)
+                file_data = file.read()
+                brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
+                brand_data['image'] = f"/static/brand_images/{brand_id}_{file.filename}"
+        
+        save_brand(brand_id, brand_data)
+        return redirect(url_for('admin_brands'))
+    
+    return render_template('admin/new_brand.html')
+
+@app.route('/admin/brands/<brand_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_brand(brand_id):
+    """Deletar marca"""
+    if request.method == 'POST':
+        try:
+            db_delete_brand(brand_id)
+            return jsonify({'success': True})
+        except Exception as e:
+            print(f"Erro ao deletar marca {brand_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({'success': False, 'error': 'Método não permitido'}), 405
+
+@app.route('/static/brand_images/<path:filename>')
+def serve_brand_image(filename):
+    """Serve imagens de marcas do banco de dados"""
+    import base64
+    from flask import Response
+    
+    brands = get_all_brands()
+    for brand in brands:
+        image_path = brand.get('image', '')
+        if isinstance(image_path, str) and filename in image_path:
+            image_data = brand.get('_image_data')
+            if image_data:
+                try:
+                    img_data = base64.b64decode(image_data)
+                    mimetype = 'image/png'
+                    if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                        mimetype = 'image/jpeg'
+                    elif filename.lower().endswith('.png'):
+                        mimetype = 'image/png'
+                    return Response(img_data, mimetype=mimetype)
+                except Exception as e:
+                    print(f"Erro ao decodificar imagem de marca {filename}: {e}")
+                    continue
+    
+    return "Imagem de marca não encontrada", 404
 
 # ========== ROTAS PÚBLICAS DA LOJA ==========
 

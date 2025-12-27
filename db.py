@@ -351,6 +351,12 @@ def create_tables():
                     data JSONB NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TABLE IF NOT EXISTS brands (
+                    id VARCHAR(50) PRIMARY KEY,
+                    data JSONB NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
@@ -1242,6 +1248,142 @@ def delete_product(product_id):
             conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao deletar produto do banco: {e}")
+
+# ========== FUNÇÕES DE BRANDS ==========
+
+def get_all_brands():
+    """Obtém todas as marcas"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('brands', [])
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('brands', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM brands ORDER BY created_at ASC")
+            rows = cur.fetchall()
+            return [row['data'] for row in rows]
+    except Exception as e:
+        print(f"⚠️  Erro ao ler marcas do banco, usando config.json: {e}")
+        config = _load_config_file()
+        return config.get('brands', [])
+
+def get_brand(brand_id):
+    """Obtém uma marca específica"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        brands = config.get('brands', [])
+        for brand in brands:
+            if brand.get('id') == brand_id:
+                return brand
+        return None
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                brands = config.get('brands', [])
+                for brand in brands:
+                    if brand.get('id') == brand_id:
+                        return brand
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM brands WHERE id = %s", (brand_id,))
+            row = cur.fetchone()
+            return row['data'] if row else None
+    except Exception as e:
+        print(f"⚠️  Erro ao ler marca do banco, usando config.json: {e}")
+        config = _load_config_file()
+        brands = config.get('brands', [])
+        for brand in brands:
+            if brand.get('id') == brand_id:
+                return brand
+        return None
+
+def save_brand(brand_id, brand_data):
+    """Salva ou atualiza uma marca"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'brands' not in config:
+            config['brands'] = []
+        brands = config.get('brands', [])
+        found = False
+        for i, b in enumerate(brands):
+            if b.get('id') == brand_id:
+                brands[i] = brand_data
+                found = True
+                break
+        if not found:
+            brands.append(brand_data)
+        config['brands'] = brands
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'brands' not in config:
+                    config['brands'] = []
+                brands = config.get('brands', [])
+                found = False
+                for i, b in enumerate(brands):
+                    if b.get('id') == brand_id:
+                        brands[i] = brand_data
+                        found = True
+                        break
+                if not found:
+                    brands.append(brand_data)
+                config['brands'] = brands
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(brand_data)
+            cur.execute("""
+                INSERT INTO brands (id, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (brand_id, data_json, data_json))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar marca no banco, salvando em config.json: {e}")
+        config = _load_config_file()
+        if 'brands' not in config:
+            config['brands'] = []
+        brands = config.get('brands', [])
+        found = False
+        for i, b in enumerate(brands):
+            if b.get('id') == brand_id:
+                brands[i] = brand_data
+                found = True
+                break
+        if not found:
+            brands.append(brand_data)
+        config['brands'] = brands
+        _save_config_file(config)
+
+def delete_brand(brand_id):
+    """Deleta uma marca"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        brands = config.get('brands', [])
+        config['brands'] = [b for b in brands if b.get('id') != brand_id]
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM brands WHERE id = %s", (brand_id,))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao deletar marca do banco: {e}")
 
 # ========== FUNÇÃO DE COMPATIBILIDADE ==========
 

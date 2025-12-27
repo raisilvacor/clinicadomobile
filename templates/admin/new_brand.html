@@ -1,0 +1,31 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Adicionar Marca{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>➕ Adicionar Nova Marca</h2>
+    <p>Adicione uma nova marca para aparecer no carrossel do site.</p>
+
+    <form method="POST" enctype="multipart/form-data" style="margin-top: 2rem;">
+        <div class="form-group">
+            <label for="name">Nome da Marca:</label>
+            <input type="text" id="name" name="name" placeholder="Ex: Samsung, Apple, Motorola" required>
+        </div>
+
+        <div class="form-group">
+            <label for="image">Imagem da Marca:</label>
+            <input type="file" id="image" name="image" accept="image/*" required>
+            <small style="color: #888; display: block; margin-top: 0.5rem;">
+                Formatos aceitos: JPG, PNG. A imagem será salva no banco de dados.
+            </small>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary">✅ Salvar Marca</button>
+            <a href="{{ url_for('admin_brands') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
