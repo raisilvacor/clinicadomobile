@@ -2372,37 +2372,74 @@ def admin_repair_pdf(repair_id):
                 tests = checklist.get('tests', {})
                 story.append(Paragraph("<b>🧪 Testes Realizados:</b>", info_value_style))
                 
+                # Mapeamento dos testes
+                test_labels = {
+                    'test_before_power': 'Botão Power',
+                    'test_before_volume': 'Botões de Volume',
+                    'test_before_silent': 'Botão Silenciar',
+                    'test_before_home': 'Botão Home',
+                    'test_before_other_buttons': 'Outros Botões',
+                    'test_before_display_touch': 'Display e Touch',
+                    'test_before_signal': 'Sinal da Operadora',
+                    'test_before_proximity': 'Sensor de Proximidade',
+                    'test_before_speaker': 'Auto-Falante',
+                    'test_before_earpiece': 'Auricular',
+                    'test_before_microphone': 'Microfone',
+                    'test_before_touch_id': 'Touch ID',
+                    'test_before_vibration': 'Vibra',
+                    'test_before_front_camera': 'Câmera Frontal',
+                    'test_before_back_camera': 'Câmera Traseira',
+                    'test_before_flash': 'Flash',
+                    'test_before_face_id': 'Face ID',
+                    'test_before_wifi': 'Wi-FI',
+                    'test_before_bluetooth': 'Bluetooth',
+                    'test_before_charging': 'Carregamento',
+                    'test_before_headphone': 'Fone de Ouvido',
+                    'test_before_biometric': 'Sensor Biométrico',
+                    'test_before_nfc': 'NFC',
+                    'test_before_wireless_charging': 'Carga por Indução',
+                    'test_after_power': 'Botão Power',
+                    'test_after_volume': 'Botões de Volume',
+                    'test_after_silent': 'Botão Silenciar',
+                    'test_after_home': 'Botão Home',
+                    'test_after_other_buttons': 'Outros Botões',
+                    'test_after_display_touch': 'Display e Touch',
+                    'test_after_signal': 'Sinal da Operadora',
+                    'test_after_proximity': 'Sensor de Proximidade',
+                    'test_after_speaker': 'Auto-Falante',
+                    'test_after_earpiece': 'Auricular',
+                    'test_after_microphone': 'Microfone',
+                    'test_after_touch_id': 'Touch ID',
+                    'test_after_vibration': 'Vibra',
+                    'test_after_front_camera': 'Câmera Frontal',
+                    'test_after_back_camera': 'Câmera Traseira',
+                    'test_after_flash': 'Flash',
+                    'test_after_face_id': 'Face ID',
+                    'test_after_wifi': 'Wi-FI',
+                    'test_after_bluetooth': 'Bluetooth',
+                    'test_after_charging': 'Carregamento',
+                    'test_after_headphone': 'Fone de Ouvido',
+                    'test_after_biometric': 'Sensor Biométrico',
+                    'test_after_nfc': 'NFC',
+                    'test_after_wireless_charging': 'Carga por Indução'
+                }
+                
                 test_list = []
                 if checklist.get('type') == 'inicial':
-                    if tests.get('test_before_screen'):
-                        test_list.append("✅ Tela (Antes)")
-                    if tests.get('test_before_touch'):
-                        test_list.append("✅ Touch (Antes)")
-                    if tests.get('test_before_camera'):
-                        test_list.append("✅ Câmera (Antes)")
-                    if tests.get('test_before_battery'):
-                        test_list.append("✅ Bateria (Antes)")
-                    if tests.get('test_before_audio'):
-                        test_list.append("✅ Áudio (Antes)")
-                    if tests.get('test_before_buttons'):
-                        test_list.append("✅ Botões (Antes)")
+                    # Testes ANTES
+                    for test_key, test_label in test_labels.items():
+                        if test_key.startswith('test_before_') and tests.get(test_key):
+                            test_list.append(f"✅ {test_label} (Antes)")
                 
-                if tests.get('test_after_screen'):
-                    test_list.append("✅ Tela (Depois)")
-                if tests.get('test_after_touch'):
-                    test_list.append("✅ Touch (Depois)")
-                if tests.get('test_after_camera'):
-                    test_list.append("✅ Câmera (Depois)")
-                if tests.get('test_after_battery'):
-                    test_list.append("✅ Bateria (Depois)")
-                if tests.get('test_after_audio'):
-                    test_list.append("✅ Áudio (Depois)")
-                if tests.get('test_after_buttons'):
-                    test_list.append("✅ Botões (Depois)")
+                # Testes DEPOIS (para ambos os tipos)
+                for test_key, test_label in test_labels.items():
+                    if test_key.startswith('test_after_') and tests.get(test_key):
+                        test_list.append(f"✅ {test_label} (Depois)")
                 
                 if test_list:
-                    test_text = " | ".join(test_list)
-                    story.append(Paragraph(test_text, styles['Normal']))
+                    # Dividir em linhas para melhor visualização no PDF
+                    for test_item in test_list:
+                        story.append(Paragraph(test_item, styles['Normal']))
                 else:
                     story.append(Paragraph("Nenhum teste registrado", styles['Normal']))
                 
