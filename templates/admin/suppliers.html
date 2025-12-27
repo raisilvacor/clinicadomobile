@@ -1,0 +1,214 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Fornecedores{% endblock %}
+
+{% block extra_css %}
+<style>
+    .suppliers-container {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .supplier-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid #333333;
+        transition: all 0.3s ease;
+    }
+
+    .supplier-card:hover {
+        border-color: #ff8c00;
+        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+    }
+
+    .supplier-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #333333;
+    }
+
+    .supplier-name {
+        font-size: 1.2rem;
+        color: #ff8c00;
+        font-weight: bold;
+    }
+
+    .supplier-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-item {
+        background: #0d0d0d;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #333333;
+    }
+
+    .info-label {
+        color: #999;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-value {
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    .supplier-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #333333;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        border: 2px solid #333333;
+    }
+
+    .empty-state h3 {
+        color: #ff8c00;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        color: #999;
+        margin-bottom: 2rem;
+    }
+
+    .add-supplier-btn {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px dashed #ff8c00;
+        text-align: center;
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+    }
+
+    .add-supplier-btn:hover {
+        border-color: #ffaa00;
+        background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+    }
+
+    .add-supplier-btn h3 {
+        color: #ff8c00;
+        margin-bottom: 1rem;
+    }
+
+    .add-supplier-btn p {
+        color: #999;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>🏢 Fornecedores</h2>
+    <p>Gerencie seus fornecedores e parceiros da assistência técnica</p>
+
+    <div class="add-supplier-btn">
+        <h3>➕ Adicionar Novo Fornecedor</h3>
+        <p>Clique no botão abaixo para cadastrar um novo fornecedor</p>
+        <a href="{{ url_for('admin_new_supplier') }}" class="btn btn-primary">Adicionar Fornecedor</a>
+    </div>
+
+    {% if suppliers and suppliers|length > 0 %}
+    <div class="suppliers-container">
+        {% for supplier in suppliers %}
+        <div class="supplier-card">
+            <div class="supplier-header">
+                <div>
+                    <div class="supplier-name">{{ supplier.name or 'Nome não informado' }}</div>
+                    <div class="supplier-date" style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">
+                        Cadastrado em: {{ supplier.created_at[:10] if supplier.created_at else 'N/A' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="supplier-info">
+                <div class="info-item">
+                    <div class="info-label">CNPJ</div>
+                    <div class="info-value">{{ supplier.cnpj or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Telefone</div>
+                    <div class="info-value">{{ supplier.phone or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">{{ supplier.email or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Endereço</div>
+                    <div class="info-value">{{ supplier.address or 'N/A' }}</div>
+                </div>
+            </div>
+
+            {% if supplier.description %}
+            <div style="background: #0d0d0d; padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid #333333;">
+                <div class="info-label">Descrição</div>
+                <div style="color: #ffffff; margin-top: 0.5rem;">{{ supplier.description }}</div>
+            </div>
+            {% endif %}
+
+            <div class="supplier-actions">
+                <a href="{{ url_for('admin_edit_supplier', supplier_id=supplier.id) }}" class="btn btn-primary">✏️ Editar</a>
+                <a href="{{ url_for('admin_view_supplier', supplier_id=supplier.id) }}" class="btn btn-secondary">👁️ Ver Detalhes</a>
+                <button onclick="deleteSupplier('{{ supplier.id }}')" class="btn btn-danger">🗑️ Excluir</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>📦 Nenhum fornecedor cadastrado</h3>
+        <p>Comece adicionando seu primeiro fornecedor clicando no botão acima.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function deleteSupplier(supplierId) {
+        if (confirm('Tem certeza que deseja excluir este fornecedor? Esta ação é irreversível.')) {
+            fetch(`/admin/suppliers/${supplierId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: supplierId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Fornecedor excluído com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao excluir fornecedor: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao excluir fornecedor. Por favor, tente novamente.');
+            });
+        }
+    }
+</script>
+{% endblock %}
+

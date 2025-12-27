@@ -132,11 +132,22 @@ def create_tables():
                 )
             """)
             
+            # Tabela para fornecedores
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS suppliers (
+                    id VARCHAR(50) PRIMARY KEY,
+                    data JSONB NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
             # Índices para melhor performance
             cur.execute("CREATE INDEX IF NOT EXISTS idx_repairs_repair_id ON repairs(id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_checklists_id ON checklists(id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_repair_id ON orders(repair_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_id ON orders(id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_suppliers_id ON suppliers(id)")
             
             conn.commit()
     except Exception as e:
@@ -738,6 +749,145 @@ def delete_order(order_id):
                 return
             cur = _get_cursor(conn)
             cur.execute("DELETE FROM orders WHERE id = %s", (order_id,))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao deletar do banco: {e}")
+
+# ========== FUNÇÕES DE FORNECEDORES ==========
+
+def get_all_suppliers():
+    """Obtém todos os fornecedores"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('suppliers', [])
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('suppliers', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM suppliers ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            return [row['data'] for row in rows]
+    except Exception as e:
+        print(f"⚠️  Erro ao ler do banco, usando config.json: {e}")
+        config = _load_config_file()
+        return config.get('suppliers', [])
+
+def get_supplier(supplier_id):
+    """Obtém um fornecedor específico"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        suppliers = config.get('suppliers', [])
+        for supplier in suppliers:
+            if supplier.get('id') == supplier_id:
+                return supplier
+        return None
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                suppliers = config.get('suppliers', [])
+                for supplier in suppliers:
+                    if supplier.get('id') == supplier_id:
+                        return supplier
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM suppliers WHERE id = %s", (supplier_id,))
+            row = cur.fetchone()
+            if row:
+                return row['data']
+            return None
+    except Exception as e:
+        print(f"⚠️  Erro ao ler do banco, usando config.json: {e}")
+        config = _load_config_file()
+        suppliers = config.get('suppliers', [])
+        for supplier in suppliers:
+            if supplier.get('id') == supplier_id:
+                return supplier
+        return None
+
+def save_supplier(supplier_id, supplier_data):
+    """Salva ou atualiza um fornecedor"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'suppliers' not in config:
+            config['suppliers'] = []
+        suppliers = config.get('suppliers', [])
+        # Atualizar ou adicionar
+        found = False
+        for i, s in enumerate(suppliers):
+            if s.get('id') == supplier_id:
+                suppliers[i] = supplier_data
+                found = True
+                break
+        if not found:
+            suppliers.append(supplier_data)
+        config['suppliers'] = suppliers
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'suppliers' not in config:
+                    config['suppliers'] = []
+                suppliers = config.get('suppliers', [])
+                found = False
+                for i, s in enumerate(suppliers):
+                    if s.get('id') == supplier_id:
+                        suppliers[i] = supplier_data
+                        found = True
+                        break
+                if not found:
+                    suppliers.append(supplier_data)
+                config['suppliers'] = suppliers
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(supplier_data)
+            cur.execute("""
+                INSERT INTO suppliers (id, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (supplier_id, data_json, data_json))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar no banco, usando config.json: {e}")
+        config = _load_config_file()
+        if 'suppliers' not in config:
+            config['suppliers'] = []
+        suppliers = config.get('suppliers', [])
+        found = False
+        for i, s in enumerate(suppliers):
+            if s.get('id') == supplier_id:
+                suppliers[i] = supplier_data
+                found = True
+                break
+        if not found:
+            suppliers.append(supplier_data)
+        config['suppliers'] = suppliers
+        _save_config_file(config)
+
+def delete_supplier(supplier_id):
+    """Deleta um fornecedor"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        suppliers = config.get('suppliers', [])
+        config['suppliers'] = [s for s in suppliers if s.get('id') != supplier_id]
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM suppliers WHERE id = %s", (supplier_id,))
             conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao deletar do banco: {e}")

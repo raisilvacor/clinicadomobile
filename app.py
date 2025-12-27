@@ -22,7 +22,15 @@ from db import (
     get_all_orders,
     get_order as db_get_order,
     get_order_by_repair,
-    save_order
+    save_order,
+    get_all_suppliers,
+    get_supplier as db_get_supplier,
+    save_supplier,
+    delete_supplier as db_delete_supplier,
+    get_all_suppliers,
+    get_supplier as db_get_supplier,
+    save_supplier,
+    delete_supplier as db_delete_supplier
 )
 
 app = Flask(__name__)
@@ -952,6 +960,87 @@ def admin_orders():
                 })
     
     return render_template('admin/orders.html', orders=enriched_orders, available_repairs=available_repairs)
+
+@app.route('/admin/suppliers', methods=['GET'])
+@login_required
+def admin_suppliers():
+    """Página principal para gerenciar Fornecedores"""
+    suppliers = get_all_suppliers()
+    return render_template('admin/suppliers.html', suppliers=suppliers)
+
+@app.route('/admin/suppliers/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_supplier():
+    """Criar novo fornecedor"""
+    from datetime import datetime
+    import uuid
+    
+    if request.method == 'POST':
+        supplier_id = str(uuid.uuid4())[:8]
+        
+        supplier = {
+            'id': supplier_id,
+            'name': request.form.get('name', ''),
+            'cnpj': request.form.get('cnpj', ''),
+            'phone': request.form.get('phone', ''),
+            'email': request.form.get('email', ''),
+            'address': request.form.get('address', ''),
+            'description': request.form.get('description', ''),
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        save_supplier(supplier_id, supplier)
+        return redirect(url_for('admin_suppliers'))
+    
+    return render_template('admin/new_supplier.html')
+
+@app.route('/admin/suppliers/<supplier_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_supplier(supplier_id):
+    """Editar fornecedor"""
+    from datetime import datetime
+    
+    supplier = db_get_supplier(supplier_id)
+    if not supplier:
+        return redirect(url_for('admin_suppliers'))
+    
+    if request.method == 'POST':
+        supplier['name'] = request.form.get('name', '')
+        supplier['cnpj'] = request.form.get('cnpj', '')
+        supplier['phone'] = request.form.get('phone', '')
+        supplier['email'] = request.form.get('email', '')
+        supplier['address'] = request.form.get('address', '')
+        supplier['description'] = request.form.get('description', '')
+        supplier['updated_at'] = datetime.now().isoformat()
+        
+        save_supplier(supplier_id, supplier)
+        return redirect(url_for('admin_suppliers'))
+    
+    return render_template('admin/edit_supplier.html', supplier=supplier)
+
+@app.route('/admin/suppliers/<supplier_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_supplier(supplier_id):
+    """Deletar fornecedor"""
+    import json
+    
+    supplier = db_get_supplier(supplier_id)
+    if not supplier:
+        return jsonify({'success': False, 'error': 'Fornecedor não encontrado'})
+    
+    db_delete_supplier(supplier_id)
+    return jsonify({'success': True})
+
+@app.route('/admin/suppliers/<supplier_id>', methods=['GET'])
+@login_required
+def admin_view_supplier(supplier_id):
+    """Visualizar detalhes do fornecedor"""
+    supplier = db_get_supplier(supplier_id)
+    if not supplier:
+        return redirect(url_for('admin_suppliers'))
+    
+    return render_template('admin/view_supplier.html', supplier=supplier)
 
 @app.route('/admin/repairs/<repair_id>/checklist/conclusao', methods=['GET', 'POST'])
 @login_required

@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Detalhes do Fornecedor{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>👁️ Detalhes do Fornecedor</h2>
+    
+    <div style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #333333;">
+            <h3 style="color: #ff8c00; font-size: 1.5rem;">{{ supplier.name or 'Nome não informado' }}</h3>
+            <div style="color: #999; font-size: 0.9rem;">
+                ID: {{ supplier.id }}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333333;">
+                <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">CNPJ</div>
+                <div style="color: #ffffff; font-size: 1.1rem; font-weight: bold;">{{ supplier.cnpj or 'N/A' }}</div>
+            </div>
+
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333333;">
+                <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Telefone</div>
+                <div style="color: #ffffff; font-size: 1.1rem; font-weight: bold;">{{ supplier.phone or 'N/A' }}</div>
+            </div>
+
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333333;">
+                <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">E-mail</div>
+                <div style="color: #ffffff; font-size: 1.1rem; font-weight: bold;">{{ supplier.email or 'N/A' }}</div>
+            </div>
+        </div>
+
+        {% if supplier.address %}
+        <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333333; margin-bottom: 2rem;">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Endereço</div>
+            <div style="color: #ffffff; font-size: 1.1rem;">{{ supplier.address }}</div>
+        </div>
+        {% endif %}
+
+        {% if supplier.description %}
+        <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333333; margin-bottom: 2rem;">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Descrição</div>
+            <div style="color: #ffffff; font-size: 1rem; line-height: 1.6;">{{ supplier.description }}</div>
+        </div>
+        {% endif %}
+
+        <div style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">
+            <strong>Cadastrado em:</strong> {{ supplier.created_at[:16] if supplier.created_at else 'N/A' }}<br>
+            <strong>Última atualização:</strong> {{ supplier.updated_at[:16] if supplier.updated_at else 'N/A' }}
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #333333;">
+            <a href="{{ url_for('admin_edit_supplier', supplier_id=supplier.id) }}" class="btn btn-primary">✏️ Editar</a>
+            <a href="{{ url_for('admin_suppliers') }}" class="btn btn-secondary">← Voltar para Lista</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
