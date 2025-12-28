@@ -3332,12 +3332,21 @@ def mobile_app_manifest():
     if os.path.exists(manifest_path):
         with open(manifest_path, 'r', encoding='utf-8') as f:
             manifest_data = json.load(f)
+        
+        # Garantir que as URLs sejam absolutas
+        base_url = request.url_root.rstrip('/')
+        if 'icons' in manifest_data:
+            for icon in manifest_data['icons']:
+                if icon.get('src', '').startswith('/'):
+                    icon['src'] = base_url + icon['src']
+        
         return Response(
             json.dumps(manifest_data, indent=2, ensure_ascii=False),
             mimetype='application/manifest+json',
             headers={
                 'Content-Type': 'application/manifest+json; charset=utf-8',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'no-cache'
             }
         )
     return "Manifest não encontrado", 404
@@ -3358,7 +3367,8 @@ def mobile_app_service_worker():
             headers={
                 'Content-Type': 'application/javascript; charset=utf-8',
                 'Service-Worker-Allowed': '/',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'no-cache'
             }
         )
     return "Service Worker não encontrado", 404

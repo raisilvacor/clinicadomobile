@@ -1,6 +1,31 @@
 # 📱 Como Gerar APK do App Clínica CEL
 
-## ⭐ Método Mais Fácil: PWA Builder (Recomendado)
+## ⚡ Método Mais Simples: AppsGeyser (Recomendado - Funciona Sempre!)
+
+### Passo a Passo:
+
+1. **Acesse:** https://appsgeyser.com/
+
+2. **Clique em "Create Now"** (canto superior direito)
+
+3. **Escolha "Web App"**
+
+4. **Preencha:**
+   - **App Name:** Clínica CEL
+   - **URL:** `https://clinicacel.onrender.com/mobile_app/`
+   - **Icon:** Faça upload do arquivo `mobile_app/icon-192.png` (opcional)
+
+5. **Clique em "Create App"**
+
+6. **Aguarde alguns segundos** para processamento
+
+7. **Clique em "Download APK"**
+
+8. **Pronto!** Você terá o APK para instalar
+
+---
+
+## ⭐ Método Alternativo: PWA Builder
 
 ### Passo a Passo:
 
@@ -14,7 +39,10 @@
 
 3. **Clique em "Start"** e aguarde a análise
 
-4. **Clique em "Build My PWA"**
+4. **Se aparecer "Missing Manifest" ou "Missing Service Worker":**
+   - Clique em "Edit Your Manifest" e gere um novo
+   - Clique em "Generate Service Worker" e gere um novo
+   - Depois clique em "Build My PWA"
 
 5. **Selecione "Android"**
 

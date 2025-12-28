@@ -8,6 +8,9 @@
   "background_color": "#1a1a1a",
   "theme_color": "#ff8c00",
   "orientation": "portrait",
+  "dir": "ltr",
+  "lang": "pt-BR",
+  "categories": ["utilities", "business"],
   "icons": [
     {
       "src": "/mobile_app/icon-192.png",
@@ -21,6 +24,8 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "shortcuts": []
 }
 

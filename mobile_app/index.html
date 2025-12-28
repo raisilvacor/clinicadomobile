@@ -9,6 +9,38 @@
     <title>Clínica CEL - App</title>
     <link rel="manifest" href="/mobile_app/manifest.json">
     <link rel="icon" type="image/png" href="/mobile_app/icon-192.png">
+    <link rel="apple-touch-icon" href="/mobile_app/icon-192.png">
+    
+    <!-- Registrar Service Worker imediatamente para PWA Builder detectar -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/mobile_app/service-worker.js', {
+                    scope: '/mobile_app/'
+                }).then((registration) => {
+                    console.log('Service Worker registrado:', registration);
+                }).catch((error) => {
+                    console.error('Erro ao registrar Service Worker:', error);
+                });
+            });
+        }
+    </script>
+    <link rel="apple-touch-icon" href="/mobile_app/icon-192.png">
+    
+    <!-- Registrar Service Worker imediatamente -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/mobile_app/service-worker.js', {
+                    scope: '/mobile_app/'
+                }).then((registration) => {
+                    console.log('Service Worker registrado:', registration);
+                }).catch((error) => {
+                    console.error('Erro ao registrar Service Worker:', error);
+                });
+            });
+        }
+    </script>
     <style>
         * {
             margin: 0;
