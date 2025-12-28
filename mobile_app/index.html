@@ -216,17 +216,6 @@
             color: #999;
         }
         
-        #signatureModal {
-            display: none;
-        }
-        
-        #signatureModal:not(.hidden) {
-            display: flex !important;
-        }
-        
-        #signatureCanvas {
-            touch-action: none;
-        }
     </style>
 </head>
 <body>
@@ -357,18 +346,6 @@
         </div>
     </div>
     
-    <!-- Modal de Assinatura -->
-    <div id="signatureModal" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem;">
-        <div style="background: #0d0d0d; border-radius: 15px; padding: 2rem; max-width: 500px; width: 100%; border: 2px solid #ff8c00;">
-            <h3 style="color: #ff8c00; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
-            <canvas id="signatureCanvas" style="width: 100%; height: 200px; border: 2px solid #333333; border-radius: 10px; background: #ffffff; cursor: crosshair; touch-action: none;"></canvas>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                <button class="btn btn-secondary" onclick="clearSignatureCanvas()" style="flex: 1;">🗑️ Limpar</button>
-                <button class="btn" onclick="confirmSignature()" style="flex: 1;">✅ Confirmar</button>
-                <button class="btn btn-secondary" onclick="closeSignatureModal()" style="flex: 1;">❌ Cancelar</button>
-            </div>
-        </div>
-    </div>
     
     <script>
         const API_BASE = window.location.origin; // Usar o mesmo servidor
@@ -706,48 +683,74 @@
                 html += `
                     <div class="repair-card">
                         <h3 style="color: #ff8c00; margin-bottom: 1rem;">🛡️ Checklists Antifraude</h3>
-                        ${checklists.map(checklist => `
+                        ${checklists.map(checklist => {
+                            const hasSignature = checklist.signature && checklist.signature.trim() !== '';
+                            return `
                             <div style="background: #0d0d0d; padding: 1rem; border-radius: 10px; margin-bottom: 0.75rem; border: 1px solid #333333;">
                                 <h4 style="color: #ff8c00; margin-bottom: 0.5rem;">
-                                    ${checklist.type === 'inicial' ? '📥 Checklist Inicial' : '✅ Checklist de Conclusão'}
+                                    ${checklist.type === 'inicial' ? '📥 Checklist Antifraude Inicial' : '✅ Checklist Antifraude de Conclusão'}
                                 </h4>
                                 <p style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">ID: ${checklist.id}</p>
                                 <p style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">Data: ${checklist.timestamp ? checklist.timestamp.substring(0, 16) : 'N/A'}</p>
-                                ${!checklist.signature ? `
-                                    <div style="margin-top: 1rem;">
-                                        <p style="color: #ffc107; margin-bottom: 0.5rem;">⚠️ Assinatura pendente</p>
-                                        <button class="btn btn-secondary" onclick="showChecklistSignature('${repair.id}', '${checklist.id}')" style="width: 100%;">
-                                            ✍️ Assinar Checklist
-                                        </button>
+                                ${hasSignature ? `
+                                    <div style="margin-top: 1rem; background: rgba(40, 167, 69, 0.1); border: 2px solid #28a745; border-radius: 10px; padding: 1rem;">
+                                        <h4 style="color: #28a745; margin-bottom: 0.5rem; font-size: 1rem;">✍️ Assinatura Digital</h4>
+                                        <p style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                            Assinado em: ${checklist.signature_signed_at ? checklist.signature_signed_at.substring(0, 16) : (checklist.timestamp ? checklist.timestamp.substring(0, 16) : 'N/A')}
+                                        </p>
+                                        <img src="${checklist.signature}" alt="Assinatura" style="max-width: 100%; border: 2px solid #28a745; border-radius: 10px; padding: 0.5rem; background: #ffffff;" onerror="this.style.display='none';">
                                     </div>
                                 ` : `
-                                    <p style="color: #28a745; margin-top: 0.5rem;">✅ Assinado</p>
+                                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #333333;">
+                                        <h4 style="color: #ff8c00; margin-bottom: 0.5rem; font-size: 1rem;">✍️ Assinatura Digital</h4>
+                                        <p style="color: #999; margin-bottom: 1rem; font-size: 0.9rem;">
+                                            Por favor, assine digitalmente o checklist para confirmar as informações do seu aparelho.
+                                        </p>
+                                        <canvas id="checklist-signature-canvas-${checklist.id}" style="width: 100%; height: 200px; border: 2px solid #333333; border-radius: 10px; background: #ffffff; cursor: crosshair; touch-action: none; margin-bottom: 0.75rem;"></canvas>
+                                        <input type="hidden" id="checklist-signature-data-${checklist.id}">
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <button class="btn btn-secondary" onclick="clearChecklistSignature('${checklist.id}')" style="flex: 1; background: #6c757d;">🗑️ Limpar</button>
+                                            <button class="btn" onclick="saveChecklistSignature('${repair.id}', '${checklist.id}', this)" style="flex: 1; background: #28a745;">✅ Confirmar Assinatura</button>
+                                        </div>
+                                    </div>
                                 `}
                             </div>
-                        `).join('')}
+                        `;
+                        }).join('')}
                     </div>
                 `;
             }
             
             // Assinatura do orçamento
-            if (repair.budget && typeof repair.budget === 'object' && repair.budget.status === 'approved' && !repair.signature) {
-                html += `
-                    <div class="repair-card" style="background: rgba(255, 140, 0, 0.1); border-color: #ff8c00;">
-                        <h3 style="color: #ff8c00; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
-                        <p style="color: #ccc; margin-bottom: 1rem;">Assine digitalmente para confirmar a aprovação do orçamento.</p>
-                        <button class="btn" onclick="showBudgetSignature('${repair.id}')" style="width: 100%;">
-                            ✍️ Assinar Orçamento
-                        </button>
-                    </div>
-                `;
-            } else if (repair.signature) {
-                html += `
-                    <div class="repair-card" style="background: rgba(40, 167, 69, 0.1); border-color: #28a745;">
-                        <h3 style="color: #28a745; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
-                        <p style="color: #28a745; margin-bottom: 0.5rem;">✅ Assinatura confirmada</p>
-                        <p style="color: #999; font-size: 0.85rem;">Data: ${repair.signature.signed_at ? repair.signature.signed_at.substring(0, 16) : 'N/A'}</p>
-                    </div>
-                `;
+            if (repair.budget && typeof repair.budget === 'object' && repair.budget.status === 'approved') {
+                const hasSignature = repair.signature && repair.signature.image;
+                if (hasSignature) {
+                    html += `
+                        <div class="repair-card" style="background: rgba(40, 167, 69, 0.1); border-color: #28a745;">
+                            <h3 style="color: #28a745; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
+                            <div style="background: rgba(40, 167, 69, 0.1); border: 2px solid #28a745; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+                                <p style="color: #28a745; margin-bottom: 0.5rem; font-weight: bold;">✅ Assinatura realizada em ${repair.signature.signed_at ? repair.signature.signed_at.substring(0, 16) : 'N/A'}</p>
+                            </div>
+                            <img src="${repair.signature.image}" alt="Assinatura" style="max-width: 100%; border: 2px solid #28a745; border-radius: 10px; padding: 1rem; background: #ffffff;" onerror="this.style.display='none';">
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="repair-card" style="background: rgba(255, 140, 0, 0.1); border-color: #ff8c00;">
+                            <h3 style="color: #ff8c00; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
+                            <p style="color: #cccccc; margin-bottom: 1rem;">Assine digitalmente para confirmar a aprovação do orçamento e autorizar o reparo.</p>
+                            <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; border-radius: 10px; padding: 0.75rem; margin-bottom: 1rem;">
+                                <p style="color: #ffc107; margin: 0;">⏳ Aguardando assinatura</p>
+                            </div>
+                            <canvas id="signature-canvas-${repair.id}" style="width: 100%; height: 200px; border: 2px solid #333333; border-radius: 10px; background: #ffffff; cursor: crosshair; touch-action: none; margin-bottom: 0.75rem;"></canvas>
+                            <input type="hidden" id="signature-data-${repair.id}">
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-secondary" onclick="clearSignature('${repair.id}')" style="flex: 1; background: #6c757d;">🗑️ Limpar</button>
+                                <button class="btn" onclick="saveSignature('${repair.id}', this)" style="flex: 1; background: #28a745;">✅ Confirmar Assinatura</button>
+                            </div>
+                        </div>
+                    `;
+                }
             }
             
             // Histórico
@@ -768,6 +771,11 @@
             }
             
             container.innerHTML = html;
+            
+            // Inicializar canvas de assinaturas após renderizar
+            setTimeout(() => {
+                initSignatureCanvases();
+            }, 100);
         }
         
         // Enviar mensagem
