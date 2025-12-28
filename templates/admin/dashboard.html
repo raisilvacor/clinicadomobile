@@ -87,6 +87,25 @@
     <h2>📊 Dashboard</h2>
     <p>Bem-vindo ao painel administrativo. Escolha uma seção abaixo para editar o conteúdo do site.</p>
     
+    <!-- Notificação de Solicitações de Orçamento Pendentes -->
+    {% if pending_budget_count and pending_budget_count > 0 %}
+    <div style="background: linear-gradient(135deg, rgba(255, 140, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%); border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem; border: 2px solid #ff8c00;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h3 style="color: #ff8c00; margin-bottom: 0.5rem; font-size: 1.2rem;">
+                    💰 Nova(s) Solicitação(ões) de Orçamento: {{ pending_budget_count }}
+                </h3>
+                <p style="color: #ffffff; margin: 0;">
+                    Há {{ pending_budget_count }} solicitação(ões) de orçamento pendente(s) do app mobile.
+                </p>
+            </div>
+            <a href="{{ url_for('admin_budget_requests') }}" class="btn btn-primary" style="background: #ff8c00; color: #000000; font-weight: bold;">
+                Ver Solicitações
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Alertas de Aparelhos Abandonados -->
     {% if abandoned_count and abandoned_count > 0 %}
     <div style="background: {% if critical_count > 0 %}linear-gradient(135deg, rgba(220, 53, 69, 0.2) 0%, rgba(220, 53, 69, 0.1) 100%){% else %}linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 193, 7, 0.1) 100%){% endif %}; border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem; border: 2px solid {% if critical_count > 0 %}#dc3545{% else %}#ffc107{% endif %};">
@@ -292,6 +311,12 @@
             <h3>🏷️ Marcas</h3>
             <p>Gerencie as marcas exibidas no carrossel do site.</p>
             <a href="{{ url_for('admin_brands') }}" class="btn btn-primary">Acessar</a>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>💰 Solicitações de Orçamento</h3>
+            <p>Visualize e gerencie solicitações de orçamento do app</p>
+            <a href="{{ url_for('admin_budget_requests') }}" class="btn btn-primary">Acessar</a>
         </div>
     </div>
 

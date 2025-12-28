@@ -360,12 +360,49 @@ def create_tables():
                 )
             """)
             
+            # Tabela para senhas de clientes (associadas ao CPF)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS customer_passwords (
+                    cpf VARCHAR(11) PRIMARY KEY,
+                    password_hash TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Tabela para solicitações de orçamento
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS budget_requests (
+                    id VARCHAR(50) PRIMARY KEY,
+                    data JSONB NOT NULL,
+                    status VARCHAR(20) DEFAULT 'pendente',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Tabela para tokens de notificação push (FCM)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS push_tokens (
+                    id SERIAL PRIMARY KEY,
+                    cpf VARCHAR(11) NOT NULL,
+                    token TEXT NOT NULL,
+                    device_info JSONB,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(cpf, token)
+                )
+            """)
+            
             # Índices para melhor performance
             cur.execute("CREATE INDEX IF NOT EXISTS idx_repairs_repair_id ON repairs(id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_checklists_id ON checklists(id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_repair_id ON orders(repair_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_id ON orders(id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_suppliers_id ON suppliers(id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_customer_passwords_cpf ON customer_passwords(cpf)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_cpf ON push_tokens(cpf)")
             
             conn.commit()
             print("✅ Tabelas criadas/verificadas com sucesso!")
@@ -1384,6 +1421,168 @@ def delete_brand(brand_id):
             conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao deletar marca do banco: {e}")
+
+# ========== FUNÇÕES DE SENHAS DE CLIENTES ==========
+
+def get_customer_password_hash(cpf):
+    """Obtém o hash da senha de um cliente pelo CPF"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        customer_passwords = config.get('customer_passwords', {})
+        return customer_passwords.get(cpf)
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                customer_passwords = config.get('customer_passwords', {})
+                return customer_passwords.get(cpf)
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT password_hash FROM customer_passwords WHERE cpf = %s", (cpf,))
+            row = cur.fetchone()
+            return row['password_hash'] if row else None
+    except Exception as e:
+        print(f"⚠️  Erro ao ler senha do banco: {e}")
+        config = _load_config_file()
+        customer_passwords = config.get('customer_passwords', {})
+        return customer_passwords.get(cpf)
+
+def save_customer_password(cpf, password_hash):
+    """Salva ou atualiza a senha de um cliente"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'customer_passwords' not in config:
+            config['customer_passwords'] = {}
+        config['customer_passwords'][cpf] = password_hash
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'customer_passwords' not in config:
+                    config['customer_passwords'] = {}
+                config['customer_passwords'][cpf] = password_hash
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            cur.execute("""
+                INSERT INTO customer_passwords (cpf, password_hash, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (cpf) 
+                DO UPDATE SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
+            """, (cpf, password_hash, password_hash))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar senha no banco: {e}")
+        config = _load_config_file()
+        if 'customer_passwords' not in config:
+            config['customer_passwords'] = {}
+        config['customer_passwords'][cpf] = password_hash
+        _save_config_file(config)
+
+def get_repairs_by_cpf(cpf):
+    """Obtém todos os reparos de um cliente pelo CPF"""
+    repairs = get_all_repairs()
+    cpf_clean = cpf.replace('.', '').replace('-', '').replace(' ', '')
+    return [r for r in repairs if r.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '') == cpf_clean]
+
+# ========== FUNÇÕES DE SOLICITAÇÕES DE ORÇAMENTO ==========
+
+def get_all_budget_requests():
+    """Obtém todas as solicitações de orçamento"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('budget_requests', [])
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('budget_requests', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT id, data, status, created_at FROM budget_requests ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            return [{'id': row['id'], 'status': row['status'], 'created_at': row['created_at'].isoformat() if row['created_at'] else None, **row['data']} for row in rows]
+    except Exception as e:
+        print(f"⚠️  Erro ao ler solicitações do banco: {e}")
+        config = _load_config_file()
+        return config.get('budget_requests', [])
+
+def save_budget_request(request_id, request_data):
+    """Salva uma solicitação de orçamento"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'budget_requests' not in config:
+            config['budget_requests'] = []
+        config['budget_requests'].append({'id': request_id, **request_data})
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'budget_requests' not in config:
+                    config['budget_requests'] = []
+                config['budget_requests'].append({'id': request_id, **request_data})
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(request_data)
+            cur.execute("""
+                INSERT INTO budget_requests (id, data, status, updated_at)
+                VALUES (%s, %s::jsonb, 'pendente', CURRENT_TIMESTAMP)
+            """, (request_id, data_json))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar solicitação no banco: {e}")
+        config = _load_config_file()
+        if 'budget_requests' not in config:
+            config['budget_requests'] = []
+        config['budget_requests'].append({'id': request_id, **request_data})
+        _save_config_file(config)
+
+# ========== FUNÇÕES DE PUSH TOKENS ==========
+
+def save_push_token(cpf, token, device_info=None):
+    """Salva ou atualiza um token de notificação push"""
+    if not USE_DATABASE:
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return
+            cur = _get_cursor(conn)
+            device_json = json.dumps(device_info) if device_info else None
+            cur.execute("""
+                INSERT INTO push_tokens (cpf, token, device_info, updated_at)
+                VALUES (%s, %s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (cpf, token) 
+                DO UPDATE SET device_info = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (cpf, token, device_json, device_json))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar token push: {e}")
+
+def get_push_tokens_by_cpf(cpf):
+    """Obtém todos os tokens de push de um cliente"""
+    if not USE_DATABASE:
+        return []
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return []
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT token FROM push_tokens WHERE cpf = %s", (cpf,))
+            rows = cur.fetchall()
+            return [row['token'] for row in rows]
+    except Exception as e:
+        print(f"⚠️  Erro ao ler tokens push: {e}")
+        return []
 
 # ========== FUNÇÃO DE COMPATIBILIDADE ==========
 

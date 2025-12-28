@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff8c00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Clínica CEL - App</title>
+    <link rel="manifest" href="/mobile_app/manifest.json">
+    <link rel="icon" type="image/png" href="/mobile_app/icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .logo img {
+            width: 120px;
+            height: 120px;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+        }
+        
+        .logo h1 {
+            color: #ff8c00;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .logo p {
+            color: #999;
+            font-size: 0.9rem;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 1.2rem 2rem;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: #000000;
+            box-shadow: 0 5px 20px rgba(255, 140, 0, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 140, 0, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #333333 0%, #1a1a1a 100%);
+            color: #ffffff;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .form-container {
+            background: #0d0d0d;
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid #333333;
+            margin-top: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #ff8c00;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 1rem;
+            background: #1a1a1a;
+            border: 2px solid #333333;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #ff8c00;
+        }
+        
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        
+        .success-message {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+            color: #28a745;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #333333;
+            color: #ffffff;
+            border-radius: 10px;
+            text-decoration: none;
+            margin-bottom: 1rem;
+        }
+        
+        .repair-card {
+            background: #0d0d0d;
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 2px solid #333333;
+            margin-bottom: 1rem;
+        }
+        
+        .repair-card h3 {
+            color: #ff8c00;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+        
+        .status-aguardando {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+        
+        .status-em-andamento {
+            background: rgba(0, 123, 255, 0.2);
+            color: #007bff;
+            border: 1px solid #007bff;
+        }
+        
+        .status-concluido {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+            border: 1px solid #28a745;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela Inicial -->
+    <div id="homeScreen" class="container">
+        <div class="logo">
+            <img src="/mobile_app/icon-192.png" alt="Clínica CEL">
+            <h1>Clínica CEL</h1>
+            <p>Assistência Técnica Profissional</p>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn" onclick="showLogin()">🔐 Entrar</button>
+            <button class="btn btn-secondary" onclick="showFirstAccess()">🆕 Primeiro Acesso</button>
+            <button class="btn btn-secondary" onclick="showBudgetRequest()">💰 Solicitar Orçamento</button>
+        </div>
+    </div>
+    
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="container hidden">
+        <div class="form-container">
+            <a href="#" class="back-btn" onclick="showHome()">← Voltar</a>
+            <h2 style="color: #ff8c00; margin-bottom: 1.5rem;">Entrar</h2>
+            <div id="loginError" class="error-message hidden"></div>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>CPF (apenas números)</label>
+                    <input type="text" id="loginCpf" maxlength="11" pattern="[0-9]{11}" required placeholder="12345678901">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn">Entrar</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tela de Primeiro Acesso -->
+    <div id="firstAccessScreen" class="container hidden">
+        <div class="form-container">
+            <a href="#" class="back-btn" onclick="showHome()">← Voltar</a>
+            <h2 style="color: #ff8c00; margin-bottom: 1.5rem;">Primeiro Acesso</h2>
+            <div id="firstAccessError" class="error-message hidden"></div>
+            <div id="firstAccessSuccess" class="success-message hidden"></div>
+            <form id="firstAccessForm" onsubmit="handleFirstAccess(event)">
+                <div class="form-group">
+                    <label>CPF (apenas números)</label>
+                    <input type="text" id="firstAccessCpf" maxlength="11" pattern="[0-9]{11}" required placeholder="12345678901">
+                    <small style="color: #999; display: block; margin-top: 0.5rem;">Digite seu CPF para verificar se há serviços cadastrados</small>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="checkCpf()">Verificar CPF</button>
+                <div id="createPasswordSection" class="hidden" style="margin-top: 1.5rem;">
+                    <div class="form-group">
+                        <label>Nova Senha (mínimo 6 caracteres)</label>
+                        <input type="password" id="newPassword" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmar Senha</label>
+                        <input type="password" id="confirmPassword" minlength="6" required>
+                    </div>
+                    <button type="submit" class="btn">Criar Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tela de Solicitar Orçamento -->
+    <div id="budgetRequestScreen" class="container hidden">
+        <div class="form-container">
+            <a href="#" class="back-btn" onclick="showHome()">← Voltar</a>
+            <h2 style="color: #ff8c00; margin-bottom: 1.5rem;">Solicitar Orçamento</h2>
+            <div id="budgetError" class="error-message hidden"></div>
+            <div id="budgetSuccess" class="success-message hidden"></div>
+            <form id="budgetForm" onsubmit="handleBudgetRequest(event)">
+                <div class="form-group">
+                    <label>Nome Completo *</label>
+                    <input type="text" id="budgetName" required>
+                </div>
+                <div class="form-group">
+                    <label>Telefone *</label>
+                    <input type="tel" id="budgetPhone" required>
+                </div>
+                <div class="form-group">
+                    <label>E-mail (opcional)</label>
+                    <input type="email" id="budgetEmail">
+                </div>
+                <div class="form-group">
+                    <label>CPF (opcional)</label>
+                    <input type="text" id="budgetCpf" maxlength="11" pattern="[0-9]{11}">
+                </div>
+                <div class="form-group">
+                    <label>Marca do Dispositivo *</label>
+                    <input type="text" id="budgetBrand" required placeholder="Ex: Samsung, Apple, Xiaomi">
+                </div>
+                <div class="form-group">
+                    <label>Modelo do Dispositivo *</label>
+                    <input type="text" id="budgetModel" required placeholder="Ex: Galaxy S21, iPhone 13">
+                </div>
+                <div class="form-group">
+                    <label>Defeito *</label>
+                    <input type="text" id="budgetDefect" required placeholder="Ex: Tela quebrada, Bateria">
+                </div>
+                <div class="form-group">
+                    <label>Descrição do Problema *</label>
+                    <textarea id="budgetDescription" required placeholder="Descreva o problema em detalhes..."></textarea>
+                </div>
+                <button type="submit" class="btn">Enviar Solicitação</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tela de Reparos (após login) -->
+    <div id="repairsScreen" class="container hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 style="color: #ff8c00;">Meus Reparos</h2>
+            <button class="btn btn-secondary" onclick="logout()" style="padding: 0.75rem 1.5rem; font-size: 0.9rem;">Sair</button>
+        </div>
+        <div id="repairsList">
+            <div class="loading">Carregando...</div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = window.location.origin; // Usar o mesmo servidor
+        
+        // Navegação entre telas
+        function showScreen(screenId) {
+            document.querySelectorAll('[id$="Screen"]').forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+        
+        function showHome() {
+            showScreen('homeScreen');
+        }
+        
+        function showLogin() {
+            showScreen('loginScreen');
+            document.getElementById('loginError').classList.add('hidden');
+        }
+        
+        function showFirstAccess() {
+            showScreen('firstAccessScreen');
+            document.getElementById('firstAccessError').classList.add('hidden');
+            document.getElementById('firstAccessSuccess').classList.add('hidden');
+            document.getElementById('createPasswordSection').classList.add('hidden');
+        }
+        
+        function showBudgetRequest() {
+            showScreen('budgetRequestScreen');
+            document.getElementById('budgetError').classList.add('hidden');
+            document.getElementById('budgetSuccess').classList.add('hidden');
+        }
+        
+        // Verificar CPF no primeiro acesso
+        async function checkCpf() {
+            const cpf = document.getElementById('firstAccessCpf').value.replace(/\D/g, '');
+            if (cpf.length !== 11) {
+                showError('firstAccessError', 'CPF deve ter 11 dígitos');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/check-cpf`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cpf})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.has_service) {
+                    if (data.has_password) {
+                        showError('firstAccessError', 'Você já possui senha cadastrada. Use "Entrar" para fazer login.');
+                    } else {
+                        document.getElementById('createPasswordSection').classList.remove('hidden');
+                        showSuccess('firstAccessSuccess', 'CPF verificado! Agora crie sua senha.');
+                    }
+                } else {
+                    showError('firstAccessError', 'Nenhum serviço encontrado para este CPF. Entre em contato conosco.');
+                }
+            } catch (error) {
+                showError('firstAccessError', 'Erro ao verificar CPF. Tente novamente.');
+            }
+        }
+        
+        // Criar senha
+        async function handleFirstAccess(event) {
+            event.preventDefault();
+            const cpf = document.getElementById('firstAccessCpf').value.replace(/\D/g, '');
+            const password = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showError('firstAccessError', 'As senhas não coincidem');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/create-password`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cpf, password})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('firstAccessSuccess', 'Senha criada com sucesso! Agora você pode fazer login.');
+                    setTimeout(() => {
+                        showLogin();
+                        document.getElementById('loginCpf').value = cpf;
+                    }, 2000);
+                } else {
+                    showError('firstAccessError', data.error || 'Erro ao criar senha');
+                }
+            } catch (error) {
+                showError('firstAccessError', 'Erro ao criar senha. Tente novamente.');
+            }
+        }
+        
+        // Login
+        async function handleLogin(event) {
+            event.preventDefault();
+            const cpf = document.getElementById('loginCpf').value.replace(/\D/g, '');
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cpf, password})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('userToken', data.token);
+                    localStorage.setItem('userCpf', cpf);
+                    loadRepairs();
+                } else {
+                    showError('loginError', data.error || 'Erro ao fazer login');
+                }
+            } catch (error) {
+                showError('loginError', 'Erro ao fazer login. Tente novamente.');
+            }
+        }
+        
+        // Carregar reparos
+        async function loadRepairs() {
+            const cpf = localStorage.getItem('userCpf');
+            if (!cpf) {
+                showHome();
+                return;
+            }
+            
+            showScreen('repairsScreen');
+            document.getElementById('repairsList').innerHTML = '<div class="loading">Carregando...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/my-repairs`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cpf})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayRepairs(data.repairs);
+                } else {
+                    document.getElementById('repairsList').innerHTML = `<div class="error-message">${data.error || 'Erro ao carregar reparos'}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('repairsList').innerHTML = '<div class="error-message">Erro ao carregar reparos. Tente novamente.</div>';
+            }
+        }
+        
+        // Exibir reparos
+        function displayRepairs(repairs) {
+            const container = document.getElementById('repairsList');
+            
+            if (repairs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #999;">Nenhum reparo encontrado.</div>';
+                return;
+            }
+            
+            container.innerHTML = repairs.map(repair => `
+                <div class="repair-card">
+                    <h3>${repair.device_name || 'N/A'} - ${repair.device_model || 'N/A'}</h3>
+                    <p style="color: #999; margin: 0.5rem 0;">ID: ${repair.id}</p>
+                    <p style="margin: 0.5rem 0;">${repair.problem_description || ''}</p>
+                    <span class="status-badge status-${repair.status}">${getStatusLabel(repair.status)}</span>
+                    ${repair.has_order ? '<p style="color: #28a745; margin-top: 0.5rem;">✓ Ordem de Retirada emitida</p>' : ''}
+                    ${repair.budget ? `<p style="color: #ff8c00; margin-top: 0.5rem;">💰 Orçamento: R$ ${repair.budget}</p>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function getStatusLabel(status) {
+            const labels = {
+                'aguardando': 'Aguardando',
+                'em_andamento': 'Em Andamento',
+                'concluido': 'Concluído'
+            };
+            return labels[status] || status;
+        }
+        
+        // Solicitar orçamento
+        async function handleBudgetRequest(event) {
+            event.preventDefault();
+            
+            const requestData = {
+                customer_name: document.getElementById('budgetName').value,
+                customer_phone: document.getElementById('budgetPhone').value,
+                customer_email: document.getElementById('budgetEmail').value,
+                customer_cpf: document.getElementById('budgetCpf').value.replace(/\D/g, ''),
+                device_brand: document.getElementById('budgetBrand').value,
+                device_model: document.getElementById('budgetModel').value,
+                defect: document.getElementById('budgetDefect').value,
+                description: document.getElementById('budgetDescription').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/request-budget`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('budgetSuccess', 'Solicitação enviada com sucesso! Entraremos em contato em breve.');
+                    document.getElementById('budgetForm').reset();
+                    setTimeout(() => showHome(), 3000);
+                } else {
+                    showError('budgetError', data.error || 'Erro ao enviar solicitação');
+                }
+            } catch (error) {
+                showError('budgetError', 'Erro ao enviar solicitação. Tente novamente.');
+            }
+        }
+        
+        // Logout
+        function logout() {
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('userCpf');
+            showHome();
+        }
+        
+        // Helpers
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+        
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+        
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/mobile_app/service-worker.js')
+                    .then((registration) => {
+                        console.log('Service Worker registrado:', registration);
+                    })
+                    .catch((error) => {
+                        console.log('Erro ao registrar Service Worker:', error);
+                    });
+            });
+        }
+        
+        // Verificar se está logado ao carregar
+        window.addEventListener('load', () => {
+            if (localStorage.getItem('userToken') && localStorage.getItem('userCpf')) {
+                loadRepairs();
+            }
+        });
+        
+        // Máscara de CPF
+        document.querySelectorAll('input[type="text"][id*="Cpf"]').forEach(input => {
+            input.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '');
+            });
+        });
+    </script>
+</body>
+</html>
+

@@ -34,7 +34,14 @@ from db import (
     get_all_brands,
     get_brand as db_get_brand,
     save_brand,
-    delete_brand as db_delete_brand
+    delete_brand as db_delete_brand,
+    get_customer_password_hash,
+    save_customer_password,
+    get_repairs_by_cpf,
+    get_all_budget_requests,
+    save_budget_request,
+    save_push_token,
+    get_push_tokens_by_cpf
 )
 
 app = Flask(__name__)
@@ -128,7 +135,14 @@ def admin_dashboard():
             except:
                 pass
     
-    return render_template('admin/dashboard.html', abandoned_count=abandoned_count, critical_count=critical_count)
+    # Contar solicitações de orçamento pendentes
+    budget_requests = get_all_budget_requests()
+    pending_budget_count = len([r for r in budget_requests if r.get('status') == 'pendente'])
+    
+    return render_template('admin/dashboard.html', 
+                         abandoned_count=abandoned_count, 
+                         critical_count=critical_count,
+                         pending_budget_count=pending_budget_count)
 
 @app.route('/admin/search', methods=['GET'])
 @login_required
@@ -521,6 +535,15 @@ def admin_delete_checklist(checklist_id):
     return jsonify({'success': True})
 
 # ========== CENTRAL DE STATUS DO REPARO ==========
+
+@app.route('/admin/budget-requests', methods=['GET'])
+@login_required
+def admin_budget_requests():
+    """Visualiza solicitações de orçamento"""
+    requests = get_all_budget_requests()
+    # Contar pendentes para notificação
+    pending_count = len([r for r in requests if r.get('status') == 'pendente'])
+    return render_template('admin/budget_requests.html', requests=requests, pending_count=pending_count)
 
 @app.route('/admin/repairs', methods=['GET'])
 @login_required
@@ -2796,6 +2819,256 @@ Disallow: /repairs
 Sitemap: {url_root}/sitemap.xml
 """
     return Response(robots_content, mimetype='text/plain')
+
+# ========== ROTA PARA SERVIR O APP MOBILE ==========
+
+@app.route('/mobile_app/')
+def mobile_app():
+    """Serve o app mobile PWA"""
+    return send_from_directory('mobile_app', 'index.html')
+
+@app.route('/mobile_app/<path:filename>')
+def mobile_app_static(filename):
+    """Serve arquivos estáticos do app mobile"""
+    return send_from_directory('mobile_app', filename)
+
+# ========== APIs REST PARA O APP MOBILE ==========
+
+import hashlib
+import uuid
+from datetime import datetime
+
+def hash_password(password):
+    """Gera hash SHA256 da senha"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# API: Consultar CPF (verificar se existe serviço)
+@app.route('/api/check-cpf', methods=['POST'])
+def api_check_cpf():
+    """Verifica se existe serviço cadastrado para o CPF"""
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        repairs = get_repairs_by_cpf(cpf)
+        has_service = len(repairs) > 0
+        has_password = get_customer_password_hash(cpf) is not None
+        
+        return jsonify({
+            'success': True,
+            'has_service': has_service,
+            'has_password': has_password,
+            'repairs_count': len(repairs)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Criar senha (primeiro acesso)
+@app.route('/api/create-password', methods=['POST'])
+def api_create_password():
+    """Cria senha para cliente no primeiro acesso"""
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        password = data.get('password', '').strip()
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        if not password or len(password) < 6:
+            return jsonify({'success': False, 'error': 'Senha deve ter no mínimo 6 caracteres'}), 400
+        
+        # Verificar se existe serviço
+        repairs = get_repairs_by_cpf(cpf)
+        if len(repairs) == 0:
+            return jsonify({'success': False, 'error': 'Nenhum serviço encontrado para este CPF'}), 400
+        
+        # Verificar se já tem senha
+        if get_customer_password_hash(cpf):
+            return jsonify({'success': False, 'error': 'Senha já cadastrada. Use "Entrar" para fazer login.'}), 400
+        
+        # Salvar senha
+        password_hash = hash_password(password)
+        save_customer_password(cpf, password_hash)
+        
+        return jsonify({'success': True, 'message': 'Senha criada com sucesso'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Login
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    """Faz login do cliente"""
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        password = data.get('password', '').strip()
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        if not password:
+            return jsonify({'success': False, 'error': 'Senha obrigatória'}), 400
+        
+        # Verificar senha
+        stored_hash = get_customer_password_hash(cpf)
+        if not stored_hash:
+            return jsonify({'success': False, 'error': 'CPF não cadastrado. Use "Primeiro Acesso".'}), 401
+        
+        password_hash = hash_password(password)
+        if password_hash != stored_hash:
+            return jsonify({'success': False, 'error': 'Senha incorreta'}), 401
+        
+        # Gerar token de sessão simples (em produção, usar JWT)
+        session_token = hashlib.sha256(f"{cpf}{password_hash}{datetime.now().isoformat()}".encode()).hexdigest()
+        
+        return jsonify({
+            'success': True,
+            'token': session_token,
+            'cpf': cpf
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Obter dados do reparo (para cliente logado)
+@app.route('/api/my-repairs', methods=['POST'])
+def api_my_repairs():
+    """Retorna todos os reparos do cliente"""
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        repairs = get_repairs_by_cpf(cpf)
+        
+        # Formatar dados para o app
+        repairs_data = []
+        for repair in repairs:
+            # Obter OR se existir
+            order = get_order_by_repair(repair.get('id'))
+            # Obter checklists
+            checklists = get_checklists_by_repair(repair.get('id'))
+            
+            repair_info = {
+                'id': repair.get('id'),
+                'device_name': repair.get('device_name', ''),
+                'device_model': repair.get('device_model', ''),
+                'problem_description': repair.get('problem_description', ''),
+                'status': repair.get('status', 'aguardando'),
+                'budget': repair.get('budget'),
+                'created_at': repair.get('created_at'),
+                'updated_at': repair.get('updated_at'),
+                'messages': repair.get('messages', []),
+                'history': repair.get('history', []),
+                'has_order': order is not None,
+                'order_id': order.get('id') if order else None,
+                'checklists_count': len(checklists)
+            }
+            repairs_data.append(repair_info)
+        
+        return jsonify({
+            'success': True,
+            'repairs': repairs_data
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Obter detalhes de um reparo específico
+@app.route('/api/repair/<repair_id>', methods=['POST'])
+def api_repair_details(repair_id):
+    """Retorna detalhes completos de um reparo"""
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        repair = db_get_repair(repair_id)
+        if not repair:
+            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
+        
+        # Verificar se o reparo pertence ao CPF
+        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        if repair_cpf != cpf:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
+        # Obter OR
+        order = get_order_by_repair(repair_id)
+        # Obter checklists
+        checklists = get_checklists_by_repair(repair_id)
+        
+        return jsonify({
+            'success': True,
+            'repair': repair,
+            'order': order,
+            'checklists': checklists
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Solicitar orçamento
+@app.route('/api/request-budget', methods=['POST'])
+def api_request_budget():
+    """Cria uma solicitação de orçamento"""
+    try:
+        data = request.get_json()
+        
+        # Validar dados obrigatórios
+        required_fields = ['customer_name', 'customer_phone', 'device_brand', 'device_model', 'defect', 'description']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'Campo obrigatório: {field}'}), 400
+        
+        request_id = str(uuid.uuid4())[:8]
+        request_data = {
+            'customer_name': data.get('customer_name'),
+            'customer_phone': data.get('customer_phone'),
+            'customer_email': data.get('customer_email', ''),
+            'customer_cpf': data.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', ''),
+            'device_brand': data.get('device_brand'),
+            'device_model': data.get('device_model'),
+            'defect': data.get('defect'),
+            'description': data.get('description'),
+            'created_at': datetime.now().isoformat()
+        }
+        
+        save_budget_request(request_id, request_data)
+        
+        return jsonify({
+            'success': True,
+            'request_id': request_id,
+            'message': 'Solicitação enviada com sucesso'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Registrar token de notificação push
+@app.route('/api/register-push-token', methods=['POST'])
+def api_register_push_token():
+    """Registra token FCM para notificações push"""
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        token = data.get('token', '').strip()
+        device_info = data.get('device_info', {})
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        if not token:
+            return jsonify({'success': False, 'error': 'Token obrigatório'}), 400
+        
+        save_push_token(cpf, token, device_info)
+        
+        return jsonify({'success': True, 'message': 'Token registrado com sucesso'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

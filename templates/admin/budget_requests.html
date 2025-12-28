@@ -1,0 +1,96 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Solicitações de Orçamento{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>💰 Solicitações de Orçamento</h2>
+    <p>Solicitações enviadas pelo app mobile dos clientes.</p>
+
+    {% if requests %}
+    <div style="margin-top: 2rem;">
+        {% for req in requests %}
+        <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; margin-bottom: 1rem; border: 2px solid {% if req.status == 'pendente' %}#ff8c00{% else %}#28a745{% endif %};">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <div style="flex: 1;">
+                    <h3 style="color: #ff8c00; margin: 0 0 0.5rem 0;">
+                        ID: {{ req.id }}
+                        <span style="padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem; font-weight: bold; margin-left: 1rem;
+                            {% if req.status == 'pendente' %}
+                                background: rgba(255, 140, 0, 0.2); color: #ff8c00; border: 1px solid #ff8c00;
+                            {% else %}
+                                background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;
+                            {% endif %}">
+                            {{ req.status|upper }}
+                        </span>
+                    </h3>
+                    <p style="color: #999; margin: 0; font-size: 0.9rem;">
+                        Data: {{ req.created_at[:16] if req.created_at else 'N/A' }}
+                    </p>
+                </div>
+                {% if req.status == 'pendente' %}
+                <button onclick="createRepairFromRequest('{{ req.id }}')" class="btn btn-primary" style="background: #28a745;">
+                    ➕ Criar Reparo
+                </button>
+                {% endif %}
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div>
+                    <strong style="color: #ff8c00;">Cliente:</strong>
+                    <p style="color: #ffffff; margin: 0.25rem 0;">{{ req.customer_name }}</p>
+                </div>
+                <div>
+                    <strong style="color: #ff8c00;">Telefone:</strong>
+                    <p style="color: #ffffff; margin: 0.25rem 0;">{{ req.customer_phone }}</p>
+                </div>
+                {% if req.customer_email %}
+                <div>
+                    <strong style="color: #ff8c00;">E-mail:</strong>
+                    <p style="color: #ffffff; margin: 0.25rem 0;">{{ req.customer_email }}</p>
+                </div>
+                {% endif %}
+                {% if req.customer_cpf %}
+                <div>
+                    <strong style="color: #ff8c00;">CPF:</strong>
+                    <p style="color: #ffffff; margin: 0.25rem 0;">{{ req.customer_cpf }}</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333333;">
+                <strong style="color: #ff8c00;">Dispositivo:</strong>
+                <p style="color: #ffffff; margin: 0.25rem 0;">
+                    <strong>Marca:</strong> {{ req.device_brand }} | 
+                    <strong>Modelo:</strong> {{ req.device_model }}
+                </p>
+            </div>
+            
+            <div style="margin-top: 1rem;">
+                <strong style="color: #ff8c00;">Defeito:</strong>
+                <p style="color: #ffffff; margin: 0.25rem 0;">{{ req.defect }}</p>
+            </div>
+            
+            <div style="margin-top: 1rem;">
+                <strong style="color: #ff8c00;">Descrição:</strong>
+                <p style="color: #ffffff; margin: 0.25rem 0; white-space: pre-wrap;">{{ req.description }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: #999;">
+        <p>Nenhuma solicitação de orçamento encontrada.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function createRepairFromRequest(requestId) {
+    if (confirm('Deseja criar um novo reparo a partir desta solicitação?')) {
+        window.location.href = `/admin/repairs/new?from_request=${requestId}`;
+    }
+}
+</script>
+{% endblock %}
+
