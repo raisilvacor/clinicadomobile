@@ -1,6 +1,5 @@
 // Service Worker para PWA
 const CACHE_NAME = 'clinica-cel-v1';
-const CACHE_NAME = 'clinica-cel-v1';
 const urlsToCache = [
   '/mobile_app/',
   '/mobile_app/index.html',
@@ -57,4 +56,3 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification('Clínica CEL', options)
   );
 });
-
