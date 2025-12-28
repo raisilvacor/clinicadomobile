@@ -3020,17 +3020,28 @@ def api_request_budget():
         data = request.get_json()
         
         # Validar dados obrigatórios
-        required_fields = ['customer_name', 'customer_phone', 'device_brand', 'device_model', 'defect', 'description']
+        required_fields = ['customer_name', 'customer_phone', 'customer_email', 'customer_cpf', 'device_brand', 'device_model', 'defect', 'description']
         for field in required_fields:
             if not data.get(field):
-                return jsonify({'success': False, 'error': f'Campo obrigatório: {field}'}), 400
+                field_name = field.replace('_', ' ').title()
+                return jsonify({'success': False, 'error': f'Campo obrigatório: {field_name}'}), 400
+        
+        # Validar CPF
+        cpf = data.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        if len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF deve ter 11 dígitos'}), 400
+        
+        # Validar e-mail
+        email = data.get('customer_email', '').strip()
+        if '@' not in email or '.' not in email:
+            return jsonify({'success': False, 'error': 'E-mail inválido'}), 400
         
         request_id = str(uuid.uuid4())[:8]
         request_data = {
             'customer_name': data.get('customer_name'),
             'customer_phone': data.get('customer_phone'),
-            'customer_email': data.get('customer_email', ''),
-            'customer_cpf': data.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', ''),
+            'customer_email': email,
+            'customer_cpf': cpf,
             'device_brand': data.get('device_brand'),
             'device_model': data.get('device_model'),
             'defect': data.get('defect'),
