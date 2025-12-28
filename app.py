@@ -3321,10 +3321,75 @@ def mobile_app():
     """Serve o app mobile PWA"""
     return send_from_directory('mobile_app', 'index.html')
 
+@app.route('/mobile_app/manifest.json')
+def mobile_app_manifest():
+    """Serve o manifest.json com Content-Type correto"""
+    from flask import Response
+    import json
+    import os
+    
+    manifest_path = os.path.join('mobile_app', 'manifest.json')
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            manifest_data = json.load(f)
+        return Response(
+            json.dumps(manifest_data, indent=2, ensure_ascii=False),
+            mimetype='application/manifest+json',
+            headers={
+                'Content-Type': 'application/manifest+json; charset=utf-8',
+                'Access-Control-Allow-Origin': '*'
+            }
+        )
+    return "Manifest não encontrado", 404
+
+@app.route('/mobile_app/service-worker.js')
+def mobile_app_service_worker():
+    """Serve o service-worker.js com Content-Type correto"""
+    from flask import Response
+    import os
+    
+    sw_path = os.path.join('mobile_app', 'service-worker.js')
+    if os.path.exists(sw_path):
+        with open(sw_path, 'r', encoding='utf-8') as f:
+            sw_content = f.read()
+        return Response(
+            sw_content,
+            mimetype='application/javascript',
+            headers={
+                'Content-Type': 'application/javascript; charset=utf-8',
+                'Service-Worker-Allowed': '/',
+                'Access-Control-Allow-Origin': '*'
+            }
+        )
+    return "Service Worker não encontrado", 404
+
 @app.route('/mobile_app/<path:filename>')
 def mobile_app_static(filename):
     """Serve arquivos estáticos do app mobile"""
-    return send_from_directory('mobile_app', filename)
+    # Mapear extensões para MIME types
+    mime_types = {
+        '.json': 'application/json',
+        '.js': 'application/javascript',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+        '.css': 'text/css',
+        '.html': 'text/html'
+    }
+    
+    import os
+    ext = os.path.splitext(filename)[1].lower()
+    mimetype = mime_types.get(ext, 'application/octet-stream')
+    
+    response = send_from_directory('mobile_app', filename)
+    if response.status_code == 200:
+        response.headers['Content-Type'] = mimetype
+        if filename == 'service-worker.js':
+            response.headers['Service-Worker-Allowed'] = '/'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 # ========== APIs REST PARA O APP MOBILE ==========
 

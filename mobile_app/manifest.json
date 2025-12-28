@@ -1,7 +1,7 @@
 {
   "name": "Clínica CEL",
   "short_name": "Clínica CEL",
-  "description": "App para acompanhamento de reparos e solicitação de orçamentos",
+  "description": "App para acompanhamento de reparos e solicitação de orçamentos da Clínica CEL",
   "start_url": "/mobile_app/",
   "scope": "/mobile_app/",
   "display": "standalone",
