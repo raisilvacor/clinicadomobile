@@ -1546,8 +1546,8 @@ def save_budget_request(request_id, request_data):
 
 # ========== FUNÇÕES DE PUSH TOKENS ==========
 
-def save_push_token(cpf, token, device_info=None):
-    """Salva ou atualiza um token de notificação push"""
+def save_push_token(cpf, subscription, device_info=None):
+    """Salva ou atualiza subscription de notificação push"""
     if not USE_DATABASE:
         return
     
@@ -1556,19 +1556,33 @@ def save_push_token(cpf, token, device_info=None):
             if not conn:
                 return
             cur = _get_cursor(conn)
+            
+            # Converter subscription para JSON se for dict
+            if isinstance(subscription, dict):
+                subscription_json = json.dumps(subscription)
+            else:
+                subscription_json = subscription
+            
+            # Criar objeto com subscription e device_info
+            token_data = {
+                'subscription': subscription_json if isinstance(subscription_json, str) else json.dumps(subscription_json),
+                'device_info': device_info or {}
+            }
+            token_json = json.dumps(token_data)
+            
             device_json = json.dumps(device_info) if device_info else None
             cur.execute("""
                 INSERT INTO push_tokens (cpf, token, device_info, updated_at)
                 VALUES (%s, %s, %s::jsonb, CURRENT_TIMESTAMP)
-                ON CONFLICT (cpf, token) 
-                DO UPDATE SET device_info = %s::jsonb, updated_at = CURRENT_TIMESTAMP
-            """, (cpf, token, device_json, device_json))
+                ON CONFLICT (cpf) 
+                DO UPDATE SET token = EXCLUDED.token, device_info = EXCLUDED.device_info, updated_at = CURRENT_TIMESTAMP
+            """, (cpf, token_json, device_json))
             conn.commit()
     except Exception as e:
-        print(f"⚠️  Erro ao salvar token push: {e}")
+        print(f"⚠️  Erro ao salvar subscription push: {e}")
 
 def get_push_tokens_by_cpf(cpf):
-    """Obtém todos os tokens de push de um cliente"""
+    """Obtém todas as subscriptions de push de um cliente"""
     if not USE_DATABASE:
         return []
     
@@ -1579,9 +1593,17 @@ def get_push_tokens_by_cpf(cpf):
             cur = _get_cursor(conn, dict_cursor=True)
             cur.execute("SELECT token FROM push_tokens WHERE cpf = %s", (cpf,))
             rows = cur.fetchall()
-            return [row['token'] for row in rows]
+            tokens = []
+            for row in rows:
+                try:
+                    token_data = json.loads(row['token']) if isinstance(row['token'], str) else row['token']
+                    tokens.append(token_data)
+                except:
+                    # Fallback para formato antigo
+                    tokens.append({'subscription': row['token']})
+            return tokens
     except Exception as e:
-        print(f"⚠️  Erro ao ler tokens push: {e}")
+        print(f"⚠️  Erro ao ler subscriptions push: {e}")
         return []
 
 # ========== FUNÇÃO DE COMPATIBILIDADE ==========

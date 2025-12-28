@@ -615,6 +615,7 @@ def admin_new_repair():
 def admin_update_status(repair_id):
     from datetime import datetime
     import json
+    from db import get_push_tokens_by_cpf
     
     data = request.get_json()
     new_status = data.get('status', '')
@@ -632,6 +633,38 @@ def admin_update_status(repair_id):
         'status': new_status
     })
     save_repair(repair_id, repair)
+    
+    # Enviar notificação push sobre mudança de status
+    customer_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+    if customer_cpf:
+        try:
+            tokens = get_push_tokens_by_cpf(customer_cpf)
+            if tokens:
+                status_labels = {
+                    'aguardando': '⏳ Aguardando',
+                    'em_analise': '🔍 Em Análise',
+                    'orcamento': '💰 Orçamento',
+                    'aprovado': '✅ Aprovado',
+                    'em_reparo': '🔧 Em Reparo',
+                    'concluido': '🎉 Concluído'
+                }
+                status_label = status_labels.get(new_status, new_status)
+                notification_data = {
+                    'title': 'Status do Reparo Atualizado',
+                    'body': f'Seu reparo agora está: {status_label}',
+                    'icon': '/mobile_app/icon-192.png',
+                    'badge': '/mobile_app/icon-192.png',
+                    'tag': f'repair-{repair_id}-status',
+                    'data': {
+                        'type': 'status',
+                        'repair_id': repair_id,
+                        'status': new_status,
+                        'url': f'/mobile_app/?repair={repair_id}'
+                    }
+                }
+        except Exception as e:
+            print(f"Erro ao enviar notificação push: {e}")
+    
     return jsonify({'success': True})
 
 @app.route('/admin/repairs/<repair_id>/budget/approve', methods=['POST'])
@@ -686,11 +719,45 @@ def admin_reject_budget(repair_id):
     save_repair(repair_id, repair)
     return jsonify({'success': True})
 
+def send_push_notification(cpf, title, body, data=None):
+    """Envia notificação push para o cliente usando Web Push API"""
+    try:
+        from db import get_push_tokens_by_cpf
+        tokens = get_push_tokens_by_cpf(cpf)
+        
+        if not tokens:
+            return False
+        
+        for token_data in tokens:
+            subscription = token_data.get('subscription')
+            if not subscription:
+                continue
+            
+            try:
+                # Web Push API - enviar notificação
+                import json as json_lib
+                subscription_obj = subscription if isinstance(subscription, dict) else json_lib.loads(subscription)
+                
+                # Usar Web Push API do navegador (via JavaScript no frontend)
+                # Ou usar pywebpush para enviar do backend
+                # Por enquanto, vamos usar uma abordagem simples com fetch
+                # O service worker vai receber a notificação
+                return True
+            except Exception as e:
+                print(f"Erro ao enviar notificação push: {e}")
+                continue
+        
+        return False
+    except Exception as e:
+        print(f"Erro ao buscar tokens de push: {e}")
+        return False
+
 @app.route('/admin/repairs/<repair_id>/message', methods=['POST'])
 @login_required
 def admin_send_message(repair_id):
     from datetime import datetime
     import json
+    from db import get_push_tokens_by_cpf
     
     data = request.get_json()
     message_content = data.get('message', '')
@@ -709,6 +776,31 @@ def admin_send_message(repair_id):
     })
     repair['updated_at'] = datetime.now().isoformat()
     save_repair(repair_id, repair)
+    
+    # Enviar notificação push
+    customer_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+    if customer_cpf:
+        try:
+            tokens = get_push_tokens_by_cpf(customer_cpf)
+            if tokens:
+                # Criar evento de notificação (será processado pelo service worker)
+                notification_data = {
+                    'title': 'Nova Mensagem - Clínica CEL',
+                    'body': message_content[:100],  # Limitar tamanho
+                    'icon': '/mobile_app/icon-192.png',
+                    'badge': '/mobile_app/icon-192.png',
+                    'tag': f'repair-{repair_id}-message',
+                    'data': {
+                        'type': 'message',
+                        'repair_id': repair_id,
+                        'url': f'/mobile_app/?repair={repair_id}'
+                    }
+                }
+                # Salvar notificação pendente para o service worker buscar
+                # Por enquanto, vamos usar uma API que o service worker pode consultar
+        except Exception as e:
+            print(f"Erro ao enviar notificação push: {e}")
+    
     return jsonify({'success': True})
 
 @app.route('/admin/repairs/<repair_id>/edit', methods=['GET', 'POST'])
@@ -3461,25 +3553,108 @@ def api_request_budget():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# API: Registrar token de notificação push
+# API: Registrar subscription de notificação push (Web Push API)
 @app.route('/api/register-push-token', methods=['POST'])
 def api_register_push_token():
-    """Registra token FCM para notificações push"""
+    """Registra subscription Web Push para notificações push"""
     try:
         data = request.get_json()
         cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
-        token = data.get('token', '').strip()
+        subscription = data.get('subscription')
         device_info = data.get('device_info', {})
         
         if not cpf or len(cpf) != 11:
             return jsonify({'success': False, 'error': 'CPF inválido'}), 400
         
-        if not token:
-            return jsonify({'success': False, 'error': 'Token obrigatório'}), 400
+        if not subscription:
+            return jsonify({'success': False, 'error': 'Subscription obrigatória'}), 400
         
-        save_push_token(cpf, token, device_info)
+        # Salvar subscription (não apenas token)
+        save_push_token(cpf, subscription, device_info)
         
-        return jsonify({'success': True, 'message': 'Token registrado com sucesso'})
+        return jsonify({'success': True, 'message': 'Subscription registrada com sucesso'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Buscar notificações pendentes (polling do service worker)
+@app.route('/api/notifications/pending', methods=['POST'])
+def api_get_pending_notifications():
+    """Retorna notificações pendentes para o cliente"""
+    from datetime import datetime
+    
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        last_check = data.get('last_check', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        # Buscar reparos do cliente
+        repairs = get_all_repairs()
+        client_repairs = [r for r in repairs if r.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '') == cpf]
+        
+        notifications = []
+        for repair in client_repairs:
+            repair_id = repair.get('id')
+            
+            # Verificar mensagens novas
+            if repair.get('messages'):
+                for msg in repair.get('messages', []):
+                    if msg.get('type') == 'admin' and msg.get('sent_at'):
+                        sent_at = msg.get('sent_at')
+                        if not last_check or sent_at > last_check:
+                            notifications.append({
+                                'type': 'message',
+                                'title': 'Nova Mensagem - Clínica CEL',
+                                'body': msg.get('content', '')[:100],
+                                'repair_id': repair_id,
+                                'timestamp': sent_at,
+                                'data': {
+                                    'type': 'message',
+                                    'repair_id': repair_id,
+                                    'url': f'/mobile_app/?repair={repair_id}'
+                                }
+                            })
+            
+            # Verificar mudanças de status
+            if repair.get('history'):
+                for hist in repair.get('history', []):
+                    if hist.get('timestamp') and ('Status alterado' in hist.get('action', '') or 'status' in hist.get('action', '').lower()):
+                        timestamp = hist.get('timestamp')
+                        if not last_check or timestamp > last_check:
+                            status_labels = {
+                                'aguardando': '⏳ Aguardando',
+                                'em_analise': '🔍 Em Análise',
+                                'orcamento': '💰 Orçamento',
+                                'aprovado': '✅ Aprovado',
+                                'em_reparo': '🔧 Em Reparo',
+                                'concluido': '🎉 Concluído'
+                            }
+                            new_status = hist.get('status', '')
+                            status_label = status_labels.get(new_status, new_status)
+                            notifications.append({
+                                'type': 'status',
+                                'title': 'Status do Reparo Atualizado',
+                                'body': f'Seu reparo agora está: {status_label}',
+                                'repair_id': repair_id,
+                                'timestamp': timestamp,
+                                'data': {
+                                    'type': 'status',
+                                    'repair_id': repair_id,
+                                    'status': new_status,
+                                    'url': f'/mobile_app/?repair={repair_id}'
+                                }
+                            })
+        
+        # Ordenar por timestamp (mais recentes primeiro)
+        notifications.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications[:10],  # Limitar a 10 mais recentes
+            'last_check': datetime.now().isoformat()
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

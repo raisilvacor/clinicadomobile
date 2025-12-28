@@ -998,23 +998,113 @@
             element.classList.remove('hidden');
         }
         
-        // Registrar Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/mobile_app/service-worker.js')
-                    .then((registration) => {
-                        console.log('Service Worker registrado:', registration);
-                    })
-                    .catch((error) => {
-                        console.log('Erro ao registrar Service Worker:', error);
-                    });
-            });
+        // Solicitar permissão e registrar notificações push (usando polling)
+        async function registerPushNotifications() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    // Registrar service worker
+                    const registration = await navigator.serviceWorker.register('/mobile_app/service-worker.js');
+                    console.log('Service Worker registrado:', registration);
+                    
+                    // Solicitar permissão de notificação
+                    if ('Notification' in window) {
+                        const permission = await Notification.requestPermission();
+                        if (permission === 'granted') {
+                            console.log('Permissão de notificação concedida');
+                            
+                            // Registrar subscription simples (apenas para tracking)
+                            const cpf = localStorage.getItem('userCpf');
+                            if (cpf) {
+                                try {
+                                    await fetch(`${API_BASE}/api/register-push-token`, {
+                                        method: 'POST',
+                                        headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify({
+                                            cpf: cpf,
+                                            subscription: {
+                                                endpoint: 'polling',
+                                                keys: null
+                                            },
+                                            device_info: {
+                                                userAgent: navigator.userAgent,
+                                                platform: navigator.platform
+                                            }
+                                        })
+                                    });
+                                    console.log('Subscription registrada com sucesso');
+                                } catch (error) {
+                                    console.error('Erro ao registrar subscription:', error);
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao registrar notificações push:', error);
+                }
+            }
+        }
+        
+        // Verificar notificações pendentes periodicamente
+        let notificationCheckInterval = null;
+        async function checkPendingNotifications() {
+            const cpf = localStorage.getItem('userCpf');
+            if (!cpf) return;
+            
+            const lastCheck = localStorage.getItem('lastNotificationCheck') || '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/notifications/pending`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cpf, last_check: lastCheck})
+                });
+                
+                const data = await response.json();
+                if (data.success && data.notifications && data.notifications.length > 0) {
+                    // Mostrar notificações
+                    for (const notif of data.notifications) {
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            const notification = new Notification(notif.title, {
+                                body: notif.body,
+                                icon: '/mobile_app/icon-192.png',
+                                badge: '/mobile_app/icon-192.png',
+                                tag: notif.data.tag || 'repair-notification',
+                                data: notif.data
+                            });
+                            
+                            notification.onclick = function(event) {
+                                event.preventDefault();
+                                window.focus();
+                                if (notif.data && notif.data.url) {
+                                    window.location.href = notif.data.url;
+                                }
+                                notification.close();
+                            };
+                        }
+                    }
+                    
+                    // Atualizar último check
+                    localStorage.setItem('lastNotificationCheck', data.last_check);
+                }
+            } catch (error) {
+                console.error('Erro ao verificar notificações:', error);
+            }
         }
         
         // Verificar se está logado ao carregar
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             if (localStorage.getItem('userToken') && localStorage.getItem('userCpf')) {
                 loadRepairs();
+                
+                // Registrar notificações push
+                await registerPushNotifications();
+                
+                // Verificar notificações pendentes a cada 30 segundos
+                if (notificationCheckInterval) {
+                    clearInterval(notificationCheckInterval);
+                }
+                notificationCheckInterval = setInterval(checkPendingNotifications, 30000);
+                checkPendingNotifications(); // Verificar imediatamente
             }
         });
         
