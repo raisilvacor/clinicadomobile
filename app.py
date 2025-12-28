@@ -1169,20 +1169,6 @@ def public_repair_pdf(repair_id):
         'Content-Disposition': f'inline; filename=reparo_{repair_id}.pdf'
     })
 
-@app.route('/status/<repair_id>/or/pdf', methods=['GET'])
-def public_or_pdf(repair_id):
-    """Gera PDF da OR para cliente (público)"""
-    repair = db_get_repair(repair_id)
-    if not repair:
-        return "Reparo não encontrado", 404
-    
-    order_id = repair.get('order_id')
-    if not order_id:
-        return "Ordem de Retirada não encontrada", 404
-    
-    # Redirecionar para a rota do admin (que já gera o PDF)
-    return redirect(url_for('admin_or_pdf', repair_id=repair_id))
-
 @app.route('/repairs', methods=['GET'])
 def public_list_repairs():
     """Lista reparos do cliente por telefone ou email"""
