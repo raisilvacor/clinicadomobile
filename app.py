@@ -3333,27 +3333,38 @@ def mobile_app_manifest():
         with open(manifest_path, 'r', encoding='utf-8') as f:
             manifest_data = json.load(f)
         
-        # Garantir que as URLs sejam absolutas
+        # Garantir que todas as URLs sejam absolutas
         base_url = request.url_root.rstrip('/')
+        
+        # Converter start_url e scope para absolutos
+        if manifest_data.get('start_url', '').startswith('/'):
+            manifest_data['start_url'] = base_url + manifest_data['start_url']
+        if manifest_data.get('scope', '').startswith('/'):
+            manifest_data['scope'] = base_url + manifest_data['scope']
+        
+        # Converter URLs dos ícones para absolutos
         if 'icons' in manifest_data:
             for icon in manifest_data['icons']:
                 if icon.get('src', '').startswith('/'):
                     icon['src'] = base_url + icon['src']
         
-        return Response(
+        response = Response(
             json.dumps(manifest_data, indent=2, ensure_ascii=False),
             mimetype='application/manifest+json',
             headers={
                 'Content-Type': 'application/manifest+json; charset=utf-8',
                 'Access-Control-Allow-Origin': '*',
-                'Cache-Control': 'no-cache'
+                'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Cache-Control': 'public, max-age=3600'
             }
         )
+        return response
     return "Manifest não encontrado", 404
 
 @app.route('/mobile_app/service-worker.js')
 def mobile_app_service_worker():
-    """Serve o service-worker.js com Content-Type correto"""
+    """Serve o service-worker.js com Content-Type correto e headers apropriados"""
     from flask import Response
     import os
     
@@ -3366,9 +3377,11 @@ def mobile_app_service_worker():
             mimetype='application/javascript',
             headers={
                 'Content-Type': 'application/javascript; charset=utf-8',
-                'Service-Worker-Allowed': '/',
+                'Service-Worker-Allowed': '/mobile_app/',
                 'Access-Control-Allow-Origin': '*',
-                'Cache-Control': 'no-cache'
+                'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Cache-Control': 'public, max-age=3600'
             }
         )
     return "Service Worker não encontrado", 404
