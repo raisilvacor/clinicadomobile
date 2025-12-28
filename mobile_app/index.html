@@ -504,6 +504,7 @@
                 if (data.success) {
                     localStorage.setItem('userToken', data.token);
                     localStorage.setItem('userCpf', cpf);
+                    await handleLoginSuccess(cpf);
                     loadRepairs();
                 } else {
                     showError('loginError', data.error || 'Erro ao fazer login');
@@ -1099,50 +1100,19 @@
             }
         }
         
-        // Verificar notificações pendentes periodicamente
-        let notificationCheckInterval = null;
-        async function checkPendingNotifications() {
-            const cpf = localStorage.getItem('userCpf');
-            if (!cpf) return;
-            
-            const lastCheck = localStorage.getItem('lastNotificationCheck') || '';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/notifications/pending`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({cpf, last_check: lastCheck})
-                });
-                
-                const data = await response.json();
-                if (data.success && data.notifications && data.notifications.length > 0) {
-                    // Mostrar notificações
-                    for (const notif of data.notifications) {
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            const notification = new Notification(notif.title, {
-                                body: notif.body,
-                                icon: '/mobile_app/icon-192.png',
-                                badge: '/mobile_app/icon-192.png',
-                                tag: notif.data.tag || 'repair-notification',
-                                data: notif.data
-                            });
-                            
-                            notification.onclick = function(event) {
-                                event.preventDefault();
-                                window.focus();
-                                if (notif.data && notif.data.url) {
-                                    window.location.href = notif.data.url;
-                                }
-                                notification.close();
-                            };
-                        }
+        // Solicitar verificação imediata de notificações ao service worker
+        async function triggerNotificationCheck() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    if (registration.active) {
+                        registration.active.postMessage({
+                            type: 'CHECK_NOW'
+                        });
                     }
-                    
-                    // Atualizar último check
-                    localStorage.setItem('lastNotificationCheck', data.last_check);
+                } catch (error) {
+                    console.error('Erro ao solicitar verificação de notificações:', error);
                 }
-            } catch (error) {
-                console.error('Erro ao verificar notificações:', error);
             }
         }
         
@@ -1154,14 +1124,16 @@
                 // Registrar notificações push
                 await registerPushNotifications();
                 
-                // Verificar notificações pendentes a cada 30 segundos
-                if (notificationCheckInterval) {
-                    clearInterval(notificationCheckInterval);
-                }
-                notificationCheckInterval = setInterval(checkPendingNotifications, 30000);
-                checkPendingNotifications(); // Verificar imediatamente
+                // Solicitar verificação imediata
+                triggerNotificationCheck();
             }
         });
+        
+        // Quando fizer login, registrar notificações
+        async function handleLoginSuccess(cpf) {
+            await registerPushNotifications();
+            triggerNotificationCheck();
+        }
         
         // Máscara de CPF
         document.querySelectorAll('input[type="text"][id*="Cpf"]').forEach(input => {

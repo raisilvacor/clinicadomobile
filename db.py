@@ -403,6 +403,24 @@ def create_tables():
             cur.execute("CREATE INDEX IF NOT EXISTS idx_customer_passwords_cpf ON customer_passwords(cpf)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_cpf ON push_tokens(cpf)")
+            # Criar índices para pending_notifications se a tabela existir
+            try:
+                # Verificar se o índice já existe antes de criar
+                cur.execute("""
+                    SELECT 1 FROM pg_indexes 
+                    WHERE indexname = 'idx_pending_notifications_cpf'
+                """)
+                if not cur.fetchone():
+                    cur.execute("CREATE INDEX idx_pending_notifications_cpf ON pending_notifications(cpf)")
+                
+                cur.execute("""
+                    SELECT 1 FROM pg_indexes 
+                    WHERE indexname = 'idx_pending_notifications_created'
+                """)
+                if not cur.fetchone():
+                    cur.execute("CREATE INDEX idx_pending_notifications_created ON pending_notifications(created_at)")
+            except Exception as e:
+                print(f"⚠️  Erro ao criar índices de notificações: {e}")
             
             conn.commit()
             print("✅ Tabelas criadas/verificadas com sucesso!")
@@ -1605,6 +1623,92 @@ def get_push_tokens_by_cpf(cpf):
     except Exception as e:
         print(f"⚠️  Erro ao ler subscriptions push: {e}")
         return []
+
+# ========== FUNÇÕES DE NOTIFICAÇÕES PENDENTES ==========
+
+def save_pending_notification(cpf, repair_id, notification_type, title, body, data=None):
+    """Salva uma notificação pendente para ser enviada ao cliente"""
+    if not USE_DATABASE:
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(data) if data else None
+            cur.execute("""
+                INSERT INTO pending_notifications (cpf, repair_id, notification_type, title, body, data, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s::jsonb, CURRENT_TIMESTAMP)
+            """, (cpf, repair_id, notification_type, title, body, data_json))
+            conn.commit()
+            print(f"✅ Notificação pendente salva para CPF {cpf}: {title}")
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar notificação pendente: {e}")
+
+def get_pending_notifications(cpf, since_timestamp=None):
+    """Obtém notificações pendentes para um CPF desde um timestamp"""
+    if not USE_DATABASE:
+        return []
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return []
+            cur = _get_cursor(conn, dict_cursor=True)
+            if since_timestamp:
+                cur.execute("""
+                    SELECT id, repair_id, notification_type, title, body, data, created_at
+                    FROM pending_notifications
+                    WHERE cpf = %s AND created_at > %s AND sent_at IS NULL
+                    ORDER BY created_at ASC
+                """, (cpf, since_timestamp))
+            else:
+                cur.execute("""
+                    SELECT id, repair_id, notification_type, title, body, data, created_at
+                    FROM pending_notifications
+                    WHERE cpf = %s AND sent_at IS NULL
+                    ORDER BY created_at ASC
+                """, (cpf,))
+            rows = cur.fetchall()
+            notifications = []
+            for row in rows:
+                try:
+                    notification = {
+                        'id': row['id'],
+                        'repair_id': row['repair_id'],
+                        'type': row['notification_type'],
+                        'title': row['title'],
+                        'body': row['body'],
+                        'data': json.loads(row['data']) if row['data'] else {},
+                        'timestamp': row['created_at'].isoformat() if hasattr(row['created_at'], 'isoformat') else str(row['created_at'])
+                    }
+                    notifications.append(notification)
+                except Exception as e:
+                    print(f"⚠️  Erro ao processar notificação: {e}")
+            return notifications
+    except Exception as e:
+        print(f"⚠️  Erro ao ler notificações pendentes: {e}")
+        return []
+
+def mark_notification_sent(notification_id):
+    """Marca uma notificação como enviada"""
+    if not USE_DATABASE:
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return
+            cur = _get_cursor(conn)
+            cur.execute("""
+                UPDATE pending_notifications
+                SET sent_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (notification_id,))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao marcar notificação como enviada: {e}")
 
 # ========== FUNÇÃO DE COMPATIBILIDADE ==========
 

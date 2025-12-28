@@ -41,7 +41,10 @@ from db import (
     get_all_budget_requests,
     save_budget_request,
     save_push_token,
-    get_push_tokens_by_cpf
+    get_push_tokens_by_cpf,
+    save_pending_notification,
+    get_pending_notifications,
+    mark_notification_sent
 )
 
 app = Flask(__name__)
@@ -634,36 +637,37 @@ def admin_update_status(repair_id):
     })
     save_repair(repair_id, repair)
     
-    # Enviar notificação push sobre mudança de status
+    # Salvar notificação pendente sobre mudança de status
     customer_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
     if customer_cpf:
         try:
-            tokens = get_push_tokens_by_cpf(customer_cpf)
-            if tokens:
-                status_labels = {
-                    'aguardando': '⏳ Aguardando',
-                    'em_analise': '🔍 Em Análise',
-                    'orcamento': '💰 Orçamento',
-                    'aprovado': '✅ Aprovado',
-                    'em_reparo': '🔧 Em Reparo',
-                    'concluido': '🎉 Concluído'
+            status_labels = {
+                'aguardando': '⏳ Aguardando',
+                'em_analise': '🔍 Em Análise',
+                'orcamento': '💰 Orçamento',
+                'aprovado': '✅ Aprovado',
+                'em_reparo': '🔧 Em Reparo',
+                'concluido': '🎉 Concluído'
+            }
+            status_label = status_labels.get(new_status, new_status)
+            
+            # Salvar notificação pendente no banco
+            save_pending_notification(
+                cpf=customer_cpf,
+                repair_id=repair_id,
+                notification_type='status',
+                title='Status do Reparo Atualizado',
+                body=f'Seu reparo agora está: {status_label}',
+                data={
+                    'type': 'status',
+                    'repair_id': repair_id,
+                    'status': new_status,
+                    'url': f'/mobile_app/?repair={repair_id}',
+                    'tag': f'repair-{repair_id}-status'
                 }
-                status_label = status_labels.get(new_status, new_status)
-                notification_data = {
-                    'title': 'Status do Reparo Atualizado',
-                    'body': f'Seu reparo agora está: {status_label}',
-                    'icon': '/mobile_app/icon-192.png',
-                    'badge': '/mobile_app/icon-192.png',
-                    'tag': f'repair-{repair_id}-status',
-                    'data': {
-                        'type': 'status',
-                        'repair_id': repair_id,
-                        'status': new_status,
-                        'url': f'/mobile_app/?repair={repair_id}'
-                    }
-                }
+            )
         except Exception as e:
-            print(f"Erro ao enviar notificação push: {e}")
+            print(f"Erro ao salvar notificação pendente: {e}")
     
     return jsonify({'success': True})
 
@@ -777,29 +781,26 @@ def admin_send_message(repair_id):
     repair['updated_at'] = datetime.now().isoformat()
     save_repair(repair_id, repair)
     
-    # Enviar notificação push
+    # Salvar notificação pendente
     customer_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
     if customer_cpf:
         try:
-            tokens = get_push_tokens_by_cpf(customer_cpf)
-            if tokens:
-                # Criar evento de notificação (será processado pelo service worker)
-                notification_data = {
-                    'title': 'Nova Mensagem - Clínica CEL',
-                    'body': message_content[:100],  # Limitar tamanho
-                    'icon': '/mobile_app/icon-192.png',
-                    'badge': '/mobile_app/icon-192.png',
-                    'tag': f'repair-{repair_id}-message',
-                    'data': {
-                        'type': 'message',
-                        'repair_id': repair_id,
-                        'url': f'/mobile_app/?repair={repair_id}'
-                    }
+            # Salvar notificação pendente no banco
+            save_pending_notification(
+                cpf=customer_cpf,
+                repair_id=repair_id,
+                notification_type='message',
+                title='Nova Mensagem - Clínica CEL',
+                body=message_content[:100],  # Limitar tamanho
+                data={
+                    'type': 'message',
+                    'repair_id': repair_id,
+                    'url': f'/mobile_app/?repair={repair_id}',
+                    'tag': f'repair-{repair_id}-message'
                 }
-                # Salvar notificação pendente para o service worker buscar
-                # Por enquanto, vamos usar uma API que o service worker pode consultar
+            )
         except Exception as e:
-            print(f"Erro ao enviar notificação push: {e}")
+            print(f"Erro ao salvar notificação pendente: {e}")
     
     return jsonify({'success': True})
 
@@ -3667,7 +3668,7 @@ def api_register_push_token():
 # API: Buscar notificações pendentes (polling do service worker)
 @app.route('/api/notifications/pending', methods=['POST'])
 def api_get_pending_notifications():
-    """Retorna notificações pendentes para o cliente"""
+    """Retorna notificações pendentes para o cliente (usado pelo service worker)"""
     from datetime import datetime
     
     try:
@@ -3678,69 +3679,26 @@ def api_get_pending_notifications():
         if not cpf or len(cpf) != 11:
             return jsonify({'success': False, 'error': 'CPF inválido'}), 400
         
-        # Buscar reparos do cliente
-        repairs = get_all_repairs()
-        client_repairs = [r for r in repairs if r.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '') == cpf]
+        # Buscar notificações pendentes do banco
+        since_timestamp = last_check if last_check else None
+        notifications = get_pending_notifications(cpf, since_timestamp)
         
-        notifications = []
-        for repair in client_repairs:
-            repair_id = repair.get('id')
-            
-            # Verificar mensagens novas
-            if repair.get('messages'):
-                for msg in repair.get('messages', []):
-                    if msg.get('type') == 'admin' and msg.get('sent_at'):
-                        sent_at = msg.get('sent_at')
-                        if not last_check or sent_at > last_check:
-                            notifications.append({
-                                'type': 'message',
-                                'title': 'Nova Mensagem - Clínica CEL',
-                                'body': msg.get('content', '')[:100],
-                                'repair_id': repair_id,
-                                'timestamp': sent_at,
-                                'data': {
-                                    'type': 'message',
-                                    'repair_id': repair_id,
-                                    'url': f'/mobile_app/?repair={repair_id}'
-                                }
-                            })
-            
-            # Verificar mudanças de status
-            if repair.get('history'):
-                for hist in repair.get('history', []):
-                    if hist.get('timestamp') and ('Status alterado' in hist.get('action', '') or 'status' in hist.get('action', '').lower()):
-                        timestamp = hist.get('timestamp')
-                        if not last_check or timestamp > last_check:
-                            status_labels = {
-                                'aguardando': '⏳ Aguardando',
-                                'em_analise': '🔍 Em Análise',
-                                'orcamento': '💰 Orçamento',
-                                'aprovado': '✅ Aprovado',
-                                'em_reparo': '🔧 Em Reparo',
-                                'concluido': '🎉 Concluído'
-                            }
-                            new_status = hist.get('status', '')
-                            status_label = status_labels.get(new_status, new_status)
-                            notifications.append({
-                                'type': 'status',
-                                'title': 'Status do Reparo Atualizado',
-                                'body': f'Seu reparo agora está: {status_label}',
-                                'repair_id': repair_id,
-                                'timestamp': timestamp,
-                                'data': {
-                                    'type': 'status',
-                                    'repair_id': repair_id,
-                                    'status': new_status,
-                                    'url': f'/mobile_app/?repair={repair_id}'
-                                }
-                            })
-        
-        # Ordenar por timestamp (mais recentes primeiro)
-        notifications.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        # Formatar notificações
+        formatted_notifications = []
+        for notif in notifications[:10]:  # Limitar a 10
+            formatted_notifications.append({
+                'id': notif.get('id'),
+                'type': notif.get('type'),
+                'title': notif.get('title'),
+                'body': notif.get('body'),
+                'repair_id': notif.get('repair_id'),
+                'timestamp': notif.get('timestamp'),
+                'data': notif.get('data', {})
+            })
         
         return jsonify({
             'success': True,
-            'notifications': notifications[:10],  # Limitar a 10 mais recentes
+            'notifications': formatted_notifications,
             'last_check': datetime.now().isoformat()
         })
     except Exception as e:
