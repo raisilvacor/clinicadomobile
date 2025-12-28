@@ -215,6 +215,18 @@
             padding: 2rem;
             color: #999;
         }
+        
+        #signatureModal {
+            display: none;
+        }
+        
+        #signatureModal:not(.hidden) {
+            display: flex !important;
+        }
+        
+        #signatureCanvas {
+            touch-action: none;
+        }
     </style>
 </head>
 <body>
@@ -335,6 +347,26 @@
         </div>
         <div id="repairsList">
             <div class="loading">Carregando...</div>
+        </div>
+    </div>
+    
+    <!-- Tela de Detalhes do Reparo -->
+    <div id="repairDetailsScreen" class="container hidden">
+        <div id="repairDetailsContent">
+            <div class="loading">Carregando...</div>
+        </div>
+    </div>
+    
+    <!-- Modal de Assinatura -->
+    <div id="signatureModal" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem;">
+        <div style="background: #0d0d0d; border-radius: 15px; padding: 2rem; max-width: 500px; width: 100%; border: 2px solid #ff8c00;">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
+            <canvas id="signatureCanvas" style="width: 100%; height: 200px; border: 2px solid #333333; border-radius: 10px; background: #ffffff; cursor: crosshair; touch-action: none;"></canvas>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button class="btn btn-secondary" onclick="clearSignatureCanvas()" style="flex: 1;">🗑️ Limpar</button>
+                <button class="btn" onclick="confirmSignature()" style="flex: 1;">✅ Confirmar</button>
+                <button class="btn btn-secondary" onclick="closeSignatureModal()" style="flex: 1;">❌ Cancelar</button>
+            </div>
         </div>
     </div>
     
@@ -505,15 +537,372 @@
             }
             
             container.innerHTML = repairs.map(repair => `
-                <div class="repair-card">
+                <div class="repair-card" onclick="viewRepairDetails('${repair.id}')" style="cursor: pointer;">
                     <h3>${repair.device_name || 'N/A'} - ${repair.device_model || 'N/A'}</h3>
                     <p style="color: #999; margin: 0.5rem 0;">ID: ${repair.id}</p>
                     <p style="margin: 0.5rem 0;">${repair.problem_description || ''}</p>
                     <span class="status-badge status-${repair.status}">${getStatusLabel(repair.status)}</span>
                     ${repair.has_order ? '<p style="color: #28a745; margin-top: 0.5rem;">✓ Ordem de Retirada emitida</p>' : ''}
                     ${repair.budget ? `<p style="color: #ff8c00; margin-top: 0.5rem;">💰 Orçamento: R$ ${repair.budget}</p>` : ''}
+                    <p style="color: #ff8c00; margin-top: 1rem; font-weight: bold;">👉 Toque para ver detalhes</p>
                 </div>
             `).join('');
+        }
+        
+        // Ver detalhes do reparo
+        async function viewRepairDetails(repairId) {
+            const cpf = localStorage.getItem('userCpf');
+            if (!cpf) {
+                showHome();
+                return;
+            }
+            
+            showScreen('repairDetailsScreen');
+            document.getElementById('repairDetailsContent').innerHTML = '<div class="loading">Carregando...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/repair/${repairId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cpf})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayRepairDetails(data.repair, data.order, data.checklists);
+                    // Iniciar polling para atualização em tempo real
+                    startRepairPolling(repairId);
+                } else {
+                    document.getElementById('repairDetailsContent').innerHTML = `<div class="error-message">${data.error || 'Erro ao carregar reparo'}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('repairDetailsContent').innerHTML = '<div class="error-message">Erro ao carregar reparo. Tente novamente.</div>';
+            }
+        }
+        
+        // Exibir detalhes completos do reparo
+        function displayRepairDetails(repair, order, checklists) {
+            const container = document.getElementById('repairDetailsContent');
+            
+            const statusLabels = {
+                'aguardando': '⏳ Aguardando',
+                'em_analise': '🔍 Em Análise',
+                'orcamento': '💰 Orçamento',
+                'aprovado': '✅ Aprovado',
+                'em_reparo': '🔧 Em Reparo',
+                'concluido': '🎉 Concluído'
+            };
+            
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <button class="back-btn" onclick="loadRepairs()">← Voltar</button>
+                    <button class="btn btn-secondary" onclick="refreshRepairDetails('${repair.id}')" style="padding: 0.75rem 1.5rem; font-size: 0.9rem;">🔄 Atualizar</button>
+                </div>
+                
+                <div class="repair-card" style="margin-bottom: 1rem;">
+                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                        <span class="status-badge status-${repair.status}" style="font-size: 1.1rem; padding: 1rem 2rem;">
+                            ${statusLabels[repair.status] || repair.status}
+                        </span>
+                    </div>
+                    
+                    <h3 style="color: #ff8c00; margin-bottom: 1rem;">📱 Informações do Dispositivo</h3>
+                    <div style="display: grid; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div><strong style="color: #ff8c00;">Dispositivo:</strong> <span style="color: #fff;">${repair.device_name || 'N/A'}</span></div>
+                        <div><strong style="color: #ff8c00;">Modelo:</strong> <span style="color: #fff;">${repair.device_model || 'N/A'}</span></div>
+                        <div><strong style="color: #ff8c00;">IMEI:</strong> <span style="color: #fff;">${repair.device_imei || 'N/A'}</span></div>
+                        <div><strong style="color: #ff8c00;">ID do Reparo:</strong> <span style="color: #ff8c00; font-family: monospace;">${repair.id}</span></div>
+                        <div><strong style="color: #ff8c00;">Data de Entrada:</strong> <span style="color: #fff;">${repair.created_at ? repair.created_at.substring(0, 10) : 'N/A'}</span></div>
+                    </div>
+                    
+                    ${repair.problem_description ? `
+                        <div style="margin-top: 1rem; padding: 1rem; background: #0d0d0d; border-radius: 10px;">
+                            <strong style="color: #ff8c00;">Descrição do Problema:</strong>
+                            <p style="color: #fff; margin-top: 0.5rem; line-height: 1.6;">${repair.problem_description}</p>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                ${repair.budget ? `
+                    <div class="repair-card" style="background: rgba(255, 140, 0, 0.1); border-color: #ff8c00;">
+                        <h3 style="color: #ff8c00; margin-bottom: 1rem;">💰 Orçamento</h3>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2.5rem; color: #ff8c00; font-weight: bold; margin: 1rem 0;">
+                                R$ ${typeof repair.budget === 'object' ? repair.budget.amount || repair.budget : repair.budget}
+                            </div>
+                            ${typeof repair.budget === 'object' && repair.budget.description ? `
+                                <p style="color: #ccc; margin: 1rem 0;">${repair.budget.description}</p>
+                            ` : ''}
+                            ${typeof repair.budget === 'object' && repair.budget.status === 'pending' ? `
+                                <div style="margin-top: 1.5rem;">
+                                    <button class="btn" onclick="approveBudget('${repair.id}')" style="background: #28a745; margin-right: 0.5rem;">✅ Aprovar</button>
+                                    <button class="btn btn-secondary" onclick="rejectBudget('${repair.id}')" style="background: #dc3545;">❌ Rejeitar</button>
+                                </div>
+                            ` : ''}
+                            ${typeof repair.budget === 'object' && repair.budget.status === 'approved' ? `
+                                <p style="color: #28a745; margin-top: 1rem; font-weight: bold;">✅ Orçamento Aprovado</p>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${order ? `
+                    <div class="repair-card" style="background: rgba(40, 167, 69, 0.1); border-color: #28a745;">
+                        <h3 style="color: #28a745; margin-bottom: 1rem;">📋 Ordem de Retirada (OR)</h3>
+                        <p style="color: #fff; margin-bottom: 1rem;"><strong>ID da OR:</strong> ${order.id}</p>
+                        <button class="btn" onclick="downloadPDF('${repair.id}', 'or')" style="background: #28a745; width: 100%;">
+                            📥 Baixar PDF da OR
+                        </button>
+                    </div>
+                ` : ''}
+                
+                <div class="repair-card">
+                    <h3 style="color: #ff8c00; margin-bottom: 1rem;">📥 Downloads</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button class="btn btn-secondary" onclick="downloadPDF('${repair.id}', 'repair')" style="width: 100%;">
+                            📄 Baixar PDF do Reparo
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Mensagens
+            if (repair.messages && repair.messages.length > 0) {
+                html += `
+                    <div class="repair-card">
+                        <h3 style="color: #ff8c00; margin-bottom: 1rem;">💬 Mensagens</h3>
+                        <div id="messagesList" style="max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">
+                            ${repair.messages.map(msg => `
+                                <div style="background: #0d0d0d; padding: 1rem; border-radius: 10px; margin-bottom: 0.75rem; border-left: 4px solid #ff8c00;">
+                                    <div style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                        ${msg.sent_at ? msg.sent_at.substring(0, 16) : 'N/A'}
+                                    </div>
+                                    <div style="color: #fff; line-height: 1.6;">${msg.content || ''}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="newMessage" placeholder="Digite sua mensagem..." style="flex: 1; padding: 0.75rem; background: #1a1a1a; border: 2px solid #333333; border-radius: 10px; color: #fff;">
+                            <button class="btn" onclick="sendMessage('${repair.id}')" style="padding: 0.75rem 1.5rem;">Enviar</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="repair-card">
+                        <h3 style="color: #ff8c00; margin-bottom: 1rem;">💬 Mensagens</h3>
+                        <p style="color: #999; margin-bottom: 1rem;">Nenhuma mensagem ainda.</p>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="newMessage" placeholder="Digite sua mensagem..." style="flex: 1; padding: 0.75rem; background: #1a1a1a; border: 2px solid #333333; border-radius: 10px; color: #fff;">
+                            <button class="btn" onclick="sendMessage('${repair.id}')" style="padding: 0.75rem 1.5rem;">Enviar</button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Checklists
+            if (checklists && checklists.length > 0) {
+                html += `
+                    <div class="repair-card">
+                        <h3 style="color: #ff8c00; margin-bottom: 1rem;">🛡️ Checklists Antifraude</h3>
+                        ${checklists.map(checklist => `
+                            <div style="background: #0d0d0d; padding: 1rem; border-radius: 10px; margin-bottom: 0.75rem; border: 1px solid #333333;">
+                                <h4 style="color: #ff8c00; margin-bottom: 0.5rem;">
+                                    ${checklist.type === 'inicial' ? '📥 Checklist Inicial' : '✅ Checklist de Conclusão'}
+                                </h4>
+                                <p style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">ID: ${checklist.id}</p>
+                                <p style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">Data: ${checklist.timestamp ? checklist.timestamp.substring(0, 16) : 'N/A'}</p>
+                                ${!checklist.signature ? `
+                                    <div style="margin-top: 1rem;">
+                                        <p style="color: #ffc107; margin-bottom: 0.5rem;">⚠️ Assinatura pendente</p>
+                                        <button class="btn btn-secondary" onclick="showChecklistSignature('${repair.id}', '${checklist.id}')" style="width: 100%;">
+                                            ✍️ Assinar Checklist
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <p style="color: #28a745; margin-top: 0.5rem;">✅ Assinado</p>
+                                `}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Assinatura do orçamento
+            if (repair.budget && typeof repair.budget === 'object' && repair.budget.status === 'approved' && !repair.signature) {
+                html += `
+                    <div class="repair-card" style="background: rgba(255, 140, 0, 0.1); border-color: #ff8c00;">
+                        <h3 style="color: #ff8c00; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
+                        <p style="color: #ccc; margin-bottom: 1rem;">Assine digitalmente para confirmar a aprovação do orçamento.</p>
+                        <button class="btn" onclick="showBudgetSignature('${repair.id}')" style="width: 100%;">
+                            ✍️ Assinar Orçamento
+                        </button>
+                    </div>
+                `;
+            } else if (repair.signature) {
+                html += `
+                    <div class="repair-card" style="background: rgba(40, 167, 69, 0.1); border-color: #28a745;">
+                        <h3 style="color: #28a745; margin-bottom: 1rem;">✍️ Assinatura Digital</h3>
+                        <p style="color: #28a745; margin-bottom: 0.5rem;">✅ Assinatura confirmada</p>
+                        <p style="color: #999; font-size: 0.85rem;">Data: ${repair.signature.signed_at ? repair.signature.signed_at.substring(0, 16) : 'N/A'}</p>
+                    </div>
+                `;
+            }
+            
+            // Histórico
+            if (repair.history && repair.history.length > 0) {
+                html += `
+                    <div class="repair-card">
+                        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📋 Histórico</h3>
+                        ${repair.history.map(item => `
+                            <div style="display: flex; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #333333;">
+                                <div style="color: #999; font-size: 0.85rem; min-width: 120px;">
+                                    ${item.timestamp ? item.timestamp.substring(0, 16) : 'N/A'}
+                                </div>
+                                <div style="color: #fff; flex: 1;">${item.action || ''}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Enviar mensagem
+        async function sendMessage(repairId) {
+            const messageInput = document.getElementById('newMessage');
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                alert('Por favor, digite uma mensagem');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/repair/${repairId}/message`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        cpf: localStorage.getItem('userCpf'),
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    messageInput.value = '';
+                    refreshRepairDetails(repairId);
+                } else {
+                    alert(data.error || 'Erro ao enviar mensagem');
+                }
+            } catch (error) {
+                alert('Erro ao enviar mensagem. Tente novamente.');
+            }
+        }
+        
+        // Aprovar/Rejeitar orçamento
+        async function approveBudget(repairId) {
+            if (!confirm('Confirmar aprovação do orçamento?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/repair/${repairId}/budget/approve`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cpf: localStorage.getItem('userCpf')})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Orçamento aprovado!');
+                    refreshRepairDetails(repairId);
+                } else {
+                    alert(data.error || 'Erro ao aprovar orçamento');
+                }
+            } catch (error) {
+                alert('Erro ao aprovar orçamento');
+            }
+        }
+        
+        async function rejectBudget(repairId) {
+            if (!confirm('Confirmar rejeição do orçamento? O reparo será cancelado.')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/repair/${repairId}/budget/reject`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cpf: localStorage.getItem('userCpf')})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Orçamento rejeitado.');
+                    refreshRepairDetails(repairId);
+                } else {
+                    alert(data.error || 'Erro ao rejeitar orçamento');
+                }
+            } catch (error) {
+                alert('Erro ao rejeitar orçamento');
+            }
+        }
+        
+        // Download PDF
+        function downloadPDF(repairId, type) {
+            if (type === 'or') {
+                window.open(`${API_BASE}/status/${repairId}/or/pdf`, '_blank');
+            } else {
+                window.open(`${API_BASE}/status/${repairId}/pdf`, '_blank');
+            }
+        }
+        
+        // Atualizar detalhes do reparo
+        async function refreshRepairDetails(repairId) {
+            await viewRepairDetails(repairId);
+        }
+        
+        // Polling para atualização em tempo real
+        let repairPollingInterval = null;
+        function startRepairPolling(repairId) {
+            if (repairPollingInterval) {
+                clearInterval(repairPollingInterval);
+            }
+            repairPollingInterval = setInterval(async () => {
+                const cpf = localStorage.getItem('userCpf');
+                if (!cpf) {
+                    clearInterval(repairPollingInterval);
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_BASE}/api/repair/${repairId}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({cpf})
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        // Verificar se houve mudanças (comparar timestamps)
+                        const currentRepair = data.repair;
+                        // Atualizar apenas se necessário (evitar flicker)
+                        const currentContent = document.getElementById('repairDetailsContent').innerHTML;
+                        if (currentContent && !currentContent.includes('Carregando...')) {
+                            displayRepairDetails(currentRepair, data.order, data.checklists);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro no polling:', error);
+                }
+            }, 10000); // Atualizar a cada 10 segundos
+        }
+        
+        function stopRepairPolling() {
+            if (repairPollingInterval) {
+                clearInterval(repairPollingInterval);
+                repairPollingInterval = null;
+            }
         }
         
         function getStatusLabel(status) {

@@ -768,13 +768,420 @@ def public_approve_budget(repair_id):
         'action': 'Orçamento aprovado pelo cliente',
         'status': 'aprovado'
     })
+    budget_amount = repair['budget'].get('amount') if isinstance(repair['budget'], dict) else repair['budget']
     repair['messages'].append({
         'type': 'budget_approved',
-        'content': f'Você aprovou o orçamento de R$ {repair["budget"]["amount"]:.2f}. O reparo será iniciado em breve.',
+        'content': f'Você aprovou o orçamento de R$ {budget_amount:.2f if isinstance(budget_amount, (int, float)) else budget_amount}. O reparo será iniciado em breve.',
         'sent_at': datetime.now().isoformat()
     })
     save_repair(repair_id, repair)
     return jsonify({'success': True})
+
+# API: Aprovar orçamento (para app mobile)
+@app.route('/api/repair/<repair_id>/budget/approve', methods=['POST'])
+def api_approve_budget(repair_id):
+    """Aprova orçamento via API (app mobile)"""
+    from datetime import datetime
+    
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        repair = db_get_repair(repair_id)
+        if not repair:
+            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
+        
+        # Verificar se o reparo pertence ao CPF
+        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        if repair_cpf != cpf:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
+        if not repair.get('budget'):
+            return jsonify({'success': False, 'error': 'Orçamento não encontrado'}), 400
+        
+        repair['budget']['status'] = 'approved'
+        repair['status'] = 'aprovado'
+        repair['updated_at'] = datetime.now().isoformat()
+        repair['history'].append({
+            'timestamp': datetime.now().isoformat(),
+            'action': 'Orçamento aprovado pelo cliente',
+            'status': 'aprovado'
+        })
+        budget_amount = repair['budget'].get('amount') if isinstance(repair['budget'], dict) else repair['budget']
+        repair['messages'].append({
+            'type': 'budget_approved',
+            'content': f'Você aprovou o orçamento de R$ {budget_amount:.2f if isinstance(budget_amount, (int, float)) else budget_amount}. O reparo será iniciado em breve.',
+            'sent_at': datetime.now().isoformat()
+        })
+        save_repair(repair_id, repair)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Rejeitar orçamento (para app mobile)
+@app.route('/api/repair/<repair_id>/budget/reject', methods=['POST'])
+def api_reject_budget(repair_id):
+    """Rejeita orçamento via API (app mobile)"""
+    from datetime import datetime
+    
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        repair = db_get_repair(repair_id)
+        if not repair:
+            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
+        
+        # Verificar se o reparo pertence ao CPF
+        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        if repair_cpf != cpf:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
+        if not repair.get('budget'):
+            return jsonify({'success': False, 'error': 'Orçamento não encontrado'}), 400
+        
+        repair['budget']['status'] = 'rejected'
+        repair['status'] = 'aguardando'
+        repair['updated_at'] = datetime.now().isoformat()
+        repair['history'].append({
+            'timestamp': datetime.now().isoformat(),
+            'action': 'Orçamento rejeitado pelo cliente',
+            'status': 'aguardando'
+        })
+        repair['messages'].append({
+            'type': 'budget_rejected',
+            'content': 'Você rejeitou o orçamento. Entre em contato conosco para mais informações.',
+            'sent_at': datetime.now().isoformat()
+        })
+        save_repair(repair_id, repair)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Enviar mensagem (para app mobile)
+@app.route('/api/repair/<repair_id>/message', methods=['POST'])
+def api_send_message(repair_id):
+    """Envia mensagem do cliente via API (app mobile)"""
+    from datetime import datetime
+    
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        message = data.get('message', '').strip()
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        if not message:
+            return jsonify({'success': False, 'error': 'Mensagem não pode estar vazia'}), 400
+        
+        repair = db_get_repair(repair_id)
+        if not repair:
+            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
+        
+        # Verificar se o reparo pertence ao CPF
+        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        if repair_cpf != cpf:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
+        if 'messages' not in repair:
+            repair['messages'] = []
+        
+        repair['messages'].append({
+            'type': 'customer',
+            'content': message,
+            'sent_at': datetime.now().isoformat()
+        })
+        repair['updated_at'] = datetime.now().isoformat()
+        save_repair(repair_id, repair)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Assinar checklist (para app mobile)
+@app.route('/api/repair/<repair_id>/checklist/<checklist_id>/signature', methods=['POST'])
+def api_checklist_signature(repair_id, checklist_id):
+    """Salva assinatura do checklist via API (app mobile)"""
+    from datetime import datetime
+    import base64
+    import os
+    
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        signature_data = data.get('signature', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        if not signature_data:
+            return jsonify({'success': False, 'error': 'Assinatura não fornecida'}), 400
+        
+        repair = db_get_repair(repair_id)
+        if not repair:
+            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
+        
+        # Verificar se o reparo pertence ao CPF
+        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        if repair_cpf != cpf:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
+        checklist = db_get_checklist(checklist_id)
+        if not checklist:
+            return jsonify({'success': False, 'error': 'Checklist não encontrado'}), 404
+        
+        if checklist.get('repair_id') != repair_id:
+            return jsonify({'success': False, 'error': 'Checklist não pertence a este reparo'}), 400
+        
+        # Salvar assinatura
+        if ',' in signature_data:
+            signature_data_clean = signature_data.split(',')[1]
+        else:
+            signature_data_clean = signature_data
+        
+        signatures_dir = os.path.join('static', 'signatures')
+        if not os.path.exists(signatures_dir):
+            os.makedirs(signatures_dir)
+        
+        signature_filename = f"checklist_signature_{checklist_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        signature_path = os.path.join(signatures_dir, signature_filename)
+        
+        signature_bytes = base64.b64decode(signature_data_clean)
+        with open(signature_path, 'wb') as f:
+            f.write(signature_bytes)
+        
+        checklist['signature'] = f"/static/signatures/{signature_filename}"
+        checklist['signature_signed_at'] = datetime.now().isoformat()
+        checklist['_signature_data'] = signature_data_clean
+        checklist['updated_at'] = datetime.now().isoformat()
+        
+        save_checklist(checklist_id, checklist)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Assinar orçamento (para app mobile)
+@app.route('/api/repair/<repair_id>/signature', methods=['POST'])
+def api_repair_signature(repair_id):
+    """Salva assinatura do orçamento via API (app mobile)"""
+    from datetime import datetime
+    import base64
+    import os
+    
+    try:
+        data = request.get_json()
+        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
+        signature_data = data.get('signature', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
+        
+        if not signature_data:
+            return jsonify({'success': False, 'error': 'Assinatura não fornecida'}), 400
+        
+        repair = db_get_repair(repair_id)
+        if not repair:
+            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
+        
+        # Verificar se o reparo pertence ao CPF
+        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        if repair_cpf != cpf:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
+        # Salvar assinatura
+        if ',' in signature_data:
+            signature_data_clean = signature_data.split(',')[1]
+        else:
+            signature_data_clean = signature_data
+        
+        signatures_dir = os.path.join('static', 'signatures')
+        if not os.path.exists(signatures_dir):
+            os.makedirs(signatures_dir)
+        
+        signature_filename = f"signature_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        signature_path = os.path.join(signatures_dir, signature_filename)
+        
+        signature_bytes = base64.b64decode(signature_data_clean)
+        with open(signature_path, 'wb') as f:
+            f.write(signature_bytes)
+        
+        repair['signature'] = {
+            'image': f"/static/signatures/{signature_filename}",
+            'signed_at': datetime.now().isoformat()
+        }
+        repair['_signature_data'] = signature_data_clean
+        repair['updated_at'] = datetime.now().isoformat()
+        repair['history'].append({
+            'timestamp': datetime.now().isoformat(),
+            'action': 'Assinatura digital confirmada pelo cliente',
+            'status': repair.get('status', 'aprovado')
+        })
+        repair['messages'].append({
+            'type': 'signature',
+            'content': 'Assinatura digital confirmada.',
+            'sent_at': datetime.now().isoformat()
+        })
+        save_repair(repair_id, repair)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Download PDF (para app mobile - redireciona para rota pública)
+@app.route('/api/repair/<repair_id>/pdf', methods=['GET'])
+def api_download_repair_pdf(repair_id):
+    """Redireciona para download do PDF do reparo"""
+    return redirect(url_for('public_repair_pdf', repair_id=repair_id))
+
+@app.route('/status/<repair_id>/pdf', methods=['GET'])
+def public_repair_pdf(repair_id):
+    """Gera PDF do reparo para cliente (público)"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+    from reportlab.lib.units import cm
+    from io import BytesIO
+    import os
+    from datetime import datetime
+    
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return "Reparo não encontrado", 404
+    
+    # Criar PDF em memória
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+    story = []
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    
+    # Cabeçalho com logo
+    logo_path = os.path.join('static', 'images', 'logopdf.png')
+    logo_img = None
+    if os.path.exists(logo_path):
+        try:
+            from PIL import Image as PILImage
+            pil_img = PILImage.open(logo_path)
+            img_width, img_height = pil_img.size
+            aspect_ratio = img_width / img_height
+            max_height = 2.5*cm
+            logo_width = max_height * aspect_ratio
+            if logo_width > 4.5*cm:
+                logo_width = 4.5*cm
+                max_height = logo_width / aspect_ratio
+            logo_img = Image(logo_path, width=logo_width, height=max_height)
+        except Exception as e:
+            logo_img = None
+    
+    company_style = ParagraphStyle(
+        'CompanyInfo',
+        parent=styles['Normal'],
+        fontSize=12,
+        alignment=1,
+        spaceAfter=6
+    )
+    
+    company_info = Paragraph(
+        f"<b>Clínica CEL</b><br/>"
+        f"CNPJ: 62.891.287/0001-44<br/>"
+        f"www.clinicacel.com.br",
+        company_style
+    )
+    
+    if logo_img:
+        header_data = [[logo_img, company_info]]
+        header_table = Table(header_data, colWidths=[5*cm, 11*cm])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+        ]))
+        story.append(header_table)
+    else:
+        story.append(company_info)
+    
+    story.append(Spacer(1, 0.8*cm))
+    
+    # Título
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.HexColor('#FF8C00'),
+        spaceAfter=12,
+        alignment=1
+    )
+    story.append(Paragraph("COMPROVANTE DE REPARO", title_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    # Informações do reparo
+    info_value_style = ParagraphStyle(
+        'InfoValue',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        spaceAfter=6
+    )
+    
+    story.append(Paragraph(f"<b>ID do Reparo:</b> {repair.get('id', 'N/A')}", info_value_style))
+    story.append(Paragraph(f"<b>Dispositivo:</b> {repair.get('device_name', 'N/A')}", info_value_style))
+    story.append(Paragraph(f"<b>Modelo:</b> {repair.get('device_model', 'N/A')}", info_value_style))
+    story.append(Paragraph(f"<b>Status:</b> {repair.get('status', 'N/A')}", info_value_style))
+    if repair.get('problem_description'):
+        story.append(Paragraph(f"<b>Problema:</b> {repair.get('problem_description', '')}", info_value_style))
+    
+    story.append(Spacer(1, 0.5*cm))
+    
+    # Informações do cliente
+    story.append(Paragraph("<b>Informações do Cliente:</b>", info_value_style))
+    story.append(Paragraph(f"Nome: {repair.get('customer_name', 'N/A')}", styles['Normal']))
+    story.append(Paragraph(f"Telefone: {repair.get('customer_phone', 'N/A')}", styles['Normal']))
+    if repair.get('customer_cpf'):
+        cpf = repair.get('customer_cpf', '')
+        if len(cpf) == 11:
+            formatted_cpf = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+        else:
+            formatted_cpf = cpf
+        story.append(Paragraph(f"CPF: {formatted_cpf}", styles['Normal']))
+    
+    story.append(Spacer(1, 0.5*cm))
+    
+    # Orçamento
+    if repair.get('budget'):
+        budget_amount = repair['budget'].get('amount') if isinstance(repair['budget'], dict) else repair['budget']
+        story.append(Paragraph(f"<b>Orçamento:</b> R$ {budget_amount:.2f if isinstance(budget_amount, (int, float)) else budget_amount}", info_value_style))
+    
+    # Construir PDF
+    doc.build(story)
+    buffer.seek(0)
+    
+    from flask import Response
+    return Response(buffer, mimetype='application/pdf', headers={
+        'Content-Disposition': f'inline; filename=reparo_{repair_id}.pdf'
+    })
+
+@app.route('/status/<repair_id>/or/pdf', methods=['GET'])
+def public_or_pdf(repair_id):
+    """Gera PDF da OR para cliente (público)"""
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return "Reparo não encontrado", 404
+    
+    order_id = repair.get('order_id')
+    if not order_id:
+        return "Ordem de Retirada não encontrada", 404
+    
+    # Redirecionar para a rota do admin (que já gera o PDF)
+    return redirect(url_for('admin_or_pdf', repair_id=repair_id))
 
 @app.route('/repairs', methods=['GET'])
 def public_list_repairs():
@@ -1642,9 +2049,18 @@ def admin_view_or(repair_id):
     
     return render_template('admin/view_or.html', repair=repair, order=order)
 
+@app.route('/status/<repair_id>/or/pdf', methods=['GET'])
+def public_or_pdf(repair_id):
+    """Gera PDF da OR para cliente (público)"""
+    return admin_or_pdf_internal(repair_id)
+
 @app.route('/admin/repairs/<repair_id>/or/pdf', methods=['GET'])
 @login_required
 def admin_or_pdf(repair_id):
+    """Gera PDF da OR (requer login admin)"""
+    return admin_or_pdf_internal(repair_id)
+
+def admin_or_pdf_internal(repair_id):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
