@@ -526,16 +526,30 @@
         async function handleBudgetRequest(event) {
             event.preventDefault();
             
+            const cpf = document.getElementById('budgetCpf').value.replace(/\D/g, '');
+            if (cpf.length !== 11) {
+                showError('budgetError', 'CPF deve ter 11 dígitos');
+                return;
+            }
+            
             const requestData = {
                 customer_name: document.getElementById('budgetName').value,
                 customer_phone: document.getElementById('budgetPhone').value,
                 customer_email: document.getElementById('budgetEmail').value,
-                customer_cpf: document.getElementById('budgetCpf').value.replace(/\D/g, ''),
+                customer_cpf: cpf,
                 device_brand: document.getElementById('budgetBrand').value,
                 device_model: document.getElementById('budgetModel').value,
                 defect: document.getElementById('budgetDefect').value,
                 description: document.getElementById('budgetDescription').value
             };
+            
+            // Mostrar loading
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+            document.getElementById('budgetError').classList.add('hidden');
+            document.getElementById('budgetSuccess').classList.add('hidden');
             
             try {
                 const response = await fetch(`${API_BASE}/api/request-budget`, {
@@ -547,14 +561,20 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showSuccess('budgetSuccess', 'Solicitação enviada com sucesso! Entraremos em contato em breve.');
+                    showSuccess('budgetSuccess', '✅ Solicitação enviada com sucesso! Entraremos em contato em breve.');
                     document.getElementById('budgetForm').reset();
-                    setTimeout(() => showHome(), 3000);
+                    // Scroll para o topo para ver a mensagem
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    setTimeout(() => showHome(), 4000);
                 } else {
                     showError('budgetError', data.error || 'Erro ao enviar solicitação');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
                 }
             } catch (error) {
-                showError('budgetError', 'Erro ao enviar solicitação. Tente novamente.');
+                showError('budgetError', 'Erro ao enviar solicitação. Verifique sua conexão e tente novamente.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         }
         
