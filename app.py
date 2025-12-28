@@ -40,6 +40,7 @@ from db import (
     get_repairs_by_cpf,
     get_all_budget_requests,
     save_budget_request,
+    delete_budget_request,
     save_push_token,
     get_push_tokens_by_cpf,
     save_pending_notification,
@@ -547,6 +548,16 @@ def admin_budget_requests():
     # Contar pendentes para notificação
     pending_count = len([r for r in requests if r.get('status') == 'pendente'])
     return render_template('admin/budget_requests.html', requests=requests, pending_count=pending_count)
+
+@app.route('/admin/budget-requests/<request_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_budget_request(request_id):
+    """Exclui uma solicitação de orçamento"""
+    try:
+        delete_budget_request(request_id)
+        return jsonify({'success': True, 'message': 'Solicitação excluída com sucesso'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/repairs', methods=['GET'])
 @login_required

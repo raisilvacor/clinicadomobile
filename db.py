@@ -1562,6 +1562,35 @@ def save_budget_request(request_id, request_data):
         config['budget_requests'].append({'id': request_id, **request_data})
         _save_config_file(config)
 
+def delete_budget_request(request_id):
+    """Exclui uma solicitação de orçamento"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'budget_requests' in config:
+            config['budget_requests'] = [r for r in config['budget_requests'] if r.get('id') != request_id]
+            _save_config_file(config)
+        return True
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'budget_requests' in config:
+                    config['budget_requests'] = [r for r in config['budget_requests'] if r.get('id') != request_id]
+                    _save_config_file(config)
+                return True
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM budget_requests WHERE id = %s", (request_id,))
+            conn.commit()
+            return True
+    except Exception as e:
+        print(f"⚠️  Erro ao excluir solicitação do banco: {e}")
+        config = _load_config_file()
+        if 'budget_requests' in config:
+            config['budget_requests'] = [r for r in config['budget_requests'] if r.get('id') != request_id]
+            _save_config_file(config)
+        return True
+
 # ========== FUNÇÕES DE PUSH TOKENS ==========
 
 def save_push_token(cpf, subscription, device_info=None):
