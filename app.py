@@ -544,10 +544,30 @@ def admin_delete_checklist(checklist_id):
 @login_required
 def admin_budget_requests():
     """Visualiza solicitações de orçamento"""
+    from db import calculate_customer_risk_score
+    
     requests = get_all_budget_requests()
     # Contar pendentes para notificação
     pending_count = len([r for r in requests if r.get('status') == 'pendente'])
-    return render_template('admin/budget_requests.html', requests=requests, pending_count=pending_count)
+    
+    # Calcular score de risco para cada solicitação
+    requests_with_score = []
+    for req in requests:
+        req_copy = req.copy()
+        cpf = req.get('customer_cpf', '')
+        if cpf:
+            risk_score = calculate_customer_risk_score(cpf)
+            req_copy['risk_score'] = risk_score
+        else:
+            req_copy['risk_score'] = {
+                'score': 0,
+                'level': 'low',
+                'label': '🟢 Baixo risco',
+                'details': {'message': 'CPF não informado'}
+            }
+        requests_with_score.append(req_copy)
+    
+    return render_template('admin/budget_requests.html', requests=requests_with_score, pending_count=pending_count)
 
 @app.route('/admin/nfse', methods=['GET'])
 @login_required
@@ -596,7 +616,19 @@ def admin_repairs():
     repairs = get_all_repairs()
     # Ordenar por data mais recente
     repairs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-    return render_template('admin/repairs.html', repairs=repairs)
+    
+    # Adicionar score de risco para cada reparo
+    from db import calculate_customer_risk_score
+    repairs_with_score = []
+    for repair in repairs:
+        repair_copy = repair.copy()
+        cpf = repair.get('customer_cpf', '')
+        if cpf:
+            risk_score = calculate_customer_risk_score(cpf)
+            repair_copy['risk_score'] = risk_score
+        repairs_with_score.append(repair_copy)
+    
+    return render_template('admin/repairs.html', repairs=repairs_with_score)
 
 @app.route('/admin/repairs/new', methods=['GET', 'POST'])
 @login_required
@@ -2151,7 +2183,18 @@ def admin_emit_or(repair_id):
     
     # GET - mostrar formulário
     # Passar lista de checklists sem assinatura para exibir no template
-    return render_template('admin/emit_or.html', repair=repair, conclusion_checklist=conclusion_checklist, unsigned_checklists=unsigned_checklists)
+    # Calcular score de risco do cliente
+    from db import calculate_customer_risk_score
+    customer_cpf = repair.get('customer_cpf', '')
+    risk_score = None
+    if customer_cpf:
+        risk_score = calculate_customer_risk_score(customer_cpf)
+    
+    return render_template('admin/emit_or.html', 
+                         repair=repair, 
+                         conclusion_checklist=conclusion_checklist, 
+                         unsigned_checklists=unsigned_checklists,
+                         risk_score=risk_score)
 
 @app.route('/admin/repairs/<repair_id>/or/view', methods=['GET'])
 @login_required
