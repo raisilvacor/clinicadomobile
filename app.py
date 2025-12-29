@@ -604,14 +604,18 @@ def admin_nfse_emit():
         
         provider = nfse_config.get('provider', 'nuvemfiscal')
         
+        # Validar dados obrigatórios
+        if not data.get('tomador_cpf_cnpj') or not data.get('tomador_nome') or not data.get('discriminacao') or not data.get('valor_servicos'):
+            return jsonify({'success': False, 'error': 'Campos obrigatórios não preenchidos'}), 400
+        
         # Preparar dados da nota fiscal
         nfse_data = {
             'prestador': {
-                'cnpj': nfse_config.get('cnpj', ''),
+                'cnpj': nfse_config.get('cnpj', '').replace('.', '').replace('-', '').replace('/', ''),
                 'inscricao_municipal': nfse_config.get('inscricao_municipal', '')
             },
             'tomador': {
-                'cpf_cnpj': data.get('tomador_cpf_cnpj', '').replace('.', '').replace('-', '').replace('/', ''),
+                'cpf_cnpj': data.get('tomador_cpf_cnpj', '').replace('.', '').replace('-', '').replace('/', '').replace(' ', ''),
                 'nome_razao_social': data.get('tomador_nome', ''),
                 'email': data.get('tomador_email', ''),
                 'telefone': data.get('tomador_telefone', '').replace('(', '').replace(')', '').replace('-', '').replace(' ', ''),
@@ -621,7 +625,7 @@ def admin_nfse_emit():
                     'bairro': data.get('tomador_bairro', ''),
                     'codigo_municipio': data.get('tomador_codigo_municipio', ''),
                     'uf': data.get('tomador_uf', ''),
-                    'cep': data.get('tomador_cep', '').replace('-', '')
+                    'cep': data.get('tomador_cep', '').replace('-', '').replace(' ', '')
                 }
             },
             'servico': {
@@ -673,10 +677,19 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
         )
         
         if token_response.status_code != 200:
-            error_msg = token_response.json().get('error_description', 'Erro ao obter token de acesso')
+            try:
+                error_data = token_response.json()
+                error_msg = error_data.get('error_description') or error_data.get('error', 'Erro ao obter token')
+            except ValueError:
+                error_msg = f'Erro HTTP {token_response.status_code}: {token_response.text[:200]}'
             return jsonify({'success': False, 'error': f'Erro de autenticação: {error_msg}'}), 401
         
-        access_token = token_response.json().get('access_token')
+        try:
+            token_data = token_response.json()
+        except ValueError:
+            return jsonify({'success': False, 'error': f'Resposta inválida da API de autenticação: {token_response.text[:200]}'}), 500
+        
+        access_token = token_data.get('access_token')
         
         if not access_token:
             return jsonify({'success': False, 'error': 'Token de acesso não recebido'}), 401
@@ -709,18 +722,29 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
             timeout=30
         )
         
-        if response.status_code == 201:
-            result = response.json()
+        # Verificar se a resposta é JSON válido
+        try:
+            response_data = response.json()
+        except ValueError:
+            # Se não for JSON, retornar o texto da resposta
+            error_text = response.text[:500] if response.text else 'Resposta vazia'
+            status_code = response.status_code
+            return jsonify({
+                'success': False, 
+                'error': f'Resposta inválida da API (HTTP {status_code}): {error_text}'
+            }), status_code if status_code >= 400 else 500
+        
+        if response.status_code == 201 or response.status_code == 200:
             return jsonify({
                 'success': True,
-                'numero_nfse': result.get('numero'),
-                'codigo_verificacao': result.get('codigo_verificacao'),
-                'link_nfse': result.get('link_nfse'),
-                'pdf': result.get('pdf'),
-                'xml': result.get('xml')
+                'numero_nfse': response_data.get('numero') or response_data.get('numero_nfse'),
+                'codigo_verificacao': response_data.get('codigo_verificacao') or response_data.get('codigo'),
+                'link_nfse': response_data.get('link') or response_data.get('link_nfse'),
+                'pdf': response_data.get('pdf'),
+                'xml': response_data.get('xml')
             })
         else:
-            error_msg = response.json().get('message', 'Erro ao emitir NFS-e')
+            error_msg = response_data.get('message') or response_data.get('error') or f'Erro HTTP {response.status_code}'
             return jsonify({'success': False, 'error': error_msg}), response.status_code
             
     except requests.exceptions.RequestException as e:
