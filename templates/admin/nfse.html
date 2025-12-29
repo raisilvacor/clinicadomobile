@@ -206,8 +206,27 @@ async function emitirNFSe(event) {
             // Scroll para o resultado
             document.getElementById('nfseResult').scrollIntoView({ behavior: 'smooth' });
         } else {
-            document.getElementById('nfseError').textContent = data.error || 'Erro ao emitir NFS-e';
+            // Tratar erro - pode ser string ou objeto
+            let errorMessage = 'Erro ao emitir NFS-e';
+            if (data.error) {
+                if (typeof data.error === 'string') {
+                    errorMessage = data.error;
+                } else if (typeof data.error === 'object') {
+                    // Se for objeto, tentar extrair mensagem ou converter para JSON
+                    errorMessage = data.error.message || data.error.error || JSON.stringify(data.error);
+                }
+            }
+            
+            // Se houver debug info, adicionar
+            if (data.debug) {
+                errorMessage += '\n\nDetalhes: ' + JSON.stringify(data.debug, null, 2);
+            }
+            
+            document.getElementById('nfseError').textContent = errorMessage;
             document.getElementById('nfseError').classList.remove('hidden');
+            
+            // Scroll para o erro
+            document.getElementById('nfseError').scrollIntoView({ behavior: 'smooth' });
         }
     } catch (error) {
         document.getElementById('nfseError').textContent = 'Erro ao emitir NFS-e. Verifique sua conexão.';
