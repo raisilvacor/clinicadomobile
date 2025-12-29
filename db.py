@@ -2616,6 +2616,7 @@ def save_admin_user(user_id, user_data):
                 permissions_json,
                 user_data.get('is_active', True)
             ))
+            conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao salvar usuário do admin: {e}")
         config = _load_config_file()
@@ -2652,6 +2653,7 @@ def delete_admin_user(user_id):
                 return
             cur = _get_cursor(conn)
             cur.execute("DELETE FROM admin_users WHERE id = %s", (user_id,))
+            conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao excluir usuário do admin: {e}")
         config = _load_config_file()
@@ -2805,6 +2807,7 @@ def save_technician(technician_id, technician_data):
                 specialties_json,
                 technician_data.get('is_active', True)
             ))
+            conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao salvar técnico: {e}")
         config = _load_config_file()
@@ -2841,6 +2844,7 @@ def delete_technician(technician_id):
                 return
             cur = _get_cursor(conn)
             cur.execute("DELETE FROM technicians WHERE id = %s", (technician_id,))
+            conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao excluir técnico: {e}")
         config = _load_config_file()
