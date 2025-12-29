@@ -617,6 +617,68 @@ def admin_nfse_emit():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/admin/nfse/config', methods=['GET', 'POST'])
+@login_required
+def admin_nfse_config():
+    """Configuração de credenciais NFS-e"""
+    from db import get_nfse_config, save_nfse_config
+    if request.method == 'POST':
+        nfse_config = {
+            'provider': request.form.get('provider', 'nuvemfiscal'),  # nuvemfiscal, devnotas, ou oficial
+            'client_id': request.form.get('client_id', ''),
+            'client_secret': request.form.get('client_secret', ''),
+            'api_token': request.form.get('api_token', ''),  # Para DevNotas
+            'cnpj': request.form.get('cnpj', ''),
+            'inscricao_municipal': request.form.get('inscricao_municipal', ''),
+            'codigo_servico': request.form.get('codigo_servico', ''),
+            'aliquota_iss': request.form.get('aliquota_iss', ''),
+            'ambiente': request.form.get('ambiente', 'homologacao')  # homologacao ou producao
+        }
+        save_nfse_config(nfse_config)
+        return redirect(url_for('admin_nfse'))
+    
+    nfse_config = get_nfse_config()
+    return render_template('admin/nfse_config.html', nfse_config=nfse_config)
+
+@app.route('/admin/nfse', methods=['GET'])
+@login_required
+def admin_nfse():
+    """Página principal de emissão de NFS-e"""
+    from db import get_nfse_config
+    nfse_config = get_nfse_config()
+    return render_template('admin/nfse.html', nfse_config=nfse_config)
+
+@app.route('/admin/nfse/config', methods=['GET', 'POST'])
+@login_required
+def admin_nfse_config():
+    """Configuração de credenciais NFS-e"""
+    from db import get_nfse_config, save_nfse_config
+    if request.method == 'POST':
+        nfse_config = {
+            'provider': request.form.get('provider', 'nuvemfiscal'),  # nuvemfiscal, devnotas, ou oficial
+            'client_id': request.form.get('client_id', ''),
+            'client_secret': request.form.get('client_secret', ''),
+            'api_token': request.form.get('api_token', ''),  # Para DevNotas
+            'cnpj': request.form.get('cnpj', ''),
+            'inscricao_municipal': request.form.get('inscricao_municipal', ''),
+            'codigo_servico': request.form.get('codigo_servico', ''),
+            'aliquota_iss': request.form.get('aliquota_iss', ''),
+            'ambiente': request.form.get('ambiente', 'homologacao')  # homologacao ou producao
+        }
+        save_nfse_config(nfse_config)
+        return redirect(url_for('admin_nfse'))
+    
+    nfse_config = get_nfse_config()
+    return render_template('admin/nfse_config.html', nfse_config=nfse_config)
+
+@app.route('/admin/nfse', methods=['GET'])
+@login_required
+def admin_nfse():
+    """Página principal de emissão de NFS-e"""
+    from db import get_nfse_config
+    nfse_config = get_nfse_config()
+    return render_template('admin/nfse.html', nfse_config=nfse_config)
+
 def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
     """Emite NFS-e via API Nuvem Fiscal"""
     import requests
