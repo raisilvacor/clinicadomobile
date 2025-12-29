@@ -2078,116 +2078,116 @@ def calculate_customer_risk_score(cpf):
         
         # Normalizar CPF
         cpf_clean = str(cpf).replace('.', '').replace('-', '').replace(' ', '')
+        
+        # Buscar todos os reparos do cliente
+        repairs = get_repairs_by_cpf(cpf_clean)
     
-    # Buscar todos os reparos do cliente
-    repairs = get_repairs_by_cpf(cpf_clean)
-    
-    if not repairs:
-        return {
-            'score': 0,
-            'level': 'low',
-            'label': '🟢 Baixo risco',
-            'details': {
-                'total_repairs': 0,
-                'message': 'Cliente novo, sem histórico'
+        if not repairs:
+            return {
+                'score': 0,
+                'level': 'low',
+                'label': '🟢 Baixo risco',
+                'details': {
+                    'total_repairs': 0,
+                    'message': 'Cliente novo, sem histórico'
+                }
             }
+        
+        # Critérios de risco
+        score = 0
+        details = {
+            'total_repairs': len(repairs),
+            'warranty_claims': 0,
+            'abandoned_devices': 0,
+            'value_disputes': 0,
+            'cancelled_after_analysis': 0,
+            'open_repairs': 0
         }
-    
-    # Critérios de risco
-    score = 0
-    details = {
-        'total_repairs': len(repairs),
-        'warranty_claims': 0,
-        'abandoned_devices': 0,
-        'value_disputes': 0,
-        'cancelled_after_analysis': 0,
-        'open_repairs': 0
-    }
-    
-    # Verificar cada reparo
-    for repair in repairs:
-        status = repair.get('status', '').lower()
         
-        # OS abertas simultâneas (não concluídas)
-        if status not in ['concluido', 'cancelado']:
-            details['open_repairs'] += 1
-        
-        # Verificar se acionou garantia (reparo concluído com garantia e depois teve novo problema)
-        warranty = repair.get('warranty')
-        if warranty and isinstance(warranty, dict):
-            # Se tem garantia e o reparo foi concluído, verificar se houve retorno
+        # Verificar cada reparo
+        for repair in repairs:
+            status = repair.get('status', '').lower()
+            
+            # OS abertas simultâneas (não concluídas)
+            if status not in ['concluido', 'cancelado']:
+                details['open_repairs'] += 1
+            
+            # Verificar se acionou garantia (reparo concluído com garantia e depois teve novo problema)
+            warranty = repair.get('warranty')
+            if warranty and isinstance(warranty, dict):
+                # Se tem garantia e o reparo foi concluído, verificar se houve retorno
+                if status == 'concluido':
+                    # Verificar histórico por mensagens de garantia
+                    messages = repair.get('messages', [])
+                    for msg in messages:
+                        if isinstance(msg, dict):
+                            content = msg.get('content', '').lower()
+                            if 'garantia' in content or 'garant' in content:
+                                details['warranty_claims'] += 1
+                                break
+            
+            # Verificar se abandonou aparelho (concluído há mais de 90 dias sem OR)
             if status == 'concluido':
-                # Verificar histórico por mensagens de garantia
-                messages = repair.get('messages', [])
-                for msg in messages:
-                    if isinstance(msg, dict):
-                        content = msg.get('content', '').lower()
-                        if 'garantia' in content or 'garant' in content:
-                            details['warranty_claims'] += 1
-                            break
-        
-        # Verificar se abandonou aparelho (concluído há mais de 90 dias sem OR)
-        if status == 'concluido':
-            completed_at = repair.get('completed_at')
-            if completed_at:
-                try:
-                    completed_dt = datetime.fromisoformat(completed_at.replace('Z', '+00:00') if 'Z' in completed_at else completed_at)
-                    days_abandoned = (datetime.now() - completed_dt).days
-                    
-                    # Verificar se tem OR
+                completed_at = repair.get('completed_at')
+                if completed_at:
                     try:
-                        order = get_order_by_repair(repair.get('id'))
-                        if not order and days_abandoned > 90:
-                            details['abandoned_devices'] += 1
+                        completed_dt = datetime.fromisoformat(completed_at.replace('Z', '+00:00') if 'Z' in completed_at else completed_at)
+                        days_abandoned = (datetime.now() - completed_dt).days
+                        
+                        # Verificar se tem OR
+                        try:
+                            order = get_order_by_repair(repair.get('id'))
+                            if not order and days_abandoned > 90:
+                                details['abandoned_devices'] += 1
+                        except Exception as e:
+                            # Se não conseguir buscar OR, considerar abandonado se passar de 90 dias
+                            if days_abandoned > 90:
+                                details['abandoned_devices'] += 1
                     except Exception as e:
-                        # Se não conseguir buscar OR, considerar abandonado se passar de 90 dias
-                        if days_abandoned > 90:
-                            details['abandoned_devices'] += 1
-                except Exception as e:
-                    pass
+                        pass
+            
+            # Verificar se discutiu valor (mensagens com palavras-chave)
+            messages = repair.get('messages', [])
+            for msg in messages:
+                if isinstance(msg, dict):
+                    content = msg.get('content', '').lower()
+                    dispute_keywords = ['caro', 'caro demais', 'muito caro', 'preço', 'valor', 'barato', 'desconto', 'negociar']
+                    if any(keyword in content for keyword in dispute_keywords):
+                        details['value_disputes'] += 1
+                        break
+            
+            # Verificar se cancelou após análise (status cancelado após ter orçamento)
+            if status == 'cancelado':
+                budget = repair.get('budget')
+                if budget and isinstance(budget, dict):
+                    # Se tinha orçamento e cancelou, conta como cancelamento após análise
+                    details['cancelled_after_analysis'] += 1
         
-        # Verificar se discutiu valor (mensagens com palavras-chave)
-        messages = repair.get('messages', [])
-        for msg in messages:
-            if isinstance(msg, dict):
-                content = msg.get('content', '').lower()
-                dispute_keywords = ['caro', 'caro demais', 'muito caro', 'preço', 'valor', 'barato', 'desconto', 'negociar']
-                if any(keyword in content for keyword in dispute_keywords):
-                    details['value_disputes'] += 1
-                    break
+        # Calcular score baseado nos critérios
+        # Cada critério adiciona pontos:
+        # - Acionou garantia: +3 pontos por ocorrência
+        # - Abandonou aparelho: +5 pontos por ocorrência
+        # - Discutiu valor: +2 pontos por ocorrência
+        # - Cancelou após análise: +4 pontos por ocorrência
+        # - OS abertas simultâneas: +1 ponto por OS (máximo 3 pontos)
         
-        # Verificar se cancelou após análise (status cancelado após ter orçamento)
-        if status == 'cancelado':
-            budget = repair.get('budget')
-            if budget and isinstance(budget, dict):
-                # Se tinha orçamento e cancelou, conta como cancelamento após análise
-                details['cancelled_after_analysis'] += 1
-    
-    # Calcular score baseado nos critérios
-    # Cada critério adiciona pontos:
-    # - Acionou garantia: +3 pontos por ocorrência
-    # - Abandonou aparelho: +5 pontos por ocorrência
-    # - Discutiu valor: +2 pontos por ocorrência
-    # - Cancelou após análise: +4 pontos por ocorrência
-    # - OS abertas simultâneas: +1 ponto por OS (máximo 3 pontos)
-    
-    score += details['warranty_claims'] * 3
-    score += details['abandoned_devices'] * 5
-    score += details['value_disputes'] * 2
-    score += details['cancelled_after_analysis'] * 4
-    score += min(details['open_repairs'], 3)  # Máximo 3 pontos para OS abertas
-    
-    # Determinar nível de risco
-    if score >= 10:
-        level = 'high'
-        label = '🔴 Alto risco'
-    elif score >= 5:
-        level = 'medium'
-        label = '🟡 Médio risco'
-    else:
-        level = 'low'
-        label = '🟢 Baixo risco'
-    
+        score += details['warranty_claims'] * 3
+        score += details['abandoned_devices'] * 5
+        score += details['value_disputes'] * 2
+        score += details['cancelled_after_analysis'] * 4
+        score += min(details['open_repairs'], 3)  # Máximo 3 pontos para OS abertas
+        
+        # Determinar nível de risco
+        if score >= 10:
+            level = 'high'
+            label = '🔴 Alto risco'
+        elif score >= 5:
+            level = 'medium'
+            label = '🟡 Médio risco'
+        else:
+            level = 'low'
+            label = '🟢 Baixo risco'
+        
         return {
             'score': score,
             'level': level,
