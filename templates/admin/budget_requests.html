@@ -84,34 +84,39 @@
                     </div>
                     <div style="flex: 1; max-width: 400px;">
                         <div style="font-size: 0.85rem; color: #cccccc;">
-                            {% if req.risk_score.details.total_repairs > 0 %}
+                            {% if req.risk_score.details.total_repairs and req.risk_score.details.total_repairs > 0 %}
                             <p style="margin: 0.25rem 0;">
                                 <strong>Total de reparos:</strong> {{ req.risk_score.details.total_repairs }}
                             </p>
                             {% endif %}
-                            {% if req.risk_score.details.warranty_claims > 0 %}
+                            {% if req.risk_score.details.warranty_claims and req.risk_score.details.warranty_claims > 0 %}
                             <p style="margin: 0.25rem 0; color: #ffc107;">
                                 ⚠️ Acionou garantia: {{ req.risk_score.details.warranty_claims }} vez(es)
                             </p>
                             {% endif %}
-                            {% if req.risk_score.details.abandoned_devices > 0 %}
+                            {% if req.risk_score.details.abandoned_devices and req.risk_score.details.abandoned_devices > 0 %}
                             <p style="margin: 0.25rem 0; color: #dc3545;">
                                 🚨 Abandonou aparelho: {{ req.risk_score.details.abandoned_devices }} vez(es)
                             </p>
                             {% endif %}
-                            {% if req.risk_score.details.value_disputes > 0 %}
+                            {% if req.risk_score.details.value_disputes and req.risk_score.details.value_disputes > 0 %}
                             <p style="margin: 0.25rem 0; color: #ffc107;">
                                 💰 Discutiu valor: {{ req.risk_score.details.value_disputes }} vez(es)
                             </p>
                             {% endif %}
-                            {% if req.risk_score.details.cancelled_after_analysis > 0 %}
+                            {% if req.risk_score.details.cancelled_after_analysis and req.risk_score.details.cancelled_after_analysis > 0 %}
                             <p style="margin: 0.25rem 0; color: #dc3545;">
                                 ❌ Cancelou após análise: {{ req.risk_score.details.cancelled_after_analysis }} vez(es)
                             </p>
                             {% endif %}
-                            {% if req.risk_score.details.open_repairs > 0 %}
+                            {% if req.risk_score.details.open_repairs and req.risk_score.details.open_repairs > 0 %}
                             <p style="margin: 0.25rem 0; color: #ffc107;">
                                 📋 OS abertas simultâneas: {{ req.risk_score.details.open_repairs }}
+                            </p>
+                            {% endif %}
+                            {% if req.risk_score.details.message %}
+                            <p style="margin: 0.25rem 0; color: #999;">
+                                ℹ️ {{ req.risk_score.details.message }}
                             </p>
                             {% endif %}
                         </div>

@@ -2073,7 +2073,15 @@ def calculate_customer_risk_score(cpf):
                 'score': 0,
                 'level': 'low',
                 'label': '🟢 Baixo risco',
-                'details': {}
+                'details': {
+                    'total_repairs': 0,
+                    'warranty_claims': 0,
+                    'abandoned_devices': 0,
+                    'value_disputes': 0,
+                    'cancelled_after_analysis': 0,
+                    'open_repairs': 0,
+                    'message': 'CPF não informado'
+                }
             }
         
         # Normalizar CPF
@@ -2083,15 +2091,20 @@ def calculate_customer_risk_score(cpf):
         repairs = get_repairs_by_cpf(cpf_clean)
     
         if not repairs:
-            return {
-                'score': 0,
-                'level': 'low',
-                'label': '🟢 Baixo risco',
-                'details': {
-                    'total_repairs': 0,
-                    'message': 'Cliente novo, sem histórico'
-                }
+        return {
+            'score': 0,
+            'level': 'low',
+            'label': '🟢 Baixo risco',
+            'details': {
+                'total_repairs': 0,
+                'warranty_claims': 0,
+                'abandoned_devices': 0,
+                'value_disputes': 0,
+                'cancelled_after_analysis': 0,
+                'open_repairs': 0,
+                'message': 'Cliente novo, sem histórico'
             }
+        }
         
         # Critérios de risco
         score = 0
@@ -2205,6 +2218,11 @@ def calculate_customer_risk_score(cpf):
             'label': '🟢 Baixo risco',
             'details': {
                 'total_repairs': 0,
+                'warranty_claims': 0,
+                'abandoned_devices': 0,
+                'value_disputes': 0,
+                'cancelled_after_analysis': 0,
+                'open_repairs': 0,
                 'error': str(e)
             }
         }
