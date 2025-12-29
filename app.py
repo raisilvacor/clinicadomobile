@@ -549,6 +549,210 @@ def admin_budget_requests():
     pending_count = len([r for r in requests if r.get('status') == 'pendente'])
     return render_template('admin/budget_requests.html', requests=requests, pending_count=pending_count)
 
+@app.route('/admin/nfse', methods=['GET'])
+@login_required
+def admin_nfse():
+    """Página principal de emissão de NFS-e"""
+    from db import load_config
+    config = load_config()
+    nfse_config = config.get('nfse_config', {})
+    return render_template('admin/nfse.html', nfse_config=nfse_config)
+
+@app.route('/admin/nfse/config', methods=['GET', 'POST'])
+@login_required
+def admin_nfse_config():
+    """Configuração de credenciais NFS-e"""
+    from db import load_config, save_config
+    if request.method == 'POST':
+        config = load_config()
+        config['nfse_config'] = {
+            'provider': request.form.get('provider', 'nuvemfiscal'),  # nuvemfiscal, devnotas, ou oficial
+            'api_token': request.form.get('api_token', ''),
+            'cnpj': request.form.get('cnpj', ''),
+            'inscricao_municipal': request.form.get('inscricao_municipal', ''),
+            'codigo_servico': request.form.get('codigo_servico', ''),
+            'aliquota_iss': request.form.get('aliquota_iss', ''),
+            'ambiente': request.form.get('ambiente', 'homologacao')  # homologacao ou producao
+        }
+        save_config(config)
+        return redirect(url_for('admin_nfse'))
+    
+    config = load_config()
+    nfse_config = config.get('nfse_config', {})
+    return render_template('admin/nfse_config.html', nfse_config=nfse_config)
+
+@app.route('/admin/nfse/emit', methods=['POST'])
+@login_required
+def admin_nfse_emit():
+    """Emite uma NFS-e"""
+    from db import load_config
+    import requests
+    import json
+    from datetime import datetime
+    
+    try:
+        data = request.get_json()
+        config = load_config()
+        nfse_config = config.get('nfse_config', {})
+        
+        if not nfse_config.get('api_token'):
+            return jsonify({'success': False, 'error': 'Configuração NFS-e não encontrada. Configure primeiro em Configurações.'}), 400
+        
+        provider = nfse_config.get('provider', 'nuvemfiscal')
+        
+        # Preparar dados da nota fiscal
+        nfse_data = {
+            'prestador': {
+                'cnpj': nfse_config.get('cnpj', ''),
+                'inscricao_municipal': nfse_config.get('inscricao_municipal', '')
+            },
+            'tomador': {
+                'cpf_cnpj': data.get('tomador_cpf_cnpj', '').replace('.', '').replace('-', '').replace('/', ''),
+                'nome_razao_social': data.get('tomador_nome', ''),
+                'email': data.get('tomador_email', ''),
+                'telefone': data.get('tomador_telefone', '').replace('(', '').replace(')', '').replace('-', '').replace(' ', ''),
+                'endereco': {
+                    'logradouro': data.get('tomador_endereco', ''),
+                    'numero': data.get('tomador_numero', ''),
+                    'bairro': data.get('tomador_bairro', ''),
+                    'codigo_municipio': data.get('tomador_codigo_municipio', ''),
+                    'uf': data.get('tomador_uf', ''),
+                    'cep': data.get('tomador_cep', '').replace('-', '')
+                }
+            },
+            'servico': {
+                'codigo_servico': nfse_config.get('codigo_servico', '1407'),  # Código padrão para assistência técnica
+                'discriminacao': data.get('discriminacao', ''),
+                'valor_servicos': float(data.get('valor_servicos', 0)),
+                'aliquota_iss': float(nfse_config.get('aliquota_iss', 5.0))
+            },
+            'data_emissao': datetime.now().isoformat()
+        }
+        
+        # Emitir via API escolhida
+        if provider == 'nuvemfiscal':
+            return emitir_nfse_nuvemfiscal(nfse_config, nfse_data)
+        elif provider == 'devnotas':
+            return emitir_nfse_devnotas(nfse_config, nfse_data)
+        else:
+            return jsonify({'success': False, 'error': 'Provedor não suportado. Use Nuvem Fiscal ou DevNotas.'}), 400
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
+    """Emite NFS-e via API Nuvem Fiscal"""
+    import requests
+    
+    try:
+        api_token = nfse_config.get('api_token')
+        ambiente = nfse_config.get('ambiente', 'homologacao')
+        
+        base_url = 'https://api.nuvemfiscal.com.br' if ambiente == 'producao' else 'https://api.sandbox.nuvemfiscal.com.br'
+        
+        headers = {
+            'Authorization': f'Bearer {api_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Preparar payload para Nuvem Fiscal
+        payload = {
+            'prestador': {
+                'cpf_cnpj': nfse_data['prestador']['cnpj'],
+                'inscricao_municipal': nfse_data['prestador']['inscricao_municipal']
+            },
+            'tomador': nfse_data['tomador'],
+            'servico': {
+                'codigo_tributacao_municipio': nfse_data['servico']['codigo_servico'],
+                'discriminacao': nfse_data['servico']['discriminacao'],
+                'valor_servicos': nfse_data['servico']['valor_servicos'],
+                'iss_retido': False,
+                'item_lista_servico': nfse_data['servico']['codigo_servico']
+            }
+        }
+        
+        response = requests.post(
+            f'{base_url}/v2/nfse',
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 201:
+            result = response.json()
+            return jsonify({
+                'success': True,
+                'numero_nfse': result.get('numero'),
+                'codigo_verificacao': result.get('codigo_verificacao'),
+                'link_nfse': result.get('link_nfse'),
+                'pdf': result.get('pdf'),
+                'xml': result.get('xml')
+            })
+        else:
+            error_msg = response.json().get('message', 'Erro ao emitir NFS-e')
+            return jsonify({'success': False, 'error': error_msg}), response.status_code
+            
+    except requests.exceptions.RequestException as e:
+        return jsonify({'success': False, 'error': f'Erro de conexão: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def emitir_nfse_devnotas(nfse_config, nfse_data):
+    """Emite NFS-e via API DevNotas"""
+    import requests
+    
+    try:
+        api_token = nfse_config.get('api_token')
+        ambiente = nfse_config.get('ambiente', 'homologacao')
+        
+        base_url = 'https://api.devnotas.com.br' if ambiente == 'producao' else 'https://api.sandbox.devnotas.com.br'
+        
+        headers = {
+            'Authorization': f'Bearer {api_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Preparar payload para DevNotas
+        payload = {
+            'prestador': {
+                'cnpj': nfse_data['prestador']['cnpj'],
+                'inscricao_municipal': nfse_data['prestador']['inscricao_municipal']
+            },
+            'tomador': nfse_data['tomador'],
+            'servico': {
+                'codigo_servico': nfse_data['servico']['codigo_servico'],
+                'discriminacao': nfse_data['servico']['discriminacao'],
+                'valor_servicos': nfse_data['servico']['valor_servicos'],
+                'aliquota_iss': nfse_data['servico']['aliquota_iss']
+            }
+        }
+        
+        response = requests.post(
+            f'{base_url}/v1/nfse',
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 201:
+            result = response.json()
+            return jsonify({
+                'success': True,
+                'numero_nfse': result.get('numero'),
+                'codigo_verificacao': result.get('codigo_verificacao'),
+                'link_nfse': result.get('link'),
+                'pdf': result.get('pdf'),
+                'xml': result.get('xml')
+            })
+        else:
+            error_msg = response.json().get('message', 'Erro ao emitir NFS-e')
+            return jsonify({'success': False, 'error': error_msg}), response.status_code
+            
+    except requests.exceptions.RequestException as e:
+        return jsonify({'success': False, 'error': f'Erro de conexão: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/admin/budget-requests/<request_id>/delete', methods=['POST'])
 @login_required
 def admin_delete_budget_request(request_id):
