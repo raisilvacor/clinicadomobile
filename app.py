@@ -658,21 +658,36 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
         client_secret = nfse_config.get('client_secret')
         ambiente = nfse_config.get('ambiente', 'homologacao')
         
-        base_url = 'https://api.nuvemfiscal.com.br' if ambiente == 'producao' else 'https://api.sandbox.nuvemfiscal.com.br'
+        # URLs corretas da Nuvem Fiscal
+        # A autenticação usa um endpoint separado: auth.nuvemfiscal.com.br
+        auth_url = 'https://auth.nuvemfiscal.com.br/oauth/token'
+        
+        if ambiente == 'producao':
+            base_url = 'https://api.nuvemfiscal.com.br'
+        else:
+            base_url = 'https://api.sandbox.nuvemfiscal.com.br'
         
         # Obter token de acesso usando OAuth2
+        # Formato: Basic base64(client_id:client_secret)
         auth_string = f"{client_id}:{client_secret}"
-        auth_bytes = auth_string.encode('ascii')
-        auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+        auth_bytes = auth_string.encode('utf-8')
+        auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
         
         # Solicitar token de acesso
+        # A Nuvem Fiscal usa endpoint de autenticação separado
+        token_url = auth_url
+        
         token_response = requests.post(
-            f'{base_url}/oauth/token',
+            token_url,
             headers={
                 'Authorization': f'Basic {auth_b64}',
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
             },
-            data={'grant_type': 'client_credentials'},
+            data={
+                'grant_type': 'client_credentials',
+                'scope': 'nfse'
+            },
             timeout=30
         )
         
