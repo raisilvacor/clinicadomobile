@@ -730,12 +730,52 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
             }
         }
         
-        response = requests.post(
-            f'{base_url}/v2/nfse',
-            headers=headers,
-            json=payload,
-            timeout=30
-        )
+        # Endpoint correto da API Nuvem Fiscal para NFS-e
+        # A API da Nuvem Fiscal pode usar diferentes versões, vamos tentar /nfse primeiro
+        # Se não funcionar, pode ser necessário usar /v1/nfse ou outro endpoint
+        endpoints_to_try = [
+            f'{base_url}/nfse',
+            f'{base_url}/v1/nfse',
+            f'{base_url}/v2/nfse'
+        ]
+        
+        response = None
+        last_error = None
+        endpoint_used = None
+        
+        for endpoint in endpoints_to_try:
+            try:
+                response = requests.post(
+                    endpoint,
+                    headers=headers,
+                    json=payload,
+                    timeout=30
+                )
+                
+                endpoint_used = endpoint
+                
+                # Se a resposta for 404, tentar próximo endpoint
+                if response.status_code == 404:
+                    last_error = f'Endpoint não encontrado: {endpoint}'
+                    response = None
+                    continue
+                
+                # Se não for 404, parar de tentar outros endpoints
+                break
+            except Exception as e:
+                last_error = str(e)
+                response = None
+                continue
+        
+        if response is None:
+            return jsonify({
+                'success': False,
+                'error': f'Nenhum endpoint funcionou. Último erro: {last_error}',
+                'debug': {
+                    'endpoints_tried': endpoints_to_try,
+                    'last_error': last_error
+                }
+            }), 500
         
         # Verificar se a resposta é JSON válido
         try:
@@ -746,7 +786,11 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
             status_code = response.status_code
             return jsonify({
                 'success': False, 
-                'error': f'Resposta inválida da API (HTTP {status_code}): {error_text}'
+                'error': f'Resposta inválida da API (HTTP {status_code}): {error_text}',
+                'debug': {
+                    'endpoint_used': endpoint_used,
+                    'response_text': error_text
+                }
             }), status_code if status_code >= 400 else 500
         
         if response.status_code == 201 or response.status_code == 200:
@@ -759,8 +803,15 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
                 'xml': response_data.get('xml')
             })
         else:
-            error_msg = response_data.get('message') or response_data.get('error') or f'Erro HTTP {response.status_code}'
-            return jsonify({'success': False, 'error': error_msg}), response.status_code
+            error_msg = response_data.get('message') or response_data.get('error') or response_data.get('detail') or f'Erro HTTP {response.status_code}'
+            return jsonify({
+                'success': False,
+                'error': error_msg,
+                'debug': {
+                    'status_code': response.status_code,
+                    'response': response_data
+                }
+            }), response.status_code
             
     except requests.exceptions.RequestException as e:
         return jsonify({'success': False, 'error': f'Erro de conexão: {str(e)}'}), 500
