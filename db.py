@@ -278,10 +278,23 @@ def create_tables():
     
     try:
         print("📋 Criando tabelas no banco de dados...")
-        with get_db_connection() as conn:
+        # Obter conexão diretamente sem context manager para garantir commit
+        conn = None
+        try:
+            if pool is None:
+                init_db()
+            if pool is None:
+                print("⚠️  create_tables: Pool não disponível")
+                return
+            
+            conn = pool.getconn(timeout=10)
             if not conn:
                 print("⚠️  create_tables: Sem conexão disponível")
                 return
+            
+            # Usar autocommit para garantir que as tabelas sejam criadas imediatamente
+            # DDL (CREATE TABLE) não precisa de transação explícita
+            conn.autocommit = True
             cur = _get_cursor(conn)
             
             # Tabela para conteúdo do site (hero, serviços, sobre, etc.)
@@ -482,28 +495,74 @@ def create_tables():
             except Exception as e:
                 print(f"⚠️  Erro ao criar índices de notificações: {e}")
             
-            # Commit explícito para garantir que as tabelas sejam criadas
+            # Com autocommit=True, as tabelas já foram criadas
+            # Verificar se as tabelas foram criadas
             try:
-                conn.commit()
-                print("✅ Commit realizado com sucesso!")
+                cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'admin_users')")
+                admin_users_exists = cur.fetchone()[0]
+                cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'technicians')")
+                technicians_exists = cur.fetchone()[0]
+                print(f"✅ Verificação: admin_users existe = {admin_users_exists}, technicians existe = {technicians_exists}")
+                if not admin_users_exists or not technicians_exists:
+                    print("⚠️  ATENÇÃO: Tabelas não foram criadas! Tentando criar novamente...")
+                    # Tentar criar novamente sem autocommit
+                    conn.autocommit = False
+                    if not admin_users_exists:
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS admin_users (
+                                id VARCHAR(50) PRIMARY KEY,
+                                username VARCHAR(100) UNIQUE NOT NULL,
+                                password_hash TEXT NOT NULL,
+                                name VARCHAR(200) NOT NULL,
+                                email VARCHAR(200),
+                                phone VARCHAR(20),
+                                permissions JSONB DEFAULT '{}',
+                                is_active BOOLEAN DEFAULT TRUE,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                    if not technicians_exists:
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS technicians (
+                                id VARCHAR(50) PRIMARY KEY,
+                                name VARCHAR(200) NOT NULL,
+                                cpf VARCHAR(11) UNIQUE,
+                                email VARCHAR(200),
+                                phone VARCHAR(20),
+                                address TEXT,
+                                specialties JSONB DEFAULT '[]',
+                                is_active BOOLEAN DEFAULT TRUE,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                    conn.commit()
+                    print("✅ Tabelas criadas novamente com commit explícito!")
             except Exception as e:
-                print(f"⚠️  Erro ao fazer commit: {e}")
+                print(f"⚠️  Erro ao verificar/criar tabelas: {e}")
                 import traceback
                 traceback.print_exc()
-                # Tentar rollback e commit novamente
-                try:
-                    conn.rollback()
-                    conn.commit()
-                    print("✅ Commit realizado após rollback!")
-                except Exception as e2:
-                    print(f"⚠️  Erro ao fazer commit após rollback: {e2}")
             
             print("✅ Tabelas criadas/verificadas com sucesso!")
+        finally:
+            # Retornar conexão ao pool
+            if conn:
+                try:
+                    pool.putconn(conn)
+                    print("✅ Conexão retornada ao pool")
+                except Exception as e:
+                    print(f"⚠️  Erro ao retornar conexão: {e}")
     except Exception as e:
         print(f"❌ Erro ao criar tabelas: {e}")
         import traceback
         traceback.print_exc()
-        pass
+        if conn:
+            try:
+                conn.rollback()
+                pool.putconn(conn, close=True)
+            except:
+                pass
 
 # ========== FUNÇÕES DE SITE CONTENT ==========
 
