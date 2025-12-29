@@ -715,67 +715,40 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
         }
         
         # Preparar payload para Nuvem Fiscal
+        # A API da Nuvem Fiscal usa "prest" em vez de "prestador"
+        # Estrutura correta conforme documentação oficial da Nuvem Fiscal
         payload = {
-            'prestador': {
+            'prest': {
                 'cpf_cnpj': nfse_data['prestador']['cnpj'],
                 'inscricao_municipal': nfse_data['prestador']['inscricao_municipal']
             },
-            'tomador': nfse_data['tomador'],
+            'tomador': {
+                'cpf_cnpj': nfse_data['tomador']['cpf_cnpj'],
+                'nome_razao_social': nfse_data['tomador']['nome_razao_social'],
+                'email': nfse_data['tomador'].get('email', ''),
+                'telefone': nfse_data['tomador'].get('telefone', ''),
+                'endereco': nfse_data['tomador']['endereco']
+            },
             'servico': {
                 'codigo_tributacao_municipio': nfse_data['servico']['codigo_servico'],
                 'discriminacao': nfse_data['servico']['discriminacao'],
                 'valor_servicos': nfse_data['servico']['valor_servicos'],
                 'iss_retido': False,
-                'item_lista_servico': nfse_data['servico']['codigo_servico']
+                'item_lista_servico': nfse_data['servico']['codigo_servico'],
+                'aliquota': nfse_data['servico'].get('aliquota_iss', 5.0)
             }
         }
         
         # Endpoint correto da API Nuvem Fiscal para NFS-e
-        # A API da Nuvem Fiscal pode usar diferentes versões, vamos tentar /nfse primeiro
-        # Se não funcionar, pode ser necessário usar /v1/nfse ou outro endpoint
-        endpoints_to_try = [
-            f'{base_url}/nfse',
-            f'{base_url}/v1/nfse',
-            f'{base_url}/v2/nfse'
-        ]
+        # A API da Nuvem Fiscal usa /v1/nfse para emissão
+        endpoint = f'{base_url}/v1/nfse'
         
-        response = None
-        last_error = None
-        endpoint_used = None
-        
-        for endpoint in endpoints_to_try:
-            try:
-                response = requests.post(
-                    endpoint,
-                    headers=headers,
-                    json=payload,
-                    timeout=30
-                )
-                
-                endpoint_used = endpoint
-                
-                # Se a resposta for 404, tentar próximo endpoint
-                if response.status_code == 404:
-                    last_error = f'Endpoint não encontrado: {endpoint}'
-                    response = None
-                    continue
-                
-                # Se não for 404, parar de tentar outros endpoints
-                break
-            except Exception as e:
-                last_error = str(e)
-                response = None
-                continue
-        
-        if response is None:
-            return jsonify({
-                'success': False,
-                'error': f'Nenhum endpoint funcionou. Último erro: {last_error}',
-                'debug': {
-                    'endpoints_tried': endpoints_to_try,
-                    'last_error': last_error
-                }
-            }), 500
+        response = requests.post(
+            endpoint,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
         
         # Verificar se a resposta é JSON válido
         try:
@@ -788,7 +761,7 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
                 'success': False, 
                 'error': f'Resposta inválida da API (HTTP {status_code}): {error_text}',
                 'debug': {
-                    'endpoint_used': endpoint_used,
+                    'endpoint_used': endpoint,
                     'response_text': error_text
                 }
             }), status_code if status_code >= 400 else 500
