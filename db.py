@@ -492,6 +492,59 @@ def save_site_content_section(section, data):
         config['site_content'][section] = data
         _save_config_file(config)
 
+def save_nfse_config(nfse_config):
+    """Salva a configuração NFS-e"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        config['nfse_config'] = nfse_config
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                config['nfse_config'] = nfse_config
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(nfse_config)
+            cur.execute("""
+                INSERT INTO site_content (section, data, updated_at)
+                VALUES ('nfse_config', %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (section) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (data_json, data_json))
+            conn.commit()
+            print("✅ Configuração NFS-e salva com sucesso!")
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar configuração NFS-e no banco: {e}")
+        config = _load_config_file()
+        config['nfse_config'] = nfse_config
+        _save_config_file(config)
+
+def get_nfse_config():
+    """Obtém a configuração NFS-e"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('nfse_config', {})
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('nfse_config', {})
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM site_content WHERE section = 'nfse_config'")
+            row = cur.fetchone()
+            if row:
+                return row['data']
+            return {}
+    except Exception as e:
+        print(f"⚠️  Erro ao ler configuração NFS-e do banco: {e}")
+        config = _load_config_file()
+        return config.get('nfse_config', {})
+
 def get_site_content_section(section):
     """Obtém uma seção específica do conteúdo do site"""
     if not USE_DATABASE:
@@ -1763,6 +1816,10 @@ def save_config(config):
         site_content = config['site_content']
         for section, data in site_content.items():
             save_site_content_section(section, data)
+    
+    # Salvar configuração NFS-e
+    if 'nfse_config' in config:
+        save_nfse_config(config['nfse_config'])
     
     # Salvar reparos
     if 'repairs' in config:
