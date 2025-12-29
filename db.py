@@ -564,16 +564,6 @@ def create_tables():
                 print("✅ Conexão fechada")
             except Exception as e:
                 print(f"⚠️  Erro ao fechar conexão: {e}")
-    except Exception as e:
-        print(f"❌ Erro ao criar tabelas: {e}")
-        import traceback
-        traceback.print_exc()
-        if conn:
-            try:
-                conn.rollback()
-                pool.putconn(conn, close=True)
-            except:
-                pass
 
 # ========== FUNÇÕES DE SITE CONTENT ==========
 
