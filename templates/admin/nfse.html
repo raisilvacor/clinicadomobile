@@ -9,7 +9,7 @@
         <a href="{{ url_for('admin_nfse_config') }}" class="btn btn-secondary">⚙️ Configurações</a>
     </div>
     
-    {% if not nfse_config or not nfse_config.get('api_token') %}
+    {% if not nfse_config or (nfse_config.get('provider') == 'nuvemfiscal' and (not nfse_config.get('client_id') or not nfse_config.get('client_secret'))) or (nfse_config.get('provider') == 'devnotas' and not nfse_config.get('api_token')) %}
     <div style="background: rgba(255, 140, 0, 0.2); border: 2px solid #ff8c00; border-radius: 10px; padding: 1.5rem; margin-bottom: 2rem;">
         <h3 style="color: #ff8c00; margin-bottom: 1rem;">⚠️ Configuração Necessária</h3>
         <p style="color: #ffffff; margin-bottom: 1rem;">

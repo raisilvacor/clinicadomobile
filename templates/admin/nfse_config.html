@@ -39,10 +39,18 @@
             </div>
             
             <div class="form-group">
-                <label>Token da API <span style="color: #ff8c00;">*</span></label>
-                <input type="text" name="api_token" value="{{ nfse_config.get('api_token', '') }}" required placeholder="Seu token de API">
+                <label>Client ID <span style="color: #ff8c00;">*</span></label>
+                <input type="text" name="client_id" value="{{ nfse_config.get('client_id', '') }}" required placeholder="Seu Client ID">
                 <small style="color: #999; display: block; margin-top: 0.5rem;">
-                    Token obtido no painel do provedor escolhido
+                    Client ID obtido no painel da Nuvem Fiscal (ex: Fh0oefK6gWpnkqA21Ydm)
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label>Client Secret <span style="color: #ff8c00;">*</span></label>
+                <input type="password" name="client_secret" value="{{ nfse_config.get('client_secret', '') }}" required placeholder="Seu Client Secret">
+                <small style="color: #999; display: block; margin-top: 0.5rem;">
+                    Client Secret obtido no painel da Nuvem Fiscal (copie e salve com segurança)
                 </small>
             </div>
             

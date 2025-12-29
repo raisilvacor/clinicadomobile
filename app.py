@@ -595,8 +595,14 @@ def admin_nfse_emit():
         config = load_config()
         nfse_config = config.get('nfse_config', {})
         
-        if not nfse_config.get('api_token'):
-            return jsonify({'success': False, 'error': 'Configuração NFS-e não encontrada. Configure primeiro em Configurações.'}), 400
+        # Verificar credenciais baseado no provedor
+        provider = nfse_config.get('provider', 'nuvemfiscal')
+        if provider == 'nuvemfiscal':
+            if not nfse_config.get('client_id') or not nfse_config.get('client_secret'):
+                return jsonify({'success': False, 'error': 'Client ID e Client Secret não configurados. Configure primeiro em Configurações.'}), 400
+        else:
+            if not nfse_config.get('api_token'):
+                return jsonify({'success': False, 'error': 'Token da API não configurado. Configure primeiro em Configurações.'}), 400
         
         provider = nfse_config.get('provider', 'nuvemfiscal')
         
@@ -643,15 +649,42 @@ def admin_nfse_emit():
 def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
     """Emite NFS-e via API Nuvem Fiscal"""
     import requests
+    import base64
     
     try:
-        api_token = nfse_config.get('api_token')
+        client_id = nfse_config.get('client_id')
+        client_secret = nfse_config.get('client_secret')
         ambiente = nfse_config.get('ambiente', 'homologacao')
         
         base_url = 'https://api.nuvemfiscal.com.br' if ambiente == 'producao' else 'https://api.sandbox.nuvemfiscal.com.br'
         
+        # Obter token de acesso usando OAuth2
+        auth_string = f"{client_id}:{client_secret}"
+        auth_bytes = auth_string.encode('ascii')
+        auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+        
+        # Solicitar token de acesso
+        token_response = requests.post(
+            f'{base_url}/oauth/token',
+            headers={
+                'Authorization': f'Basic {auth_b64}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data={'grant_type': 'client_credentials'},
+            timeout=30
+        )
+        
+        if token_response.status_code != 200:
+            error_msg = token_response.json().get('error_description', 'Erro ao obter token de acesso')
+            return jsonify({'success': False, 'error': f'Erro de autenticação: {error_msg}'}), 401
+        
+        access_token = token_response.json().get('access_token')
+        
+        if not access_token:
+            return jsonify({'success': False, 'error': 'Token de acesso não recebido'}), 401
+        
         headers = {
-            'Authorization': f'Bearer {api_token}',
+            'Authorization': f'Bearer {access_token}',
             'Content-Type': 'application/json'
         }
         
