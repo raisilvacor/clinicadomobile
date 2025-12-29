@@ -740,8 +740,8 @@ def emitir_nfse_nuvemfiscal(nfse_config, nfse_data):
         }
         
         # Endpoint correto da API Nuvem Fiscal para NFS-e
-        # A API da Nuvem Fiscal usa /v1/nfse para emissão
-        endpoint = f'{base_url}/v1/nfse'
+        # A API da Nuvem Fiscal usa /v2/nfse para emissão (versão 2)
+        endpoint = f'{base_url}/v2/nfse'
         
         response = requests.post(
             endpoint,
