@@ -1,0 +1,273 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Score de Risco do Cliente{% endblock %}
+
+{% block extra_css %}
+<style>
+    .risk-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 2px solid #333333;
+    }
+    
+    .risk-card.high-risk {
+        border-color: #dc3545;
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, #1a1a1a 100%);
+    }
+    
+    .risk-card.medium-risk {
+        border-color: #ffc107;
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, #1a1a1a 100%);
+    }
+    
+    .risk-card.low-risk {
+        border-color: #28a745;
+        background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, #1a1a1a 100%);
+    }
+    
+    .risk-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .risk-badge.high {
+        background: rgba(220, 53, 69, 0.3);
+        color: #dc3545;
+        border: 2px solid #dc3545;
+    }
+    
+    .risk-badge.medium {
+        background: rgba(255, 193, 7, 0.3);
+        color: #ffc107;
+        border: 2px solid #ffc107;
+    }
+    
+    .risk-badge.low {
+        background: rgba(40, 167, 69, 0.3);
+        color: #28a745;
+        border: 2px solid #28a745;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: 2px solid;
+        background: transparent;
+        color: #ffffff;
+        cursor: pointer;
+        font-weight: bold;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .filter-btn.active {
+        background: #ff8c00;
+        border-color: #ff8c00;
+        color: #000000;
+    }
+    
+    .filter-btn.high {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+    
+    .filter-btn.high:hover {
+        background: rgba(220, 53, 69, 0.2);
+    }
+    
+    .filter-btn.medium {
+        border-color: #ffc107;
+        color: #ffc107;
+    }
+    
+    .filter-btn.medium:hover {
+        background: rgba(255, 193, 7, 0.2);
+    }
+    
+    .filter-btn.low {
+        border-color: #28a745;
+        color: #28a745;
+    }
+    
+    .filter-btn.low:hover {
+        background: rgba(40, 167, 69, 0.2);
+    }
+    
+    .customer-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .info-item {
+        color: #ffffff;
+    }
+    
+    .info-item strong {
+        color: #ff8c00;
+    }
+    
+    .risk-details {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .risk-detail-item {
+        margin: 0.5rem 0;
+        color: #cccccc;
+        font-size: 0.9rem;
+    }
+    
+    .risk-detail-item.warning {
+        color: #ffc107;
+    }
+    
+    .risk-detail-item.danger {
+        color: #dc3545;
+    }
+    
+    .alert-box {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        font-weight: bold;
+    }
+    
+    .alert-box.high {
+        background: rgba(220, 53, 69, 0.3);
+        color: #ffffff;
+        border: 2px solid #dc3545;
+    }
+    
+    .alert-box.medium {
+        background: rgba(255, 193, 7, 0.3);
+        color: #ffffff;
+        border: 2px solid #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>🛡️ Score de Risco do Cliente</h2>
+    <p>Sistema automático de avaliação de risco baseado no histórico do cliente</p>
+    
+    <!-- Filtros -->
+    <div class="filter-buttons">
+        <a href="{{ url_for('admin_risk_scores') }}" class="filter-btn {% if not risk_filter %}active{% endif %}">
+            Todos
+        </a>
+        <a href="{{ url_for('admin_risk_scores', risk_level='high') }}" class="filter-btn high {% if risk_filter == 'high' %}active{% endif %}">
+            🔴 Alto Risco
+        </a>
+        <a href="{{ url_for('admin_risk_scores', risk_level='medium') }}" class="filter-btn medium {% if risk_filter == 'medium' %}active{% endif %}">
+            🟡 Médio Risco
+        </a>
+        <a href="{{ url_for('admin_risk_scores', risk_level='low') }}" class="filter-btn low {% if risk_filter == 'low' %}active{% endif %}">
+            🟢 Baixo Risco
+        </a>
+    </div>
+    
+    {% if customers %}
+    <div style="margin-top: 2rem;">
+        {% for customer in customers %}
+        <div class="risk-card {{ customer.risk_score.level }}-risk">
+            <div class="risk-badge {{ customer.risk_score.level }}">
+                {{ customer.risk_score.label }} - Score: {{ customer.risk_score.score }} pontos
+            </div>
+            
+            <div class="customer-info">
+                <div class="info-item">
+                    <strong>Nome:</strong> {{ customer.name }}
+                </div>
+                <div class="info-item">
+                    <strong>CPF:</strong> 
+                    {% if customer.cpf|length == 11 %}
+                        {{ customer.cpf[:3] }}.{{ customer.cpf[3:6] }}.{{ customer.cpf[6:9] }}-{{ customer.cpf[9:] }}
+                    {% else %}
+                        {{ customer.cpf }}
+                    {% endif %}
+                </div>
+                <div class="info-item">
+                    <strong>Telefone:</strong> {{ customer.phone }}
+                </div>
+                {% if customer.email %}
+                <div class="info-item">
+                    <strong>E-mail:</strong> {{ customer.email }}
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <strong>Total de Reparos:</strong> {{ customer.total_repairs }}
+                </div>
+            </div>
+            
+            <div class="risk-details">
+                <h4 style="color: #ff8c00; margin-bottom: 0.5rem;">Detalhes do Score:</h4>
+                {% if customer.risk_score.details.warranty_claims > 0 %}
+                <div class="risk-detail-item warning">
+                    ⚠️ Acionou garantia: {{ customer.risk_score.details.warranty_claims }} vez(es)
+                </div>
+                {% endif %}
+                {% if customer.risk_score.details.abandoned_devices > 0 %}
+                <div class="risk-detail-item danger">
+                    🚨 Abandonou aparelho: {{ customer.risk_score.details.abandoned_devices }} vez(es)
+                </div>
+                {% endif %}
+                {% if customer.risk_score.details.value_disputes > 0 %}
+                <div class="risk-detail-item warning">
+                    💰 Discutiu valor: {{ customer.risk_score.details.value_disputes }} vez(es)
+                </div>
+                {% endif %}
+                {% if customer.risk_score.details.cancelled_after_analysis > 0 %}
+                <div class="risk-detail-item danger">
+                    ❌ Cancelou após análise: {{ customer.risk_score.details.cancelled_after_analysis }} vez(es)
+                </div>
+                {% endif %}
+                {% if customer.risk_score.details.open_repairs > 0 %}
+                <div class="risk-detail-item warning">
+                    📋 OS abertas simultâneas: {{ customer.risk_score.details.open_repairs }}
+                </div>
+                {% endif %}
+                {% if customer.risk_score.details.total_repairs == 0 %}
+                <div class="risk-detail-item">
+                    ℹ️ Cliente novo, sem histórico
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if customer.risk_score.level == 'high' %}
+            <div class="alert-box high">
+                ⚠️ ATENÇÃO: Cliente de alto risco! Considere exigir sinal maior ou recusar o serviço.
+            </div>
+            {% elif customer.risk_score.level == 'medium' %}
+            <div class="alert-box medium">
+                ⚠️ Cliente de médio risco. Fique atento e considere exigir sinal.
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: #999;">
+        <p>Nenhum cliente encontrado{% if risk_filter %} com o nível de risco selecionado{% endif %}.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

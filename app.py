@@ -600,6 +600,51 @@ def admin_financeiro():
                          start_date=start_date,
                          end_date=end_date)
 
+@app.route('/admin/risk-scores', methods=['GET'])
+@login_required
+def admin_risk_scores():
+    """Visualiza scores de risco de todos os clientes"""
+    from db import calculate_customer_risk_score, get_all_repairs
+    
+    # Buscar todos os reparos
+    repairs = get_all_repairs()
+    
+    # Agrupar por CPF do cliente
+    customers = {}
+    for repair in repairs:
+        cpf = repair.get('customer_cpf', '')
+        if cpf:
+            cpf_clean = cpf.replace('.', '').replace('-', '').replace(' ', '')
+            if cpf_clean not in customers:
+                customers[cpf_clean] = {
+                    'cpf': cpf,
+                    'name': repair.get('customer_name', 'N/A'),
+                    'phone': repair.get('customer_phone', 'N/A'),
+                    'email': repair.get('customer_email', ''),
+                    'repairs': []
+                }
+            customers[cpf_clean]['repairs'].append(repair)
+    
+    # Calcular score de risco para cada cliente
+    customers_with_score = []
+    for cpf_clean, customer_data in customers.items():
+        risk_score = calculate_customer_risk_score(cpf_clean)
+        customer_data['risk_score'] = risk_score
+        customer_data['total_repairs'] = len(customer_data['repairs'])
+        customers_with_score.append(customer_data)
+    
+    # Ordenar por score (maior risco primeiro)
+    customers_with_score.sort(key=lambda x: x['risk_score']['score'], reverse=True)
+    
+    # Filtrar por nível de risco se solicitado
+    risk_filter = request.args.get('risk_level', '')
+    if risk_filter:
+        customers_with_score = [c for c in customers_with_score if c['risk_score']['level'] == risk_filter]
+    
+    return render_template('admin/risk_scores.html', 
+                         customers=customers_with_score,
+                         risk_filter=risk_filter)
+
 @app.route('/admin/budget-requests/<request_id>/delete', methods=['POST'])
 @login_required
 def admin_delete_budget_request(request_id):
