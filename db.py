@@ -405,42 +405,63 @@ def create_tables():
             cur.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_cpf ON push_tokens(cpf)")
             
             # Tabela para usuários do admin
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS admin_users (
-                    id VARCHAR(50) PRIMARY KEY,
-                    username VARCHAR(100) UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    name VARCHAR(200) NOT NULL,
-                    email VARCHAR(200),
-                    phone VARCHAR(20),
-                    permissions JSONB DEFAULT '{}',
-                    is_active BOOLEAN DEFAULT TRUE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+            try:
+                print("📋 Criando tabela admin_users...")
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS admin_users (
+                        id VARCHAR(50) PRIMARY KEY,
+                        username VARCHAR(100) UNIQUE NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        name VARCHAR(200) NOT NULL,
+                        email VARCHAR(200),
+                        phone VARCHAR(20),
+                        permissions JSONB DEFAULT '{}',
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                print("✅ Tabela admin_users criada/verificada")
+            except Exception as e:
+                print(f"⚠️  Erro ao criar tabela admin_users: {e}")
+                import traceback
+                traceback.print_exc()
             
             # Tabela para técnicos
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS technicians (
-                    id VARCHAR(50) PRIMARY KEY,
-                    name VARCHAR(200) NOT NULL,
-                    cpf VARCHAR(11) UNIQUE,
-                    email VARCHAR(200),
-                    phone VARCHAR(20),
-                    address TEXT,
-                    specialties JSONB DEFAULT '[]',
-                    is_active BOOLEAN DEFAULT TRUE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+            try:
+                print("📋 Criando tabela technicians...")
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS technicians (
+                        id VARCHAR(50) PRIMARY KEY,
+                        name VARCHAR(200) NOT NULL,
+                        cpf VARCHAR(11) UNIQUE,
+                        email VARCHAR(200),
+                        phone VARCHAR(20),
+                        address TEXT,
+                        specialties JSONB DEFAULT '[]',
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                print("✅ Tabela technicians criada/verificada")
+            except Exception as e:
+                print(f"⚠️  Erro ao criar tabela technicians: {e}")
+                import traceback
+                traceback.print_exc()
             
             # Índices
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(is_active)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_cpf ON technicians(cpf)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_active ON technicians(is_active)")
+            try:
+                print("📋 Criando índices para admin_users e technicians...")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(is_active)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_cpf ON technicians(cpf)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_active ON technicians(is_active)")
+                print("✅ Índices criados/verificados")
+            except Exception as e:
+                print(f"⚠️  Erro ao criar índices: {e}")
+                import traceback
+                traceback.print_exc()
             
             # Criar índices para pending_notifications se a tabela existir
             try:
@@ -461,7 +482,22 @@ def create_tables():
             except Exception as e:
                 print(f"⚠️  Erro ao criar índices de notificações: {e}")
             
-            conn.commit()
+            # Commit explícito para garantir que as tabelas sejam criadas
+            try:
+                conn.commit()
+                print("✅ Commit realizado com sucesso!")
+            except Exception as e:
+                print(f"⚠️  Erro ao fazer commit: {e}")
+                import traceback
+                traceback.print_exc()
+                # Tentar rollback e commit novamente
+                try:
+                    conn.rollback()
+                    conn.commit()
+                    print("✅ Commit realizado após rollback!")
+                except Exception as e2:
+                    print(f"⚠️  Erro ao fazer commit após rollback: {e2}")
+            
             print("✅ Tabelas criadas/verificadas com sucesso!")
     except Exception as e:
         print(f"❌ Erro ao criar tabelas: {e}")
