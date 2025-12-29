@@ -2266,6 +2266,204 @@ def calculate_customer_risk_score(cpf):
             }
         }
 
+# ========== FUNÇÕES DE SCORE DE QUALIDADE DO TÉCNICO ==========
+
+def calculate_technician_quality_score(technician_id):
+    """Calcula o score de qualidade do técnico baseado nas métricas"""
+    from datetime import datetime, timedelta
+    
+    try:
+        if not technician_id:
+            return {
+                'score': 0,
+                'level': 'unknown',
+                'label': '⚪ Sem dados',
+                'metrics': {
+                    'warranty_return_rate': 0,
+                    'average_repair_time': 0,
+                    'error_rate': 0,
+                    'reopened_os': 0,
+                    'total_repairs': 0,
+                    'completed_repairs': 0,
+                    'warranty_returns': 0,
+                    'total_repair_time': 0,
+                    'errors': 0,
+                    'reopened': 0
+                }
+            }
+        
+        # Buscar todos os reparos
+        repairs = get_all_repairs()
+        
+        # Filtrar reparos do técnico
+        technician_repairs = []
+        for repair in repairs:
+            # Verificar se o reparo tem técnico associado
+            # Pode ser technician_id, technician_name, assigned_to, etc.
+            repair_technician = repair.get('technician_id') or repair.get('technician_name') or repair.get('assigned_to')
+            if repair_technician == technician_id or (isinstance(repair_technician, str) and technician_id in repair_technician):
+                technician_repairs.append(repair)
+        
+        if not technician_repairs:
+            return {
+                'score': 0,
+                'level': 'unknown',
+                'label': '⚪ Sem dados',
+                'metrics': {
+                    'warranty_return_rate': 0,
+                    'average_repair_time': 0,
+                    'error_rate': 0,
+                    'reopened_os': 0,
+                    'total_repairs': 0,
+                    'completed_repairs': 0,
+                    'warranty_returns': 0,
+                    'total_repair_time': 0,
+                    'errors': 0,
+                    'reopened': 0
+                }
+            }
+        
+        # Métricas
+        total_repairs = len(technician_repairs)
+        completed_repairs = 0
+        warranty_returns = 0
+        total_repair_time = 0  # em dias
+        errors = 0
+        reopened = 0
+        
+        now = datetime.now()
+        
+        for repair in technician_repairs:
+            status = repair.get('status', '').lower()
+            repair_type = repair.get('repair_type', 'novo').lower()
+            
+            # Contar reparos completados
+            if status == 'concluido':
+                completed_repairs += 1
+                
+                # Calcular tempo do reparo
+                created_at = repair.get('created_at')
+                completed_at = repair.get('completed_at') or repair.get('updated_at')
+                
+                if created_at and completed_at:
+                    try:
+                        created_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                        completed_date = datetime.fromisoformat(completed_at.replace('Z', '+00:00'))
+                        if created_date.tzinfo:
+                            created_date = created_date.replace(tzinfo=None)
+                        if completed_date.tzinfo:
+                            completed_date = completed_date.replace(tzinfo=None)
+                        repair_time = (completed_date - created_date).days
+                        if repair_time > 0:
+                            total_repair_time += repair_time
+                    except:
+                        pass
+                
+                # Verificar se é retorno em garantia
+                if repair_type == 'retorno':
+                    warranty_returns += 1
+                    errors += 1  # Retorno em garantia conta como erro
+            
+            # Verificar reabertura de OS
+            history = repair.get('history', [])
+            status_changes = [h.get('status', '').lower() for h in history if isinstance(h, dict)]
+            if status_changes.count('concluido') > 1:
+                reopened += 1
+        
+        # Calcular métricas
+        warranty_return_rate = (warranty_returns / completed_repairs * 100) if completed_repairs > 0 else 0
+        average_repair_time = (total_repair_time / completed_repairs) if completed_repairs > 0 else 0
+        error_rate = (errors / completed_repairs * 100) if completed_repairs > 0 else 0
+        reopened_os = reopened
+        
+        # Calcular score (0-100, onde 100 é perfeito)
+        # Penalidades:
+        # - Retorno em garantia: -10 pontos por %
+        # - Tempo médio alto (>7 dias): -5 pontos por dia acima de 7
+        # - Taxa de erro: -5 pontos por %
+        # - Reabertura: -15 pontos por OS
+        
+        score = 100
+        score -= min(warranty_return_rate * 10, 50)  # Máximo 50 pontos de penalidade
+        if average_repair_time > 7:
+            score -= min((average_repair_time - 7) * 5, 30)  # Máximo 30 pontos de penalidade
+        score -= min(error_rate * 5, 30)  # Máximo 30 pontos de penalidade
+        score -= min(reopened_os * 15, 50)  # Máximo 50 pontos de penalidade
+        
+        score = max(0, min(100, score))  # Garantir entre 0 e 100
+        
+        # Determinar nível de qualidade
+        if score >= 80:
+            level = 'excellent'
+            label = '🟢 Excelente'
+        elif score >= 60:
+            level = 'good'
+            label = '🟡 Bom'
+        elif score >= 40:
+            level = 'regular'
+            label = '🟠 Regular'
+        else:
+            level = 'poor'
+            label = '🔴 Precisa Melhorar'
+        
+        return {
+            'score': round(score, 2),
+            'level': level,
+            'label': label,
+            'metrics': {
+                'warranty_return_rate': round(warranty_return_rate, 2),
+                'average_repair_time': round(average_repair_time, 2),
+                'error_rate': round(error_rate, 2),
+                'reopened_os': reopened_os,
+                'total_repairs': total_repairs,
+                'completed_repairs': completed_repairs,
+                'warranty_returns': warranty_returns,
+                'total_repair_time': total_repair_time,
+                'errors': errors,
+                'reopened': reopened
+            }
+        }
+    except Exception as e:
+        print(f"Erro ao calcular score de qualidade para técnico {technician_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'score': 0,
+            'level': 'unknown',
+            'label': '⚪ Erro no cálculo',
+            'metrics': {
+                'warranty_return_rate': 0,
+                'average_repair_time': 0,
+                'error_rate': 0,
+                'reopened_os': 0,
+                'total_repairs': 0,
+                'completed_repairs': 0,
+                'warranty_returns': 0,
+                'total_repair_time': 0,
+                'errors': 0,
+                'reopened': 0,
+                'error': str(e)
+            }
+        }
+
+def get_all_technician_quality_scores():
+    """Obtém scores de qualidade de todos os técnicos"""
+    technicians = get_all_technicians()
+    scores = []
+    
+    for tech in technicians:
+        if tech.get('is_active', True):
+            quality_score = calculate_technician_quality_score(tech.get('id'))
+            scores.append({
+                'technician': tech,
+                'quality_score': quality_score
+            })
+    
+    # Ordenar por score (maior primeiro)
+    scores.sort(key=lambda x: x['quality_score']['score'], reverse=True)
+    
+    return scores
+
 # ========== FUNÇÕES DE USUÁRIOS DO ADMIN ==========
 
 def get_all_admin_users():

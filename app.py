@@ -53,7 +53,9 @@ from db import (
     get_all_technicians,
     get_technician,
     save_technician,
-    delete_technician
+    delete_technician,
+    calculate_technician_quality_score,
+    get_all_technician_quality_scores
 )
 
 app = Flask(__name__)
@@ -843,6 +845,23 @@ def admin_delete_technician(technician_id):
     delete_technician(technician_id)
     return redirect(url_for('admin_technicians'))
 
+# ========== ROTAS DE SCORE DE QUALIDADE DO TÉCNICO ==========
+
+@app.route('/admin/technician-quality', methods=['GET'])
+@login_required
+def admin_technician_quality():
+    """Dashboard de qualidade dos técnicos"""
+    quality_scores = get_all_technician_quality_scores()
+    
+    # Filtrar por nível se solicitado
+    quality_filter = request.args.get('filter', 'all')
+    if quality_filter != 'all':
+        quality_scores = [s for s in quality_scores if s['quality_score']['level'] == quality_filter]
+    
+    return render_template('admin/technician_quality.html', 
+                         quality_scores=quality_scores,
+                         quality_filter=quality_filter)
+
 @app.route('/admin/budget-requests/<request_id>/delete', methods=['POST'])
 @login_required
 def admin_delete_budget_request(request_id):
@@ -883,6 +902,7 @@ def admin_new_repair():
         repair_id = str(uuid.uuid4())[:8]
         
         repair_type = request.form.get('repair_type', 'novo')  # 'novo' ou 'retorno'
+        technician_id = request.form.get('technician_id', '')
         
         repair = {
             'id': repair_id,
@@ -896,6 +916,7 @@ def admin_new_repair():
             'customer_cpf': request.form.get('customer_cpf', ''),
             'customer_address': request.form.get('customer_address', ''),
             'customer_email': request.form.get('customer_email', ''),
+            'technician_id': technician_id,
             'status': 'aguardando',
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat(),
@@ -928,7 +949,8 @@ def admin_new_repair():
         
         return redirect(url_for('admin_repairs'))
     
-    return render_template('admin/new_repair.html')
+    technicians = get_all_technicians()
+    return render_template('admin/new_repair.html', technicians=technicians)
 
 @app.route('/admin/repairs/<repair_id>/status', methods=['POST'])
 @login_required
@@ -1141,12 +1163,14 @@ def admin_edit_repair(repair_id):
         repair['customer_cpf'] = request.form.get('customer_cpf', '')
         repair['customer_address'] = request.form.get('customer_address', '')
         repair['customer_email'] = request.form.get('customer_email', '')
+        repair['technician_id'] = request.form.get('technician_id', '')
         repair['updated_at'] = datetime.now().isoformat()
         
         save_repair(repair_id, repair)
         return redirect(url_for('admin_repairs'))
     
-    return render_template('admin/edit_repair.html', repair=repair)
+    technicians = get_all_technicians()
+    return render_template('admin/edit_repair.html', repair=repair, technicians=technicians)
 
 # Rota pública para cliente ver status
 @app.route('/status/<repair_id>', methods=['GET'])

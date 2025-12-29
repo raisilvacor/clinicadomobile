@@ -77,6 +77,21 @@
             <input type="email" id="customer_email" name="customer_email" placeholder="cliente@email.com">
         </div>
 
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🔧 Técnico Responsável (Opcional)</h3>
+
+        <div class="form-group">
+            <label for="technician_id">Técnico:</label>
+            <select id="technician_id" name="technician_id" style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+                <option value="">Selecione um técnico...</option>
+                {% for tech in technicians %}
+                {% if tech.is_active %}
+                <option value="{{ tech.id }}">{{ tech.name }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            <small style="color: #999; display: block; margin-top: 0.5rem;">Associe um técnico ao reparo para calcular o score de qualidade</small>
+        </div>
+
         <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">💰 Orçamento (Opcional)</h3>
 
         <div class="form-group">

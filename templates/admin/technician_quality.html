@@ -1,0 +1,157 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Score de Qualidade do Técnico{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>⭐ Score de Qualidade do Técnico</h2>
+    <p>Gestão baseada em dados: métricas, ranking e alertas de técnicos problemáticos.</p>
+
+    <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{{ url_for('admin_technician_quality', filter='all') }}" 
+           class="btn {% if quality_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+            Todos
+        </a>
+        <a href="{{ url_for('admin_technician_quality', filter='excellent') }}" 
+           class="btn {% if quality_filter == 'excellent' %}btn-primary{% else %}btn-secondary{% endif %}">
+            🟢 Excelente
+        </a>
+        <a href="{{ url_for('admin_technician_quality', filter='good') }}" 
+           class="btn {% if quality_filter == 'good' %}btn-primary{% else %}btn-secondary{% endif %}">
+            🟡 Bom
+        </a>
+        <a href="{{ url_for('admin_technician_quality', filter='regular') }}" 
+           class="btn {% if quality_filter == 'regular' %}btn-primary{% else %}btn-secondary{% endif %}">
+            🟠 Regular
+        </a>
+        <a href="{{ url_for('admin_technician_quality', filter='poor') }}" 
+           class="btn {% if quality_filter == 'poor' %}btn-primary{% else %}btn-secondary{% endif %}">
+            🔴 Precisa Melhorar
+        </a>
+    </div>
+
+    {% if quality_scores %}
+    <div style="margin-top: 2rem;">
+        {% for item in quality_scores %}
+        {% set tech = item.technician %}
+        {% set score = item.quality_score %}
+        {% set metrics = score.metrics %}
+        
+        <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; border: 2px solid 
+            {% if score.level == 'excellent' %}#28a745
+            {% elif score.level == 'good' %}#ffc107
+            {% elif score.level == 'regular' %}#ff8c00
+            {% elif score.level == 'poor' %}#dc3545
+            {% else %}#333
+            {% endif %};">
+            
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <h3 style="color: #ff8c00; margin: 0;">
+                            #{{ loop.index }} - {{ tech.name }}
+                        </h3>
+                        <span style="padding: 0.5rem 1rem; border-radius: 20px; font-size: 1rem; font-weight: bold;
+                            {% if score.level == 'excellent' %}
+                                background: rgba(40, 167, 69, 0.2); color: #28a745; border: 2px solid #28a745;
+                            {% elif score.level == 'good' %}
+                                background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 2px solid #ffc107;
+                            {% elif score.level == 'regular' %}
+                                background: rgba(255, 140, 0, 0.2); color: #ff8c00; border: 2px solid #ff8c00;
+                            {% elif score.level == 'poor' %}
+                                background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 2px solid #dc3545;
+                            {% else %}
+                                background: rgba(128, 128, 128, 0.2); color: #999; border: 2px solid #999;
+                            {% endif %}">
+                            {{ score.label }} - Score: {{ score.score }}/100
+                        </span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div style="background: #1a1a1a; padding: 1rem; border-radius: 8px;">
+                            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Total de Reparos</div>
+                            <div style="color: #ffffff; font-size: 1.5rem; font-weight: bold;">{{ metrics.total_repairs }}</div>
+                        </div>
+                        
+                        <div style="background: #1a1a1a; padding: 1rem; border-radius: 8px;">
+                            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Reparos Concluídos</div>
+                            <div style="color: #ffffff; font-size: 1.5rem; font-weight: bold;">{{ metrics.completed_repairs }}</div>
+                        </div>
+                        
+                        <div style="background: #1a1a1a; padding: 1rem; border-radius: 8px;">
+                            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">% Retorno em Garantia</div>
+                            <div style="color: {% if metrics.warranty_return_rate > 10 %}#dc3545{% elif metrics.warranty_return_rate > 5 %}#ff8c00{% else %}#28a745{% endif %}; font-size: 1.5rem; font-weight: bold;">
+                                {{ metrics.warranty_return_rate }}%
+                            </div>
+                        </div>
+                        
+                        <div style="background: #1a1a1a; padding: 1rem; border-radius: 8px;">
+                            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Tempo Médio (dias)</div>
+                            <div style="color: {% if metrics.average_repair_time > 7 %}#dc3545{% elif metrics.average_repair_time > 5 %}#ff8c00{% else %}#28a745{% endif %}; font-size: 1.5rem; font-weight: bold;">
+                                {{ metrics.average_repair_time }}
+                            </div>
+                        </div>
+                        
+                        <div style="background: #1a1a1a; padding: 1rem; border-radius: 8px;">
+                            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Taxa de Erro</div>
+                            <div style="color: {% if metrics.error_rate > 10 %}#dc3545{% elif metrics.error_rate > 5 %}#ff8c00{% else %}#28a745{% endif %}; font-size: 1.5rem; font-weight: bold;">
+                                {{ metrics.error_rate }}%
+                            </div>
+                        </div>
+                        
+                        <div style="background: #1a1a1a; padding: 1rem; border-radius: 8px;">
+                            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">OS Reabertas</div>
+                            <div style="color: {% if metrics.reopened_os > 2 %}#dc3545{% elif metrics.reopened_os > 0 %}#ff8c00{% else %}#28a745{% endif %}; font-size: 1.5rem; font-weight: bold;">
+                                {{ metrics.reopened_os }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if score.level == 'poor' or metrics.warranty_return_rate > 10 or metrics.error_rate > 10 or metrics.reopened_os > 2 %}
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(220, 53, 69, 0.2); border-radius: 8px; border: 1px solid #dc3545;">
+                        <strong style="color: #dc3545; display: block; margin-bottom: 0.5rem;">⚠️ ALERTA: Técnico Problemático</strong>
+                        <div style="color: #ffffff; font-size: 0.9rem;">
+                            <ul style="margin: 0; padding-left: 1.5rem;">
+                                {% if metrics.warranty_return_rate > 10 %}
+                                <li>Alto índice de retorno em garantia ({{ metrics.warranty_return_rate }}%)</li>
+                                {% endif %}
+                                {% if metrics.error_rate > 10 %}
+                                <li>Alta taxa de erro pós-serviço ({{ metrics.error_rate }}%)</li>
+                                {% endif %}
+                                {% if metrics.reopened_os > 2 %}
+                                <li>Muitas OS reabertas ({{ metrics.reopened_os }})</li>
+                                {% endif %}
+                                {% if metrics.average_repair_time > 7 %}
+                                <li>Tempo médio de reparo alto ({{ metrics.average_repair_time }} dias)</li>
+                                {% endif %}
+                            </ul>
+                            <p style="margin-top: 0.5rem; margin-bottom: 0;">
+                                <strong>💡 Sugestão de Treinamento:</strong>
+                                {% if metrics.warranty_return_rate > 10 %}
+                                Treinamento em qualidade de reparo e testes finais.
+                                {% elif metrics.error_rate > 10 %}
+                                Treinamento em diagnóstico e procedimentos corretos.
+                                {% elif metrics.reopened_os > 2 %}
+                                Treinamento em resolução completa de problemas.
+                                {% elif metrics.average_repair_time > 7 %}
+                                Treinamento em eficiência e gestão de tempo.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 4rem 2rem; background: #0d0d0d; border-radius: 10px; border: 2px solid #333; margin-top: 2rem;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Nenhum técnico com dados disponíveis</h3>
+        <p style="color: #999; margin-bottom: 2rem;">Os técnicos precisam ter reparos associados para calcular o score de qualidade.</p>
+        <a href="{{ url_for('admin_technicians') }}" class="btn btn-primary">Ver Técnicos</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
