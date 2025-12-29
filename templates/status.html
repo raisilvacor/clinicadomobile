@@ -889,6 +889,47 @@
         {% endfor %}
         {% endif %}
 
+        <!-- Cláusulas Contratuais -->
+        {% if repair.budget and repair.budget.status == 'approved' and not repair.signature %}
+        <div class="signature-section" style="background: rgba(255, 140, 0, 0.05); border: 2px solid #ff8c00; border-radius: 15px; padding: 1.5rem; margin: 2rem 0;">
+            <h3 style="color: #ff8c00; margin-bottom: 1.5rem; text-align: center;">📋 CLÁUSULAS CONTRATUAIS</h3>
+            <div style="max-height: 400px; overflow-y: auto; padding: 1rem; background: rgba(0, 0, 0, 0.3); border-radius: 10px; margin-bottom: 1.5rem;">
+                <div style="color: #ffffff; font-size: 0.9rem; line-height: 1.6;">
+                    <h4 style="color: #ff8c00; margin-top: 1rem; margin-bottom: 0.5rem;">1. DO SINAL E CONDIÇÕES DE PAGAMENTO</h4>
+                    <p style="margin-bottom: 0.5rem;"><strong>1.1.</strong> O cliente declara estar ciente e concorda que 50% (cinquenta por cento) do valor total do serviço deverá ser pago antecipadamente, no ato da abertura da presente Ordem de Serviço.</p>
+                    <p style="margin-bottom: 0.5rem;"><strong>1.2.</strong> O valor pago a título de sinal não é reembolsável em caso de desistência do serviço por parte do cliente após o início dos trabalhos.</p>
+                    <p style="margin-bottom: 1rem;"><strong>1.3.</strong> O saldo remanescente deverá ser quitado integralmente no ato da retirada do aparelho.</p>
+                    
+                    <h4 style="color: #ff8c00; margin-top: 1rem; margin-bottom: 0.5rem;">2. DO ESTADO DO APARELHO</h4>
+                    <p style="margin-bottom: 0.5rem;"><strong>2.1.</strong> O cliente declara que entregou o aparelho para análise e/ou reparo ciente de seu estado físico e funcional, incluindo possíveis danos pré-existentes como: Trincas, riscos, amassados; Manchas na tela; Oxidação, umidade ou contato com líquidos; Falhas intermitentes ou ocultas.</p>
+                    <p style="margin-bottom: 0.5rem;"><strong>2.2.</strong> A assistência não se responsabiliza por falhas preexistentes que venham a se manifestar durante ou após o reparo.</p>
+                    <p style="margin-bottom: 1rem;"><strong>2.3.</strong> Em aparelhos que já apresentem sinais de oxidação, queda ou tentativas anteriores de conserto, não há garantia de recuperação total do funcionamento, mesmo após o serviço executado.</p>
+                    
+                    <h4 style="color: #ff8c00; margin-top: 1rem; margin-bottom: 0.5rem;">3. DA GARANTIA DO SERVIÇO</h4>
+                    <p style="margin-bottom: 0.5rem;"><strong>3.1.</strong> A garantia refere-se exclusivamente ao serviço executado ou à peça substituída, pelo prazo de 90 dias.</p>
+                    <p style="margin-bottom: 0.5rem;"><strong>3.2.</strong> A garantia não cobre: Danos causados por mau uso; Quedas, impactos, líquidos ou sobrecarga elétrica; Atualizações de sistema, vírus ou softwares de terceiros; Defeitos não relacionados diretamente ao serviço realizado.</p>
+                    <p style="margin-bottom: 1rem;"><strong>3.3.</strong> Qualquer violação de lacres, abertura do aparelho por terceiros ou nova queda anula automaticamente a garantia.</p>
+                    
+                    <h4 style="color: #ff8c00; margin-top: 1rem; margin-bottom: 0.5rem;">4. DA RESPONSABILIDADE SOBRE DADOS</h4>
+                    <p style="margin-bottom: 0.5rem;"><strong>4.1.</strong> A assistência não se responsabiliza por perda de dados, como fotos, contatos, aplicativos ou arquivos.</p>
+                    <p style="margin-bottom: 1rem;"><strong>4.2.</strong> É de inteira responsabilidade do cliente realizar backup prévio antes da entrega do aparelho.</p>
+                    
+                    <h4 style="color: #ff8c00; margin-top: 1rem; margin-bottom: 0.5rem;">5. DO NÃO FUNCIONAMENTO APÓS O REPARO</h4>
+                    <p style="margin-bottom: 0.5rem;"><strong>5.1.</strong> O cliente reconhece que, em alguns casos, o aparelho pode não apresentar recuperação total, devido ao grau de dano, oxidação, desgaste de componentes ou defeitos ocultos.</p>
+                    <p style="margin-bottom: 1rem;"><strong>5.2.</strong> Nesses casos, o valor referente à análise técnica não será devolvido, bem como o sinal pago.</p>
+                    
+                    <h4 style="color: #ff8c00; margin-top: 1rem; margin-bottom: 0.5rem;">6. DO ABANDONO DO APARELHO (CLÁUSULA CRÍTICA)</h4>
+                    <p style="margin-bottom: 0.5rem;"><strong>6.1.</strong> Após a conclusão do serviço ou comunicação de impossibilidade de reparo, o cliente terá o prazo máximo de 90 (noventa) dias corridos para retirar o aparelho.</p>
+                    <p style="margin-bottom: 0.5rem;"><strong>6.2.</strong> Após esse prazo, será cobrada taxa de armazenamento no valor de R$ 5,00 (cinco reais) por dia.</p>
+                    <p style="margin-bottom: 1rem;"><strong>6.3.</strong> Caso o aparelho permaneça abandonado por período superior a 180 dias, a assistência poderá: Destinar o aparelho para descarte; Utilizá-lo para compensação de custos; Ou dar outra destinação legalmente permitida, sem direito a qualquer indenização ao cliente.</p>
+                    
+                    <h4 style="color: #ff8c00; margin-top: 1rem; margin-bottom: 0.5rem;">7. DA CIÊNCIA E ACEITE</h4>
+                    <p style="margin-bottom: 0.5rem;"><strong>7.1.</strong> Ao assinar a presente Ordem de Serviço, o cliente declara que leu, compreendeu e concorda integralmente com todas as cláusulas aqui descritas, não cabendo alegação futura de desconhecimento.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Assinatura Digital -->
         {% if repair.budget and repair.budget.status == 'approved' %}
         <div class="signature-section">
@@ -928,7 +969,7 @@
             <div class="warranty-details">
                 <div class="warranty-detail-item">
                     <span class="warranty-detail-label">Período de Garantia:</span>
-                    <span class="warranty-detail-value">{{ repair.warranty.period if repair.warranty and repair.warranty.period else '30 dias' }}</span>
+                    <span class="warranty-detail-value">{{ repair.warranty.period if repair.warranty and repair.warranty.period else '90 dias' }}</span>
                 </div>
                 <div class="warranty-detail-item">
                     <span class="warranty-detail-label">Data de Conclusão:</span>

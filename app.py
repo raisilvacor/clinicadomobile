@@ -1465,22 +1465,22 @@ def admin_complete_repair(repair_id):
     repair['completed_at'] = datetime.now().isoformat()
     repair['updated_at'] = datetime.now().isoformat()
     
-    # Gerar garantia (30 dias)
-    warranty_until = datetime.now() + timedelta(days=30)
+    # Gerar garantia (90 dias)
+    warranty_until = datetime.now() + timedelta(days=90)
     repair['warranty'] = {
-        'period': '30 dias',
+        'period': '90 dias',
         'valid_until': warranty_until.isoformat(),
         'coverage': 'Peças e mão de obra'
     }
     
     repair['history'].append({
         'timestamp': datetime.now().isoformat(),
-        'action': 'Reparo concluído - Garantia de 30 dias ativada',
+        'action': 'Reparo concluído - Garantia de 90 dias ativada',
         'status': 'concluido'
     })
     repair['messages'].append({
         'type': 'completed',
-        'content': 'Seu reparo foi concluído com sucesso! Você possui 30 dias de garantia. Obrigado pela confiança!',
+        'content': 'Seu reparo foi concluído com sucesso! Você possui 90 dias de garantia. Obrigado pela confiança!',
         'sent_at': datetime.now().isoformat()
     })
     
@@ -2283,7 +2283,7 @@ def admin_or_pdf_internal(repair_id):
         alignment=1
     )
     
-    story.append(Paragraph("ORDEM DE RETIRADA", title_style))
+    story.append(Paragraph("ORDEM DE SERVIÇO - OS", title_style))
     story.append(Spacer(1, 0.3*cm))
     
     # Informações da OR
@@ -2594,7 +2594,7 @@ def admin_repair_pdf(repair_id):
     )
     
     # Título
-    story.append(Paragraph("ORDEM DE REPARO (OR)", title_style))
+    story.append(Paragraph("ORDEM DE SERVIÇO - OS", title_style))
     story.append(Spacer(1, 0.5*cm))
     
     # Informações do Reparo - Design Elegante
@@ -2680,6 +2680,68 @@ def admin_repair_pdf(repair_id):
             budget_desc = repair['budget'].get('description', 'N/A')
             story.append(Paragraph(f"<b>Descrição:</b> {budget_desc}", info_value_style))
         
+        story.append(Spacer(1, 0.4*cm))
+        
+        # Cláusulas do Contrato
+        clause_style = ParagraphStyle(
+            'ClauseStyle',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.black,
+            spaceAfter=6,
+            leading=10,
+            alignment=0  # Left alignment
+        )
+        
+        clause_title_style = ParagraphStyle(
+            'ClauseTitle',
+            parent=styles['Heading3'],
+            fontSize=9,
+            textColor=colors.HexColor('#FF8C00'),
+            spaceAfter=4,
+            spaceBefore=8,
+            fontName='Helvetica-Bold'
+        )
+        
+        story.append(Paragraph("CLÁUSULAS CONTRATUAIS", heading_style))
+        story.append(Spacer(1, 0.2*cm))
+        
+        story.append(Paragraph("1. DO SINAL E CONDIÇÕES DE PAGAMENTO", clause_title_style))
+        story.append(Paragraph("1.1. O cliente declara estar ciente e concorda que 50% (cinquenta por cento) do valor total do serviço deverá ser pago antecipadamente, no ato da abertura da presente Ordem de Serviço.", clause_style))
+        story.append(Paragraph("1.2. O valor pago a título de sinal não é reembolsável em caso de desistência do serviço por parte do cliente após o início dos trabalhos.", clause_style))
+        story.append(Paragraph("1.3. O saldo remanescente deverá ser quitado integralmente no ato da retirada do aparelho.", clause_style))
+        story.append(Spacer(1, 0.2*cm))
+        
+        story.append(Paragraph("2. DO ESTADO DO APARELHO", clause_title_style))
+        story.append(Paragraph("2.1. O cliente declara que entregou o aparelho para análise e/ou reparo ciente de seu estado físico e funcional, incluindo possíveis danos pré-existentes como: Trincas, riscos, amassados; Manchas na tela; Oxidação, umidade ou contato com líquidos; Falhas intermitentes ou ocultas.", clause_style))
+        story.append(Paragraph("2.2. A assistência não se responsabiliza por falhas preexistentes que venham a se manifestar durante ou após o reparo.", clause_style))
+        story.append(Paragraph("2.3. Em aparelhos que já apresentem sinais de oxidação, queda ou tentativas anteriores de conserto, não há garantia de recuperação total do funcionamento, mesmo após o serviço executado.", clause_style))
+        story.append(Spacer(1, 0.2*cm))
+        
+        story.append(Paragraph("3. DA GARANTIA DO SERVIÇO", clause_title_style))
+        story.append(Paragraph("3.1. A garantia refere-se exclusivamente ao serviço executado ou à peça substituída, pelo prazo de 90 dias.", clause_style))
+        story.append(Paragraph("3.2. A garantia não cobre: Danos causados por mau uso; Quedas, impactos, líquidos ou sobrecarga elétrica; Atualizações de sistema, vírus ou softwares de terceiros; Defeitos não relacionados diretamente ao serviço realizado.", clause_style))
+        story.append(Paragraph("3.3. Qualquer violação de lacres, abertura do aparelho por terceiros ou nova queda anula automaticamente a garantia.", clause_style))
+        story.append(Spacer(1, 0.2*cm))
+        
+        story.append(Paragraph("4. DA RESPONSABILIDADE SOBRE DADOS", clause_title_style))
+        story.append(Paragraph("4.1. A assistência não se responsabiliza por perda de dados, como fotos, contatos, aplicativos ou arquivos.", clause_style))
+        story.append(Paragraph("4.2. É de inteira responsabilidade do cliente realizar backup prévio antes da entrega do aparelho.", clause_style))
+        story.append(Spacer(1, 0.2*cm))
+        
+        story.append(Paragraph("5. DO NÃO FUNCIONAMENTO APÓS O REPARO", clause_title_style))
+        story.append(Paragraph("5.1. O cliente reconhece que, em alguns casos, o aparelho pode não apresentar recuperação total, devido ao grau de dano, oxidação, desgaste de componentes ou defeitos ocultos.", clause_style))
+        story.append(Paragraph("5.2. Nesses casos, o valor referente à análise técnica não será devolvido, bem como o sinal pago.", clause_style))
+        story.append(Spacer(1, 0.2*cm))
+        
+        story.append(Paragraph("6. DO ABANDONO DO APARELHO (CLÁUSULA CRÍTICA)", clause_title_style))
+        story.append(Paragraph("6.1. Após a conclusão do serviço ou comunicação de impossibilidade de reparo, o cliente terá o prazo máximo de 90 (noventa) dias corridos para retirar o aparelho.", clause_style))
+        story.append(Paragraph("6.2. Após esse prazo, será cobrada taxa de armazenamento no valor de R$ 5,00 (cinco reais) por dia.", clause_style))
+        story.append(Paragraph("6.3. Caso o aparelho permaneça abandonado por período superior a 180 dias, a assistência poderá: Destinar o aparelho para descarte; Utilizá-lo para compensação de custos; Ou dar outra destinação legalmente permitida, sem direito a qualquer indenização ao cliente.", clause_style))
+        story.append(Spacer(1, 0.2*cm))
+        
+        story.append(Paragraph("7. DA CIÊNCIA E ACEITE", clause_title_style))
+        story.append(Paragraph("7.1. Ao assinar a presente Ordem de Serviço, o cliente declara que leu, compreendeu e concorda integralmente com todas as cláusulas aqui descritas, não cabendo alegação futura de desconhecimento.", clause_style))
         story.append(Spacer(1, 0.4*cm))
     
     # Garantia - Design Elegante
