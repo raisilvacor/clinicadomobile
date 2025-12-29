@@ -555,6 +555,31 @@ def admin_nfse():
     """Redireciona para o portal oficial de NFS-e do governo"""
     return redirect('https://www.nfse.gov.br/EmissorNacional/Login?ReturnUrl=%2fEmissorNacional')
 
+@app.route('/admin/financeiro', methods=['GET'])
+@login_required
+def admin_financeiro():
+    """Gestão financeira - relatórios e métricas"""
+    from db import get_financial_data
+    from datetime import datetime, timedelta
+    
+    # Obter parâmetros de data
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    # Se não houver datas, usar últimos 30 dias
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    
+    # Buscar dados financeiros
+    financial_data = get_financial_data(start_date, end_date)
+    
+    return render_template('admin/financeiro.html', 
+                         financial_data=financial_data,
+                         start_date=start_date,
+                         end_date=end_date)
+
 @app.route('/admin/budget-requests/<request_id>/delete', methods=['POST'])
 @login_required
 def admin_delete_budget_request(request_id):

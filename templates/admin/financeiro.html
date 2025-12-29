@@ -1,0 +1,332 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Gestão Financeira{% endblock %}
+
+{% block extra_css %}
+<style>
+    .financial-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 2px solid #333333;
+    }
+    
+    .financial-card h3 {
+        color: #ff8c00;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        border-bottom: 2px solid #ff8c00;
+        padding-bottom: 0.5rem;
+    }
+    
+    .financial-metric {
+        background: rgba(255, 140, 0, 0.1);
+        border: 1px solid #ff8c00;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    
+    .financial-metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #ff8c00;
+        margin: 0.5rem 0;
+    }
+    
+    .financial-metric-label {
+        color: #cccccc;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+    }
+    
+    .date-filter {
+        background: rgba(255, 140, 0, 0.05);
+        border: 2px solid #ff8c00;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .date-filter form {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .date-filter input[type="date"] {
+        padding: 0.75rem;
+        background: #0d0d0d;
+        border: 2px solid #ff8c00;
+        border-radius: 8px;
+        color: #ffffff;
+        font-size: 1rem;
+    }
+    
+    .date-filter button {
+        padding: 0.75rem 2rem;
+        background: #ff8c00;
+        color: #000000;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .date-filter button:hover {
+        background: #ffaa00;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        margin-top: 1rem;
+    }
+    
+    .financial-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #0d0d0d;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .financial-table th {
+        background: #ff8c00;
+        color: #000000;
+        padding: 1rem;
+        text-align: left;
+        font-weight: bold;
+    }
+    
+    .financial-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #333333;
+        color: #ffffff;
+    }
+    
+    .financial-table tr:hover {
+        background: rgba(255, 140, 0, 0.1);
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+    
+    .badge-danger {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border: 1px solid #dc3545;
+    }
+    
+    .badge-success {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+    
+    .badge-warning {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 1px solid #ffc107;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #999;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>💰 Gestão Financeira</h2>
+    <p>Relatórios e métricas financeiras do negócio</p>
+    
+    <!-- Filtro de Data -->
+    <div class="date-filter">
+        <form method="GET" action="{{ url_for('admin_financeiro') }}">
+            <label style="color: #ff8c00; font-weight: bold;">Período:</label>
+            <input type="date" name="start_date" value="{{ start_date }}" required>
+            <span style="color: #ffffff;">até</span>
+            <input type="date" name="end_date" value="{{ end_date }}" required>
+            <button type="submit">🔍 Filtrar</button>
+        </form>
+    </div>
+    
+    <!-- Métricas Principais -->
+    <div class="financial-card">
+        <h3>📊 Resumo Financeiro</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div class="financial-metric">
+                <div class="financial-metric-label">Faturamento Total</div>
+                <div class="financial-metric-value">R$ {{ "%.2f"|format(financial_data.total_billing) }}</div>
+                <div class="financial-metric-label">Período selecionado</div>
+            </div>
+            <div class="financial-metric">
+                <div class="financial-metric-label">Valor Perdido por Abandono</div>
+                <div class="financial-metric-value" style="color: #dc3545;">R$ {{ "%.2f"|format(financial_data.abandoned_value) }}</div>
+                <div class="financial-metric-label">{{ financial_data.abandoned_repairs|length }} reparo(s) abandonado(s)</div>
+            </div>
+            <div class="financial-metric">
+                <div class="financial-metric-label">Serviços em Garantia</div>
+                <div class="financial-metric-value" style="color: #ffc107;">{{ financial_data.warranty_repairs|length }}</div>
+                <div class="financial-metric-label">Reparos com garantia ativa</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Faturamento por Mês -->
+    {% if financial_data.billing_by_month %}
+    <div class="financial-card">
+        <h3>📈 Faturamento por Mês</h3>
+        <div class="table-container">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th>Mês</th>
+                        <th>Faturamento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month, value in financial_data.billing_by_month.items()|sort %}
+                    <tr>
+                        <td>{{ month }}</td>
+                        <td style="color: #28a745; font-weight: bold;">R$ {{ "%.2f"|format(value) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Serviços Mais Vendidos -->
+    {% if financial_data.top_services %}
+    <div class="financial-card">
+        <h3>🏆 Serviços Mais Vendidos</h3>
+        <div class="table-container">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th>Posição</th>
+                        <th>Serviço</th>
+                        <th>Quantidade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service, count in financial_data.top_services %}
+                    <tr>
+                        <td style="color: #ff8c00; font-weight: bold;">#{{ loop.index }}</td>
+                        <td>{{ service }}</td>
+                        <td style="color: #28a745; font-weight: bold;">{{ count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="financial-card">
+        <h3>🏆 Serviços Mais Vendidos</h3>
+        <div class="empty-state">
+            <p>Nenhum serviço encontrado no período selecionado.</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Valor Perdido por Abandono -->
+    {% if financial_data.abandoned_repairs %}
+    <div class="financial-card">
+        <h3>⚠️ Valor Perdido por Abandono</h3>
+        <p style="color: #dc3545; margin-bottom: 1rem; font-weight: bold;">
+            Total: R$ {{ "%.2f"|format(financial_data.abandoned_value) }} em {{ financial_data.abandoned_repairs|length }} reparo(s) abandonado(s)
+        </p>
+        <div class="table-container">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th>ID Reparo</th>
+                        <th>Cliente</th>
+                        <th>Dispositivo</th>
+                        <th>Concluído em</th>
+                        <th>Dias Abandonado</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for repair in financial_data.abandoned_repairs %}
+                    <tr>
+                        <td><a href="{{ url_for('admin_repairs') }}#repair-{{ repair.id }}" style="color: #ff8c00;">{{ repair.id }}</a></td>
+                        <td>{{ repair.customer_name }}</td>
+                        <td>{{ repair.device_name }}</td>
+                        <td>{{ repair.completed_at[:10] if repair.completed_at else 'N/A' }}</td>
+                        <td><span class="badge badge-danger">{{ repair.days_abandoned }} dias</span></td>
+                        <td style="color: #dc3545; font-weight: bold;">R$ {{ "%.2f"|format(repair.value) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="financial-card">
+        <h3>⚠️ Valor Perdido por Abandono</h3>
+        <div class="empty-state">
+            <p>✅ Nenhum reparo abandonado encontrado. Ótimo trabalho!</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Serviços em Garantia -->
+    {% if financial_data.warranty_repairs %}
+    <div class="financial-card">
+        <h3>🛡️ Serviços em Garantia</h3>
+        <p style="color: #ffc107; margin-bottom: 1rem; font-weight: bold;">
+            Total: {{ financial_data.warranty_repairs|length }} reparo(s) com garantia ativa
+        </p>
+        <div class="table-container">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th>ID Reparo</th>
+                        <th>Cliente</th>
+                        <th>Dispositivo</th>
+                        <th>Concluído em</th>
+                        <th>Garantia</th>
+                        <th>Válida até</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for repair in financial_data.warranty_repairs %}
+                    <tr>
+                        <td><a href="{{ url_for('admin_repairs') }}#repair-{{ repair.id }}" style="color: #ff8c00;">{{ repair.id }}</a></td>
+                        <td>{{ repair.customer_name }}</td>
+                        <td>{{ repair.device_name }}</td>
+                        <td>{{ repair.completed_at[:10] if repair.completed_at else 'N/A' }}</td>
+                        <td><span class="badge badge-warning">{{ repair.period }}</span></td>
+                        <td style="color: #28a745; font-weight: bold;">{{ repair.valid_until[:10] if repair.valid_until else 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="financial-card">
+        <h3>🛡️ Serviços em Garantia</h3>
+        <div class="empty-state">
+            <p>Nenhum serviço em garantia no momento.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

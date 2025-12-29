@@ -1842,3 +1842,147 @@ def save_config(config):
             repair_id = order.get('repair_id')
             if order_id and repair_id:
                 save_order(order_id, repair_id, order)
+
+# ========== FUNÇÕES DE GESTÃO FINANCEIRA ==========
+
+def get_financial_data(start_date=None, end_date=None):
+    """Obtém dados financeiros dos reparos"""
+    from datetime import datetime, timedelta
+    
+    repairs = get_all_repairs()
+    
+    # Se não houver datas, usar últimos 30 dias
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=30)).isoformat()
+    if not end_date:
+        end_date = datetime.now().isoformat()
+    
+    # Converter para datetime para comparação
+    try:
+        start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00') if 'Z' in start_date else start_date)
+        end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00') if 'Z' in end_date else end_date)
+    except:
+        start_dt = datetime.now() - timedelta(days=30)
+        end_dt = datetime.now()
+    
+    # Faturamento por período
+    total_billing = 0.0
+    billing_by_month = {}
+    billing_by_status = {}
+    
+    # Serviços mais vendidos
+    services_count = {}
+    
+    # Valor perdido por abandono
+    abandoned_value = 0.0
+    abandoned_repairs = []
+    
+    # Serviços em garantia
+    warranty_repairs = []
+    
+    for repair in repairs:
+        status = repair.get('status', '')
+        completed_at = repair.get('completed_at')
+        order = get_order_by_repair(repair.get('id'))
+        budget = repair.get('budget')
+        budget_amount = 0.0
+        
+        if budget and isinstance(budget, dict) and budget.get('status') == 'approved':
+            budget_amount = float(budget.get('amount', 0))
+            
+            # Se está concluído ou tem OR, conta como faturado
+            if status == 'concluido' or order:
+                # Verificar se está no período
+                repair_date = None
+                if completed_at:
+                    try:
+                        repair_date = datetime.fromisoformat(completed_at.replace('Z', '+00:00') if 'Z' in completed_at else completed_at)
+                    except:
+                        pass
+                elif order and order.get('emitted_at'):
+                    try:
+                        repair_date = datetime.fromisoformat(order.get('emitted_at').replace('Z', '+00:00') if 'Z' in order.get('emitted_at') else order.get('emitted_at'))
+                    except:
+                        pass
+                elif repair.get('created_at'):
+                    try:
+                        repair_date = datetime.fromisoformat(repair.get('created_at').replace('Z', '+00:00') if 'Z' in repair.get('created_at') else repair.get('created_at'))
+                    except:
+                        pass
+                
+                if repair_date and start_dt <= repair_date <= end_dt:
+                    total_billing += budget_amount
+                    
+                    # Por mês
+                    month_key = repair_date.strftime('%Y-%m')
+                    billing_by_month[month_key] = billing_by_month.get(month_key, 0) + budget_amount
+                    
+                    # Por status
+                    billing_by_status[status] = billing_by_status.get(status, 0) + budget_amount
+            
+            # Serviços mais vendidos (por tipo de dispositivo ou problema)
+            device_name = repair.get('device_name', 'Outros')
+            problem = repair.get('problem_description', '')
+            service_key = f"{device_name}"
+            if problem:
+                # Pegar primeira palavra do problema como tipo de serviço
+                problem_words = problem.split()
+                if problem_words:
+                    service_key = f"{device_name} - {problem_words[0]}"
+            
+            services_count[service_key] = services_count.get(service_key, 0) + 1
+        
+        # Valor perdido por abandono (concluído há mais de 90 dias sem OR)
+        if status == 'concluido' and not order and completed_at:
+            try:
+                completed_dt = datetime.fromisoformat(completed_at.replace('Z', '+00:00') if 'Z' in completed_at else completed_at)
+                days_abandoned = (datetime.now() - completed_dt).days
+                
+                if days_abandoned > 90:
+                    abandoned_value += budget_amount if budget and isinstance(budget, dict) else 0
+                    abandoned_repairs.append({
+                        'id': repair.get('id'),
+                        'customer_name': repair.get('customer_name', 'N/A'),
+                        'device_name': repair.get('device_name', 'N/A'),
+                        'completed_at': completed_at,
+                        'days_abandoned': days_abandoned,
+                        'value': budget_amount if budget and isinstance(budget, dict) else 0
+                    })
+            except:
+                pass
+        
+        # Serviços em garantia
+        warranty = repair.get('warranty')
+        if warranty and isinstance(warranty, dict):
+            valid_until = warranty.get('valid_until')
+            if valid_until:
+                try:
+                    valid_until_dt = datetime.fromisoformat(valid_until.replace('Z', '+00:00') if 'Z' in valid_until else valid_until)
+                    if valid_until_dt > datetime.now():
+                        warranty_repairs.append({
+                            'id': repair.get('id'),
+                            'customer_name': repair.get('customer_name', 'N/A'),
+                            'device_name': repair.get('device_name', 'N/A'),
+                            'completed_at': repair.get('completed_at', ''),
+                            'valid_until': valid_until,
+                            'period': warranty.get('period', 'N/A')
+                        })
+                except:
+                    pass
+    
+    # Ordenar serviços mais vendidos
+    services_sorted = sorted(services_count.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    return {
+        'total_billing': total_billing,
+        'billing_by_month': billing_by_month,
+        'billing_by_status': billing_by_status,
+        'top_services': services_sorted,
+        'abandoned_value': abandoned_value,
+        'abandoned_repairs': abandoned_repairs,
+        'warranty_repairs': warranty_repairs,
+        'period': {
+            'start': start_date,
+            'end': end_date
+        }
+    }
