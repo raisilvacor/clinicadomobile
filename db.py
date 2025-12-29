@@ -1859,9 +1859,19 @@ def get_financial_data(start_date=None, end_date=None):
     
     # Converter para datetime para comparação
     try:
-        start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00') if 'Z' in start_date else start_date)
-        end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00') if 'Z' in end_date else end_date)
-    except:
+        # Se a data vem no formato YYYY-MM-DD (do formulário), adicionar hora 00:00:00
+        if isinstance(start_date, str) and len(start_date) == 10 and '-' in start_date:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        else:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00') if 'Z' in start_date else start_date)
+        
+        if isinstance(end_date, str) and len(end_date) == 10 and '-' in end_date:
+            # Para end_date, usar fim do dia (23:59:59)
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+        else:
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00') if 'Z' in end_date else end_date)
+    except Exception as e:
+        print(f"Erro ao converter datas: {e}")
         start_dt = datetime.now() - timedelta(days=30)
         end_dt = datetime.now()
     
@@ -1881,7 +1891,7 @@ def get_financial_data(start_date=None, end_date=None):
     warranty_repairs = []
     
     for repair in repairs:
-        status = repair.get('status', '')
+        status = repair.get('status', '').lower()  # Normalizar para lowercase
         completed_at = repair.get('completed_at')
         order = get_order_by_repair(repair.get('id'))
         budget = repair.get('budget')
@@ -1890,35 +1900,79 @@ def get_financial_data(start_date=None, end_date=None):
         if budget and isinstance(budget, dict) and budget.get('status') == 'approved':
             budget_amount = float(budget.get('amount', 0))
             
-            # Se está concluído ou tem OR, conta como faturado
+            # Se está concluído OU tem OR, conta como faturado
+            # IMPORTANTE: Reparos concluídos devem ser contados mesmo sem OR
             if status == 'concluido' or order:
                 # Verificar se está no período
                 repair_date = None
+                
+                # Prioridade: data de conclusão > data de emissão da OR > data de criação
                 if completed_at:
                     try:
                         repair_date = datetime.fromisoformat(completed_at.replace('Z', '+00:00') if 'Z' in completed_at else completed_at)
                     except:
-                        pass
+                        try:
+                            # Tentar formato alternativo
+                            repair_date = datetime.strptime(completed_at[:10], '%Y-%m-%d')
+                        except:
+                            pass
                 elif order and order.get('emitted_at'):
                     try:
                         repair_date = datetime.fromisoformat(order.get('emitted_at').replace('Z', '+00:00') if 'Z' in order.get('emitted_at') else order.get('emitted_at'))
                     except:
-                        pass
+                        try:
+                            # Tentar formato alternativo
+                            repair_date = datetime.strptime(order.get('emitted_at')[:10], '%Y-%m-%d')
+                        except:
+                            pass
                 elif repair.get('created_at'):
                     try:
                         repair_date = datetime.fromisoformat(repair.get('created_at').replace('Z', '+00:00') if 'Z' in repair.get('created_at') else repair.get('created_at'))
                     except:
-                        pass
+                        try:
+                            # Tentar formato alternativo
+                            repair_date = datetime.strptime(repair.get('created_at')[:10], '%Y-%m-%d')
+                        except:
+                            pass
                 
-                if repair_date and start_dt <= repair_date <= end_dt:
-                    total_billing += budget_amount
+                # Se encontrou uma data válida e está no período
+                if repair_date:
+                    # Comparar apenas as datas (ignorar hora)
+                    repair_date_only = repair_date.date()
+                    start_date_only = start_dt.date()
+                    end_date_only = end_dt.date()
                     
-                    # Por mês
-                    month_key = repair_date.strftime('%Y-%m')
-                    billing_by_month[month_key] = billing_by_month.get(month_key, 0) + budget_amount
-                    
-                    # Por status
-                    billing_by_status[status] = billing_by_status.get(status, 0) + budget_amount
+                    if start_date_only <= repair_date_only <= end_date_only:
+                        total_billing += budget_amount
+                        
+                        # Por mês
+                        month_key = repair_date.strftime('%Y-%m')
+                        billing_by_month[month_key] = billing_by_month.get(month_key, 0) + budget_amount
+                        
+                        # Por status
+                        billing_by_status[status] = billing_by_status.get(status, 0) + budget_amount
+                elif status == 'concluido':
+                    # Se está concluído mas não tem data válida, usar data de criação como fallback
+                    # Isso garante que reparos concluídos sejam sempre contados
+                    created_at = repair.get('created_at')
+                    if created_at:
+                        try:
+                            repair_date = datetime.fromisoformat(created_at.replace('Z', '+00:00') if 'Z' in created_at else created_at)
+                            repair_date_only = repair_date.date()
+                            start_date_only = start_dt.date()
+                            end_date_only = end_dt.date()
+                            
+                            if start_date_only <= repair_date_only <= end_date_only:
+                                total_billing += budget_amount
+                                
+                                # Por mês
+                                month_key = repair_date.strftime('%Y-%m')
+                                billing_by_month[month_key] = billing_by_month.get(month_key, 0) + budget_amount
+                                
+                                # Por status
+                                billing_by_status[status] = billing_by_status.get(status, 0) + budget_amount
+                        except:
+                            pass
             
             # Serviços mais vendidos (por tipo de dispositivo ou problema)
             device_name = repair.get('device_name', 'Outros')
