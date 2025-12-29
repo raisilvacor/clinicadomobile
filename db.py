@@ -276,152 +276,233 @@ def create_tables():
             print("⚠️  create_tables: Pool não disponível")
             return
     
+    # Usar conexão direta para garantir que as tabelas sejam criadas
+    conn = None
     try:
         print("📋 Criando tabelas no banco de dados...")
-        # Obter conexão diretamente sem context manager para garantir commit
-        conn = None
+        
+        # Obter DATABASE_URL
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            print("⚠️  create_tables: DATABASE_URL não configurada")
+            return
+        
+        # Criar conexão direta (não do pool) para criação de tabelas
+        import psycopg
+        conn = psycopg.connect(database_url, autocommit=True)
+        cur = conn.cursor()
+        
+        # Tabela para conteúdo do site (hero, serviços, sobre, etc.)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS site_content (
+                id SERIAL PRIMARY KEY,
+                section VARCHAR(50) UNIQUE NOT NULL,
+                data JSONB NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para configurações do admin
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS admin_settings (
+                key VARCHAR(100) PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para reparos
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS repairs (
+                id VARCHAR(50) PRIMARY KEY,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para checklists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS checklists (
+                id VARCHAR(50) PRIMARY KEY,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para ordens de retirada (OR)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS orders (
+                id VARCHAR(50) PRIMARY KEY,
+                repair_id VARCHAR(50) NOT NULL,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para fornecedores
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS suppliers (
+                id VARCHAR(50) PRIMARY KEY,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para produtos da loja
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS products (
+                id VARCHAR(50) PRIMARY KEY,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS brands (
+                id VARCHAR(50) PRIMARY KEY,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para senhas de clientes (associadas ao CPF)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS customer_passwords (
+                cpf VARCHAR(11) PRIMARY KEY,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para solicitações de orçamento
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS budget_requests (
+                id VARCHAR(50) PRIMARY KEY,
+                data JSONB NOT NULL,
+                status VARCHAR(20) DEFAULT 'pendente',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para tokens de notificação push (FCM)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS push_tokens (
+                id SERIAL PRIMARY KEY,
+                cpf VARCHAR(11) NOT NULL,
+                token TEXT NOT NULL,
+                device_info JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(cpf, token)
+            )
+        """)
+        
+        # Índices para melhor performance
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_repairs_repair_id ON repairs(id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_checklists_id ON checklists(id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_repair_id ON orders(repair_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_id ON orders(id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_suppliers_id ON suppliers(id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_customer_passwords_cpf ON customer_passwords(cpf)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_cpf ON push_tokens(cpf)")
+            
+        # Tabela para usuários do admin
         try:
-            if pool is None:
-                init_db()
-            if pool is None:
-                print("⚠️  create_tables: Pool não disponível")
-                return
-            
-            conn = pool.getconn(timeout=10)
-            if not conn:
-                print("⚠️  create_tables: Sem conexão disponível")
-                return
-            
-            # Usar autocommit para garantir que as tabelas sejam criadas imediatamente
-            # DDL (CREATE TABLE) não precisa de transação explícita
-            conn.autocommit = True
-            cur = _get_cursor(conn)
-            
-            # Tabela para conteúdo do site (hero, serviços, sobre, etc.)
+            print("📋 Criando tabela admin_users...")
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS site_content (
-                    id SERIAL PRIMARY KEY,
-                    section VARCHAR(50) UNIQUE NOT NULL,
-                    data JSONB NOT NULL,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Tabela para configurações do admin
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS admin_settings (
-                    key VARCHAR(100) PRIMARY KEY,
-                    value TEXT NOT NULL,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Tabela para reparos
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS repairs (
+                CREATE TABLE IF NOT EXISTS admin_users (
                     id VARCHAR(50) PRIMARY KEY,
-                    data JSONB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Tabela para checklists
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS checklists (
-                    id VARCHAR(50) PRIMARY KEY,
-                    data JSONB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Tabela para ordens de retirada (OR)
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS orders (
-                    id VARCHAR(50) PRIMARY KEY,
-                    repair_id VARCHAR(50) NOT NULL,
-                    data JSONB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Tabela para fornecedores
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS suppliers (
-                    id VARCHAR(50) PRIMARY KEY,
-                    data JSONB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Tabela para produtos da loja
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS products (
-                    id VARCHAR(50) PRIMARY KEY,
-                    data JSONB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-                CREATE TABLE IF NOT EXISTS brands (
-                    id VARCHAR(50) PRIMARY KEY,
-                    data JSONB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Tabela para senhas de clientes (associadas ao CPF)
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS customer_passwords (
-                    cpf VARCHAR(11) PRIMARY KEY,
+                    username VARCHAR(100) UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
+                    name VARCHAR(200) NOT NULL,
+                    email VARCHAR(200),
+                    phone VARCHAR(20),
+                    permissions JSONB DEFAULT '{}',
+                    is_active BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
-            # Tabela para solicitações de orçamento
+            print("✅ Tabela admin_users criada/verificada")
+        except Exception as e:
+            print(f"⚠️  Erro ao criar tabela admin_users: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # Tabela para técnicos
+        try:
+            print("📋 Criando tabela technicians...")
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS budget_requests (
+                CREATE TABLE IF NOT EXISTS technicians (
                     id VARCHAR(50) PRIMARY KEY,
-                    data JSONB NOT NULL,
-                    status VARCHAR(20) DEFAULT 'pendente',
+                    name VARCHAR(200) NOT NULL,
+                    cpf VARCHAR(11) UNIQUE,
+                    email VARCHAR(200),
+                    phone VARCHAR(20),
+                    address TEXT,
+                    specialties JSONB DEFAULT '[]',
+                    is_active BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
-            # Tabela para tokens de notificação push (FCM)
+            print("✅ Tabela technicians criada/verificada")
+        except Exception as e:
+            print(f"⚠️  Erro ao criar tabela technicians: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # Índices
+        try:
+            print("📋 Criando índices para admin_users e technicians...")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(is_active)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_cpf ON technicians(cpf)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_active ON technicians(is_active)")
+            print("✅ Índices criados/verificados")
+        except Exception as e:
+            print(f"⚠️  Erro ao criar índices: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # Criar índices para pending_notifications se a tabela existir
+        try:
+            # Verificar se o índice já existe antes de criar
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS push_tokens (
-                    id SERIAL PRIMARY KEY,
-                    cpf VARCHAR(11) NOT NULL,
-                    token TEXT NOT NULL,
-                    device_info JSONB,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(cpf, token)
-                )
+                SELECT 1 FROM pg_indexes 
+                WHERE indexname = 'idx_pending_notifications_cpf'
             """)
+            if not cur.fetchone():
+                cur.execute("CREATE INDEX idx_pending_notifications_cpf ON pending_notifications(cpf)")
             
-            # Índices para melhor performance
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_repairs_repair_id ON repairs(id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_checklists_id ON checklists(id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_repair_id ON orders(repair_id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_id ON orders(id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_suppliers_id ON suppliers(id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_customer_passwords_cpf ON customer_passwords(cpf)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_cpf ON push_tokens(cpf)")
+            cur.execute("""
+                SELECT 1 FROM pg_indexes 
+                WHERE indexname = 'idx_pending_notifications_created'
+            """)
+            if not cur.fetchone():
+                cur.execute("CREATE INDEX idx_pending_notifications_created ON pending_notifications(created_at)")
+        except Exception as e:
+            print(f"⚠️  Erro ao criar índices de notificações: {e}")
+        
+        # Com autocommit=True, as tabelas já foram criadas automaticamente
+        # Verificar se as tabelas foram criadas
+        try:
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'admin_users')")
+            admin_users_exists = cur.fetchone()[0]
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'technicians')")
+            technicians_exists = cur.fetchone()[0]
+            print(f"✅ Verificação: admin_users existe = {admin_users_exists}, technicians existe = {technicians_exists}")
             
-            # Tabela para usuários do admin
-            try:
-                print("📋 Criando tabela admin_users...")
+            if not admin_users_exists:
+                print("⚠️  ATENÇÃO: admin_users não existe! Criando novamente...")
                 cur.execute("""
-                    CREATE TABLE IF NOT EXISTS admin_users (
+                    CREATE TABLE admin_users (
                         id VARCHAR(50) PRIMARY KEY,
                         username VARCHAR(100) UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL,
@@ -434,17 +515,12 @@ def create_tables():
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                print("✅ Tabela admin_users criada/verificada")
-            except Exception as e:
-                print(f"⚠️  Erro ao criar tabela admin_users: {e}")
-                import traceback
-                traceback.print_exc()
+                print("✅ Tabela admin_users criada!")
             
-            # Tabela para técnicos
-            try:
-                print("📋 Criando tabela technicians...")
+            if not technicians_exists:
+                print("⚠️  ATENÇÃO: technicians não existe! Criando novamente...")
                 cur.execute("""
-                    CREATE TABLE IF NOT EXISTS technicians (
+                    CREATE TABLE technicians (
                         id VARCHAR(50) PRIMARY KEY,
                         name VARCHAR(200) NOT NULL,
                         cpf VARCHAR(11) UNIQUE,
@@ -457,102 +533,37 @@ def create_tables():
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                print("✅ Tabela technicians criada/verificada")
-            except Exception as e:
-                print(f"⚠️  Erro ao criar tabela technicians: {e}")
-                import traceback
-                traceback.print_exc()
+                print("✅ Tabela technicians criada!")
             
-            # Índices
+            # Verificar novamente
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'admin_users')")
+            admin_users_exists = cur.fetchone()[0]
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'technicians')")
+            technicians_exists = cur.fetchone()[0]
+            print(f"✅ Verificação final: admin_users existe = {admin_users_exists}, technicians existe = {technicians_exists}")
+            
+        except Exception as e:
+            print(f"⚠️  Erro ao verificar/criar tabelas: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        print("✅ Tabelas criadas/verificadas com sucesso!")
+        
+        # Fechar cursor
+        cur.close()
+        
+    except Exception as e:
+        print(f"❌ Erro ao criar tabelas: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # Fechar conexão direta
+        if conn:
             try:
-                print("📋 Criando índices para admin_users e technicians...")
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)")
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(is_active)")
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_cpf ON technicians(cpf)")
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_active ON technicians(is_active)")
-                print("✅ Índices criados/verificados")
+                conn.close()
+                print("✅ Conexão fechada")
             except Exception as e:
-                print(f"⚠️  Erro ao criar índices: {e}")
-                import traceback
-                traceback.print_exc()
-            
-            # Criar índices para pending_notifications se a tabela existir
-            try:
-                # Verificar se o índice já existe antes de criar
-                cur.execute("""
-                    SELECT 1 FROM pg_indexes 
-                    WHERE indexname = 'idx_pending_notifications_cpf'
-                """)
-                if not cur.fetchone():
-                    cur.execute("CREATE INDEX idx_pending_notifications_cpf ON pending_notifications(cpf)")
-                
-                cur.execute("""
-                    SELECT 1 FROM pg_indexes 
-                    WHERE indexname = 'idx_pending_notifications_created'
-                """)
-                if not cur.fetchone():
-                    cur.execute("CREATE INDEX idx_pending_notifications_created ON pending_notifications(created_at)")
-            except Exception as e:
-                print(f"⚠️  Erro ao criar índices de notificações: {e}")
-            
-            # Com autocommit=True, as tabelas já foram criadas
-            # Verificar se as tabelas foram criadas
-            try:
-                cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'admin_users')")
-                admin_users_exists = cur.fetchone()[0]
-                cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'technicians')")
-                technicians_exists = cur.fetchone()[0]
-                print(f"✅ Verificação: admin_users existe = {admin_users_exists}, technicians existe = {technicians_exists}")
-                if not admin_users_exists or not technicians_exists:
-                    print("⚠️  ATENÇÃO: Tabelas não foram criadas! Tentando criar novamente...")
-                    # Tentar criar novamente sem autocommit
-                    conn.autocommit = False
-                    if not admin_users_exists:
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS admin_users (
-                                id VARCHAR(50) PRIMARY KEY,
-                                username VARCHAR(100) UNIQUE NOT NULL,
-                                password_hash TEXT NOT NULL,
-                                name VARCHAR(200) NOT NULL,
-                                email VARCHAR(200),
-                                phone VARCHAR(20),
-                                permissions JSONB DEFAULT '{}',
-                                is_active BOOLEAN DEFAULT TRUE,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        """)
-                    if not technicians_exists:
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS technicians (
-                                id VARCHAR(50) PRIMARY KEY,
-                                name VARCHAR(200) NOT NULL,
-                                cpf VARCHAR(11) UNIQUE,
-                                email VARCHAR(200),
-                                phone VARCHAR(20),
-                                address TEXT,
-                                specialties JSONB DEFAULT '[]',
-                                is_active BOOLEAN DEFAULT TRUE,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        """)
-                    conn.commit()
-                    print("✅ Tabelas criadas novamente com commit explícito!")
-            except Exception as e:
-                print(f"⚠️  Erro ao verificar/criar tabelas: {e}")
-                import traceback
-                traceback.print_exc()
-            
-            print("✅ Tabelas criadas/verificadas com sucesso!")
-        finally:
-            # Retornar conexão ao pool
-            if conn:
-                try:
-                    pool.putconn(conn)
-                    print("✅ Conexão retornada ao pool")
-                except Exception as e:
-                    print(f"⚠️  Erro ao retornar conexão: {e}")
+                print(f"⚠️  Erro ao fechar conexão: {e}")
     except Exception as e:
         print(f"❌ Erro ao criar tabelas: {e}")
         import traceback
