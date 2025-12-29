@@ -546,28 +546,68 @@ def admin_budget_requests():
     """Visualiza solicitações de orçamento"""
     from db import calculate_customer_risk_score
     
-    requests = get_all_budget_requests()
-    # Contar pendentes para notificação
-    pending_count = len([r for r in requests if r.get('status') == 'pendente'])
-    
-    # Calcular score de risco para cada solicitação
-    requests_with_score = []
-    for req in requests:
-        req_copy = req.copy()
-        cpf = req.get('customer_cpf', '')
-        if cpf:
-            risk_score = calculate_customer_risk_score(cpf)
-            req_copy['risk_score'] = risk_score
-        else:
-            req_copy['risk_score'] = {
-                'score': 0,
-                'level': 'low',
-                'label': '🟢 Baixo risco',
-                'details': {'message': 'CPF não informado'}
-            }
-        requests_with_score.append(req_copy)
-    
-    return render_template('admin/budget_requests.html', requests=requests_with_score, pending_count=pending_count)
+    try:
+        requests = get_all_budget_requests()
+        # Contar pendentes para notificação
+        pending_count = len([r for r in requests if r.get('status') == 'pendente'])
+        
+        # Calcular score de risco para cada solicitação
+        requests_with_score = []
+        for req in requests:
+            try:
+                # Garantir que req é um dicionário
+                if not isinstance(req, dict):
+                    req = dict(req) if hasattr(req, '__dict__') else {}
+                
+                req_copy = req.copy()
+                
+                # Extrair CPF de diferentes formatos possíveis
+                cpf = req_copy.get('customer_cpf', '')
+                if not cpf and isinstance(req_copy.get('data'), dict):
+                    cpf = req_copy.get('data', {}).get('customer_cpf', '')
+                if not cpf:
+                    # Tentar extrair de outros campos possíveis
+                    cpf = req_copy.get('cpf', '')
+                
+                if cpf:
+                    try:
+                        risk_score = calculate_customer_risk_score(cpf)
+                        req_copy['risk_score'] = risk_score
+                    except Exception as e:
+                        print(f"Erro ao calcular score de risco para CPF {cpf}: {e}")
+                        req_copy['risk_score'] = {
+                            'score': 0,
+                            'level': 'low',
+                            'label': '🟢 Baixo risco',
+                            'details': {'message': 'Erro ao calcular score'}
+                        }
+                else:
+                    req_copy['risk_score'] = {
+                        'score': 0,
+                        'level': 'low',
+                        'label': '🟢 Baixo risco',
+                        'details': {'message': 'CPF não informado'}
+                    }
+                requests_with_score.append(req_copy)
+            except Exception as e:
+                print(f"Erro ao processar solicitação: {e}")
+                # Adicionar mesmo com erro, sem score
+                req_copy = req.copy() if isinstance(req, dict) else dict(req)
+                req_copy['risk_score'] = {
+                    'score': 0,
+                    'level': 'low',
+                    'label': '🟢 Baixo risco',
+                    'details': {'message': 'Erro ao processar'}
+                }
+                requests_with_score.append(req_copy)
+        
+        return render_template('admin/budget_requests.html', requests=requests_with_score, pending_count=pending_count)
+    except Exception as e:
+        print(f"Erro crítico em admin_budget_requests: {e}")
+        import traceback
+        traceback.print_exc()
+        # Retornar página de erro ou lista vazia
+        return render_template('admin/budget_requests.html', requests=[], pending_count=0)
 
 @app.route('/admin/nfse', methods=['GET'])
 @login_required

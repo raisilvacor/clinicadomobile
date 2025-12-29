@@ -1575,7 +1575,27 @@ def get_all_budget_requests():
             cur = _get_cursor(conn, dict_cursor=True)
             cur.execute("SELECT id, data, status, created_at FROM budget_requests ORDER BY created_at DESC")
             rows = cur.fetchall()
-            return [{'id': row['id'], 'status': row['status'], 'created_at': row['created_at'].isoformat() if row['created_at'] else None, **row['data']} for row in rows]
+            result = []
+            for row in rows:
+                try:
+                    request_data = {
+                        'id': row['id'],
+                        'status': row['status'],
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None
+                    }
+                    # Adicionar dados do JSON se existir
+                    if row.get('data') and isinstance(row['data'], dict):
+                        request_data.update(row['data'])
+                    result.append(request_data)
+                except Exception as e:
+                    print(f"Erro ao processar solicitação {row.get('id', 'N/A')}: {e}")
+                    # Adicionar mesmo com erro, com dados básicos
+                    result.append({
+                        'id': row.get('id', 'N/A'),
+                        'status': row.get('status', 'pendente'),
+                        'created_at': row['created_at'].isoformat() if row.get('created_at') else None
+                    })
+            return result
     except Exception as e:
         print(f"⚠️  Erro ao ler solicitações do banco: {e}")
         config = _load_config_file()
@@ -2047,16 +2067,17 @@ def calculate_customer_risk_score(cpf):
     """Calcula o score de risco do cliente baseado no histórico"""
     from datetime import datetime, timedelta
     
-    if not cpf:
-        return {
-            'score': 0,
-            'level': 'low',
-            'label': '🟢 Baixo risco',
-            'details': {}
-        }
-    
-    # Normalizar CPF
-    cpf_clean = cpf.replace('.', '').replace('-', '').replace(' ', '')
+    try:
+        if not cpf:
+            return {
+                'score': 0,
+                'level': 'low',
+                'label': '🟢 Baixo risco',
+                'details': {}
+            }
+        
+        # Normalizar CPF
+        cpf_clean = str(cpf).replace('.', '').replace('-', '').replace(' ', '')
     
     # Buscar todos os reparos do cliente
     repairs = get_repairs_by_cpf(cpf_clean)
@@ -2114,10 +2135,15 @@ def calculate_customer_risk_score(cpf):
                     days_abandoned = (datetime.now() - completed_dt).days
                     
                     # Verificar se tem OR
-                    order = get_order_by_repair(repair.get('id'))
-                    if not order and days_abandoned > 90:
-                        details['abandoned_devices'] += 1
-                except:
+                    try:
+                        order = get_order_by_repair(repair.get('id'))
+                        if not order and days_abandoned > 90:
+                            details['abandoned_devices'] += 1
+                    except Exception as e:
+                        # Se não conseguir buscar OR, considerar abandonado se passar de 90 dias
+                        if days_abandoned > 90:
+                            details['abandoned_devices'] += 1
+                except Exception as e:
                     pass
         
         # Verificar se discutiu valor (mensagens com palavras-chave)
@@ -2162,9 +2188,23 @@ def calculate_customer_risk_score(cpf):
         level = 'low'
         label = '🟢 Baixo risco'
     
-    return {
-        'score': score,
-        'level': level,
-        'label': label,
-        'details': details
-    }
+        return {
+            'score': score,
+            'level': level,
+            'label': label,
+            'details': details
+        }
+    except Exception as e:
+        print(f"Erro ao calcular score de risco para CPF {cpf}: {e}")
+        import traceback
+        traceback.print_exc()
+        # Retornar score padrão em caso de erro
+        return {
+            'score': 0,
+            'level': 'low',
+            'label': '🟢 Baixo risco',
+            'details': {
+                'total_repairs': 0,
+                'error': str(e)
+            }
+        }
