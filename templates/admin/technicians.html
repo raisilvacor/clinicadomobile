@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Técnicos{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>🔧 Técnicos</h2>
+        <a href="{{ url_for('admin_new_technician') }}" class="btn btn-primary">➕ Novo Técnico</a>
+    </div>
+
+    {% if technicians %}
+    <div style="display: grid; gap: 1.5rem;">
+        {% for tech in technicians %}
+        <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid {% if tech.is_active %}#28a745{% else %}#dc3545{% endif %};">
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                <div style="flex: 1;">
+                    <h3 style="color: #ff8c00; margin: 0 0 0.5rem 0;">
+                        {{ tech.name }}
+                        <span style="padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem; font-weight: bold; margin-left: 1rem;
+                            {% if tech.is_active %}
+                                background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;
+                            {% else %}
+                                background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545;
+                            {% endif %}">
+                            {% if tech.is_active %}Ativo{% else %}Inativo{% endif %}
+                        </span>
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <strong style="color: #ff8c00;">CPF:</strong>
+                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ tech.cpf or 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <strong style="color: #ff8c00;">Email:</strong>
+                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ tech.email or 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <strong style="color: #ff8c00;">Telefone:</strong>
+                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ tech.phone or 'N/A' }}</p>
+                        </div>
+                        {% if tech.address %}
+                        <div style="grid-column: 1 / -1;">
+                            <strong style="color: #ff8c00;">Endereço:</strong>
+                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ tech.address }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if tech.specialties and tech.specialties|length > 0 %}
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333;">
+                        <strong style="color: #ff8c00; display: block; margin-bottom: 0.5rem;">Especialidades:</strong>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            {% for specialty in tech.specialties %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">{{ specialty }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="{{ url_for('admin_edit_technician', technician_id=tech.id) }}" class="btn btn-secondary">✏️ Editar</a>
+                    <form method="POST" action="{{ url_for('admin_delete_technician', technician_id=tech.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este técnico?');">
+                        <button type="submit" class="btn btn-secondary" style="background: #dc3545;">🗑️ Excluir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 4rem 2rem; background: #0d0d0d; border-radius: 10px; border: 2px solid #333;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Nenhum técnico cadastrado</h3>
+        <p style="color: #999; margin-bottom: 2rem;">Comece cadastrando o primeiro técnico da assistência.</p>
+        <a href="{{ url_for('admin_new_technician') }}" class="btn btn-primary">➕ Cadastrar Primeiro Técnico</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+

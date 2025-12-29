@@ -1,0 +1,74 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if technician %}Editar Técnico{% else %}Novo Técnico{% endif %}{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>{% if technician %}✏️ Editar Técnico{% else %}➕ Novo Técnico{% endif %}</h2>
+    
+    <form method="POST" style="margin-top: 2rem;">
+        <div style="display: grid; gap: 1.5rem;">
+            <div>
+                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Nome Completo *</label>
+                <input type="text" name="name" value="{{ technician.name if technician else '' }}" required 
+                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            </div>
+            
+            <div>
+                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">CPF</label>
+                <input type="text" name="cpf" value="{{ technician.cpf if technician else '' }}" 
+                       placeholder="000.000.000-00"
+                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            </div>
+            
+            <div>
+                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Email</label>
+                <input type="email" name="email" value="{{ technician.email if technician else '' }}"
+                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            </div>
+            
+            <div>
+                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Telefone</label>
+                <input type="text" name="phone" value="{{ technician.phone if technician else '' }}"
+                       placeholder="(00) 00000-0000"
+                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            </div>
+            
+            <div>
+                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Endereço</label>
+                <textarea name="address" rows="3"
+                          style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem; resize: vertical;">{{ technician.address if technician else '' }}</textarea>
+            </div>
+            
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid #333;">
+                <label style="display: block; color: #ff8c00; margin-bottom: 1rem; font-weight: bold;">Especialidades</label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    {% set common_specialties = ['Android', 'iPhone', 'iPad', 'MacBook', 'Notebook', 'Tablet', 'Smartwatch', 'Tela', 'Bateria', 'Conector', 'Placa', 'Software', 'Desbloqueio', 'Recuperação de Dados', 'Outros'] %}
+                    {% for specialty in common_specialties %}
+                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                        <input type="checkbox" name="specialties" value="{{ specialty }}" 
+                               {% if technician and technician.specialties and specialty in technician.specialties %}checked{% endif %}>
+                        <span>{{ specialty }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <p style="color: #999; font-size: 0.9rem; margin-top: 1rem;">💡 Você pode adicionar outras especialidades manualmente editando o técnico depois.</p>
+            </div>
+            
+            <div>
+                <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <input type="checkbox" name="is_active" {% if not technician or technician.is_active %}checked{% endif %}>
+                    <span>Técnico Ativo</span>
+                </label>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                <a href="{{ url_for('admin_technicians') }}" class="btn btn-secondary">❌ Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+

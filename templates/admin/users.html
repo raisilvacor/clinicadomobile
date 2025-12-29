@@ -1,0 +1,105 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Usuários do Admin{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>👥 Usuários do Admin</h2>
+        <a href="{{ url_for('admin_new_user') }}" class="btn btn-primary">➕ Novo Usuário</a>
+    </div>
+
+    {% if users %}
+    <div style="display: grid; gap: 1.5rem;">
+        {% for user in users %}
+        <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid {% if user.is_active %}#28a745{% else %}#dc3545{% endif %};">
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                <div style="flex: 1;">
+                    <h3 style="color: #ff8c00; margin: 0 0 0.5rem 0;">
+                        {{ user.name }}
+                        <span style="padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem; font-weight: bold; margin-left: 1rem;
+                            {% if user.is_active %}
+                                background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;
+                            {% else %}
+                                background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545;
+                            {% endif %}">
+                            {% if user.is_active %}Ativo{% else %}Inativo{% endif %}
+                        </span>
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <strong style="color: #ff8c00;">Usuário:</strong>
+                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ user.username }}</p>
+                        </div>
+                        <div>
+                            <strong style="color: #ff8c00;">Email:</strong>
+                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ user.email or 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <strong style="color: #ff8c00;">Telefone:</strong>
+                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ user.phone or 'N/A' }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if user.permissions %}
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333;">
+                        <strong style="color: #ff8c00; display: block; margin-bottom: 0.5rem;">Permissões:</strong>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            {% if user.permissions.repairs %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Reparos</span>
+                            {% endif %}
+                            {% if user.permissions.checklist %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Checklist</span>
+                            {% endif %}
+                            {% if user.permissions.orders %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Ordens</span>
+                            {% endif %}
+                            {% if user.permissions.suppliers %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Fornecedores</span>
+                            {% endif %}
+                            {% if user.permissions.products %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Produtos</span>
+                            {% endif %}
+                            {% if user.permissions.budget_requests %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Orçamentos</span>
+                            {% endif %}
+                            {% if user.permissions.financeiro %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Financeiro</span>
+                            {% endif %}
+                            {% if user.permissions.risk_scores %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Score Risco</span>
+                            {% endif %}
+                            {% if user.permissions.users %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Usuários</span>
+                            {% endif %}
+                            {% if user.permissions.technicians %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Técnicos</span>
+                            {% endif %}
+                            {% if user.permissions.settings %}
+                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Configurações</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-secondary">✏️ Editar</a>
+                    <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');">
+                        <button type="submit" class="btn btn-secondary" style="background: #dc3545;">🗑️ Excluir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 4rem 2rem; background: #0d0d0d; border-radius: 10px; border: 2px solid #333;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Nenhum usuário cadastrado</h3>
+        <p style="color: #999; margin-bottom: 2rem;">Comece criando o primeiro usuário do sistema.</p>
+        <a href="{{ url_for('admin_new_user') }}" class="btn btn-primary">➕ Criar Primeiro Usuário</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+

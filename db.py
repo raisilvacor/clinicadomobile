@@ -403,6 +403,45 @@ def create_tables():
             cur.execute("CREATE INDEX IF NOT EXISTS idx_customer_passwords_cpf ON customer_passwords(cpf)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_cpf ON push_tokens(cpf)")
+            
+            # Tabela para usuários do admin
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS admin_users (
+                    id VARCHAR(50) PRIMARY KEY,
+                    username VARCHAR(100) UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    name VARCHAR(200) NOT NULL,
+                    email VARCHAR(200),
+                    phone VARCHAR(20),
+                    permissions JSONB DEFAULT '{}',
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Tabela para técnicos
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS technicians (
+                    id VARCHAR(50) PRIMARY KEY,
+                    name VARCHAR(200) NOT NULL,
+                    cpf VARCHAR(11) UNIQUE,
+                    email VARCHAR(200),
+                    phone VARCHAR(20),
+                    address TEXT,
+                    specialties JSONB DEFAULT '[]',
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Índices
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(is_active)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_cpf ON technicians(cpf)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_technicians_active ON technicians(is_active)")
+            
             # Criar índices para pending_notifications se a tabela existir
             try:
                 # Verificar se o índice já existe antes de criar
@@ -2226,3 +2265,387 @@ def calculate_customer_risk_score(cpf):
                 'error': str(e)
             }
         }
+
+# ========== FUNÇÕES DE USUÁRIOS DO ADMIN ==========
+
+def get_all_admin_users():
+    """Obtém todos os usuários do admin"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('admin_users', [])
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('admin_users', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT * FROM admin_users ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            users = []
+            for row in rows:
+                user = dict(row)
+                # Garantir que permissions seja um dict
+                if isinstance(user.get('permissions'), str):
+                    import json
+                    try:
+                        user['permissions'] = json.loads(user['permissions'])
+                    except:
+                        user['permissions'] = {}
+                elif not user.get('permissions'):
+                    user['permissions'] = {}
+                users.append(user)
+            return users
+    except Exception as e:
+        print(f"⚠️  Erro ao ler usuários do admin: {e}")
+        config = _load_config_file()
+        return config.get('admin_users', [])
+
+def get_admin_user(user_id):
+    """Obtém um usuário do admin específico"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        users = config.get('admin_users', [])
+        user = next((u for u in users if u.get('id') == user_id), None)
+        if user and not user.get('permissions'):
+            user['permissions'] = {}
+        return user
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                users = config.get('admin_users', [])
+                user = next((u for u in users if u.get('id') == user_id), None)
+                if user and not user.get('permissions'):
+                    user['permissions'] = {}
+                return user
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT * FROM admin_users WHERE id = %s", (user_id,))
+            row = cur.fetchone()
+            if row:
+                user = dict(row)
+                # Garantir que permissions seja um dict
+                if isinstance(user.get('permissions'), str):
+                    import json
+                    try:
+                        user['permissions'] = json.loads(user['permissions'])
+                    except:
+                        user['permissions'] = {}
+                elif not user.get('permissions'):
+                    user['permissions'] = {}
+                return user
+            return None
+    except Exception as e:
+        print(f"⚠️  Erro ao ler usuário do admin: {e}")
+        config = _load_config_file()
+        users = config.get('admin_users', [])
+        user = next((u for u in users if u.get('id') == user_id), None)
+        if user and not user.get('permissions'):
+            user['permissions'] = {}
+        return user
+
+def save_admin_user(user_id, user_data):
+    """Salva ou atualiza um usuário do admin"""
+    import json
+    import hashlib
+    
+    # Se tiver senha, fazer hash
+    if 'password' in user_data and user_data['password']:
+        password = user_data.pop('password')
+        user_data['password_hash'] = hashlib.sha256(password.encode()).hexdigest()
+    
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'admin_users' not in config:
+            config['admin_users'] = []
+        users = config.get('admin_users', [])
+        found = False
+        for i, u in enumerate(users):
+            if u.get('id') == user_id:
+                users[i] = {**u, **user_data, 'id': user_id}
+                found = True
+                break
+        if not found:
+            users.append({**user_data, 'id': user_id})
+        config['admin_users'] = users
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'admin_users' not in config:
+                    config['admin_users'] = []
+                users = config.get('admin_users', [])
+                found = False
+                for i, u in enumerate(users):
+                    if u.get('id') == user_id:
+                        users[i] = {**u, **user_data, 'id': user_id}
+                        found = True
+                        break
+                if not found:
+                    users.append({**user_data, 'id': user_id})
+                config['admin_users'] = users
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            
+            # Preparar dados para JSONB
+            permissions_json = json.dumps(user_data.get('permissions', {}))
+            
+            cur.execute("""
+                INSERT INTO admin_users (id, username, password_hash, name, email, phone, permissions, is_active, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET 
+                    username = EXCLUDED.username,
+                    password_hash = COALESCE(EXCLUDED.password_hash, admin_users.password_hash),
+                    name = EXCLUDED.name,
+                    email = EXCLUDED.email,
+                    phone = EXCLUDED.phone,
+                    permissions = EXCLUDED.permissions,
+                    is_active = EXCLUDED.is_active,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (
+                user_id,
+                user_data.get('username', ''),
+                user_data.get('password_hash', ''),
+                user_data.get('name', ''),
+                user_data.get('email', ''),
+                user_data.get('phone', ''),
+                permissions_json,
+                user_data.get('is_active', True)
+            ))
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar usuário do admin: {e}")
+        config = _load_config_file()
+        if 'admin_users' not in config:
+            config['admin_users'] = []
+        users = config.get('admin_users', [])
+        found = False
+        for i, u in enumerate(users):
+            if u.get('id') == user_id:
+                users[i] = {**u, **user_data, 'id': user_id}
+                found = True
+                break
+        if not found:
+            users.append({**user_data, 'id': user_id})
+        config['admin_users'] = users
+        _save_config_file(config)
+
+def delete_admin_user(user_id):
+    """Exclui um usuário do admin"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'admin_users' in config:
+            config['admin_users'] = [u for u in config['admin_users'] if u.get('id') != user_id]
+            _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'admin_users' in config:
+                    config['admin_users'] = [u for u in config['admin_users'] if u.get('id') != user_id]
+                    _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM admin_users WHERE id = %s", (user_id,))
+    except Exception as e:
+        print(f"⚠️  Erro ao excluir usuário do admin: {e}")
+        config = _load_config_file()
+        if 'admin_users' in config:
+            config['admin_users'] = [u for u in config['admin_users'] if u.get('id') != user_id]
+            _save_config_file(config)
+
+# ========== FUNÇÕES DE TÉCNICOS ==========
+
+def get_all_technicians():
+    """Obtém todos os técnicos"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('technicians', [])
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('technicians', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT * FROM technicians ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            technicians = []
+            for row in rows:
+                tech = dict(row)
+                # Garantir que specialties seja uma lista
+                if isinstance(tech.get('specialties'), str):
+                    import json
+                    try:
+                        tech['specialties'] = json.loads(tech['specialties'])
+                    except:
+                        tech['specialties'] = []
+                elif not tech.get('specialties'):
+                    tech['specialties'] = []
+                technicians.append(tech)
+            return technicians
+    except Exception as e:
+        print(f"⚠️  Erro ao ler técnicos: {e}")
+        config = _load_config_file()
+        return config.get('technicians', [])
+
+def get_technician(technician_id):
+    """Obtém um técnico específico"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        technicians = config.get('technicians', [])
+        tech = next((t for t in technicians if t.get('id') == technician_id), None)
+        if tech and not tech.get('specialties'):
+            tech['specialties'] = []
+        return tech
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                technicians = config.get('technicians', [])
+                tech = next((t for t in technicians if t.get('id') == technician_id), None)
+                if tech and not tech.get('specialties'):
+                    tech['specialties'] = []
+                return tech
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT * FROM technicians WHERE id = %s", (technician_id,))
+            row = cur.fetchone()
+            if row:
+                tech = dict(row)
+                # Garantir que specialties seja uma lista
+                if isinstance(tech.get('specialties'), str):
+                    import json
+                    try:
+                        tech['specialties'] = json.loads(tech['specialties'])
+                    except:
+                        tech['specialties'] = []
+                elif not tech.get('specialties'):
+                    tech['specialties'] = []
+                return tech
+            return None
+    except Exception as e:
+        print(f"⚠️  Erro ao ler técnico: {e}")
+        config = _load_config_file()
+        technicians = config.get('technicians', [])
+        tech = next((t for t in technicians if t.get('id') == technician_id), None)
+        if tech and not tech.get('specialties'):
+            tech['specialties'] = []
+        return tech
+
+def save_technician(technician_id, technician_data):
+    """Salva ou atualiza um técnico"""
+    import json
+    
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'technicians' not in config:
+            config['technicians'] = []
+        technicians = config.get('technicians', [])
+        found = False
+        for i, t in enumerate(technicians):
+            if t.get('id') == technician_id:
+                technicians[i] = {**t, **technician_data, 'id': technician_id}
+                found = True
+                break
+        if not found:
+            technicians.append({**technician_data, 'id': technician_id})
+        config['technicians'] = technicians
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'technicians' not in config:
+                    config['technicians'] = []
+                technicians = config.get('technicians', [])
+                found = False
+                for i, t in enumerate(technicians):
+                    if t.get('id') == technician_id:
+                        technicians[i] = {**t, **technician_data, 'id': technician_id}
+                        found = True
+                        break
+                if not found:
+                    technicians.append({**technician_data, 'id': technician_id})
+                config['technicians'] = technicians
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            
+            # Preparar especialidades para JSONB
+            specialties_json = json.dumps(technician_data.get('specialties', []))
+            
+            cur.execute("""
+                INSERT INTO technicians (id, name, cpf, email, phone, address, specialties, is_active, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET 
+                    name = EXCLUDED.name,
+                    cpf = EXCLUDED.cpf,
+                    email = EXCLUDED.email,
+                    phone = EXCLUDED.phone,
+                    address = EXCLUDED.address,
+                    specialties = EXCLUDED.specialties,
+                    is_active = EXCLUDED.is_active,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (
+                technician_id,
+                technician_data.get('name', ''),
+                technician_data.get('cpf', ''),
+                technician_data.get('email', ''),
+                technician_data.get('phone', ''),
+                technician_data.get('address', ''),
+                specialties_json,
+                technician_data.get('is_active', True)
+            ))
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar técnico: {e}")
+        config = _load_config_file()
+        if 'technicians' not in config:
+            config['technicians'] = []
+        technicians = config.get('technicians', [])
+        found = False
+        for i, t in enumerate(technicians):
+            if t.get('id') == technician_id:
+                technicians[i] = {**t, **technician_data, 'id': technician_id}
+                found = True
+                break
+        if not found:
+            technicians.append({**technician_data, 'id': technician_id})
+        config['technicians'] = technicians
+        _save_config_file(config)
+
+def delete_technician(technician_id):
+    """Exclui um técnico"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'technicians' in config:
+            config['technicians'] = [t for t in config['technicians'] if t.get('id') != technician_id]
+            _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'technicians' in config:
+                    config['technicians'] = [t for t in config['technicians'] if t.get('id') != technician_id]
+                    _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM technicians WHERE id = %s", (technician_id,))
+    except Exception as e:
+        print(f"⚠️  Erro ao excluir técnico: {e}")
+        config = _load_config_file()
+        if 'technicians' in config:
+            config['technicians'] = [t for t in config['technicians'] if t.get('id') != technician_id]
+            _save_config_file(config)

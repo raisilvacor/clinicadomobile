@@ -45,7 +45,15 @@ from db import (
     get_push_tokens_by_cpf,
     save_pending_notification,
     get_pending_notifications,
-    mark_notification_sent
+    mark_notification_sent,
+    get_all_admin_users,
+    get_admin_user,
+    save_admin_user,
+    delete_admin_user,
+    get_all_technicians,
+    get_technician,
+    save_technician,
+    delete_technician
 )
 
 app = Flask(__name__)
@@ -684,6 +692,156 @@ def admin_risk_scores():
     return render_template('admin/risk_scores.html', 
                          customers=customers_with_score,
                          risk_filter=risk_filter)
+
+# ========== ROTAS DE USUÁRIOS DO ADMIN ==========
+
+@app.route('/admin/users', methods=['GET'])
+@login_required
+def admin_users():
+    """Lista todos os usuários do admin"""
+    users = get_all_admin_users()
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_user():
+    """Cria um novo usuário do admin"""
+    if request.method == 'POST':
+        import uuid
+        user_id = str(uuid.uuid4())[:8]
+        user_data = {
+            'username': request.form.get('username', '').strip(),
+            'name': request.form.get('name', '').strip(),
+            'email': request.form.get('email', '').strip(),
+            'phone': request.form.get('phone', '').strip(),
+            'password': request.form.get('password', '').strip(),
+            'is_active': request.form.get('is_active') == 'on',
+            'permissions': {
+                'repairs': request.form.get('perm_repairs') == 'on',
+                'checklist': request.form.get('perm_checklist') == 'on',
+                'orders': request.form.get('perm_orders') == 'on',
+                'suppliers': request.form.get('perm_suppliers') == 'on',
+                'products': request.form.get('perm_products') == 'on',
+                'budget_requests': request.form.get('perm_budget_requests') == 'on',
+                'financeiro': request.form.get('perm_financeiro') == 'on',
+                'risk_scores': request.form.get('perm_risk_scores') == 'on',
+                'users': request.form.get('perm_users') == 'on',
+                'technicians': request.form.get('perm_technicians') == 'on',
+                'settings': request.form.get('perm_settings') == 'on'
+            }
+        }
+        save_admin_user(user_id, user_data)
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin/user_form.html', user=None)
+
+@app.route('/admin/users/<user_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_user(user_id):
+    """Edita um usuário do admin"""
+    user = get_admin_user(user_id)
+    if not user:
+        return redirect(url_for('admin_users'))
+    
+    if request.method == 'POST':
+        user_data = {
+            'username': request.form.get('username', '').strip(),
+            'name': request.form.get('name', '').strip(),
+            'email': request.form.get('email', '').strip(),
+            'phone': request.form.get('phone', '').strip(),
+            'is_active': request.form.get('is_active') == 'on',
+            'permissions': {
+                'repairs': request.form.get('perm_repairs') == 'on',
+                'checklist': request.form.get('perm_checklist') == 'on',
+                'orders': request.form.get('perm_orders') == 'on',
+                'suppliers': request.form.get('perm_suppliers') == 'on',
+                'products': request.form.get('perm_products') == 'on',
+                'budget_requests': request.form.get('perm_budget_requests') == 'on',
+                'financeiro': request.form.get('perm_financeiro') == 'on',
+                'risk_scores': request.form.get('perm_risk_scores') == 'on',
+                'users': request.form.get('perm_users') == 'on',
+                'technicians': request.form.get('perm_technicians') == 'on',
+                'settings': request.form.get('perm_settings') == 'on'
+            }
+        }
+        # Só atualizar senha se foi informada
+        new_password = request.form.get('password', '').strip()
+        if new_password:
+            user_data['password'] = new_password
+        
+        save_admin_user(user_id, user_data)
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin/user_form.html', user=user)
+
+@app.route('/admin/users/<user_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_user(user_id):
+    """Exclui um usuário do admin"""
+    delete_admin_user(user_id)
+    return redirect(url_for('admin_users'))
+
+# ========== ROTAS DE TÉCNICOS ==========
+
+@app.route('/admin/technicians', methods=['GET'])
+@login_required
+def admin_technicians():
+    """Lista todos os técnicos"""
+    technicians = get_all_technicians()
+    return render_template('admin/technicians.html', technicians=technicians)
+
+@app.route('/admin/technicians/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_technician():
+    """Cria um novo técnico"""
+    if request.method == 'POST':
+        import uuid
+        technician_id = str(uuid.uuid4())[:8]
+        specialties = request.form.getlist('specialties')
+        technician_data = {
+            'name': request.form.get('name', '').strip(),
+            'cpf': request.form.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', ''),
+            'email': request.form.get('email', '').strip(),
+            'phone': request.form.get('phone', '').strip(),
+            'address': request.form.get('address', '').strip(),
+            'specialties': specialties if specialties else [],
+            'is_active': request.form.get('is_active') == 'on'
+        }
+        save_technician(technician_id, technician_data)
+        return redirect(url_for('admin_technicians'))
+    
+    return render_template('admin/technician_form.html', technician=None)
+
+@app.route('/admin/technicians/<technician_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_technician(technician_id):
+    """Edita um técnico"""
+    technician = get_technician(technician_id)
+    if not technician:
+        return redirect(url_for('admin_technicians'))
+    
+    if request.method == 'POST':
+        specialties = request.form.getlist('specialties')
+        technician_data = {
+            'name': request.form.get('name', '').strip(),
+            'cpf': request.form.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', ''),
+            'email': request.form.get('email', '').strip(),
+            'phone': request.form.get('phone', '').strip(),
+            'address': request.form.get('address', '').strip(),
+            'specialties': specialties if specialties else [],
+            'is_active': request.form.get('is_active') == 'on'
+        }
+        save_technician(technician_id, technician_data)
+        return redirect(url_for('admin_technicians'))
+    
+    return render_template('admin/technician_form.html', technician=technician)
+
+@app.route('/admin/technicians/<technician_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_technician(technician_id):
+    """Exclui um técnico"""
+    delete_technician(technician_id)
+    return redirect(url_for('admin_technicians'))
 
 @app.route('/admin/budget-requests/<request_id>/delete', methods=['POST'])
 @login_required
