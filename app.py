@@ -55,7 +55,10 @@ from db import (
     save_technician,
     delete_technician,
     calculate_technician_quality_score,
-    get_all_technician_quality_scores
+    get_all_technician_quality_scores,
+    get_business_hours,
+    save_business_hours,
+    is_business_open as db_is_business_open
 )
 
 app = Flask(__name__)
@@ -90,7 +93,8 @@ def login_required(f):
 def index():
     site_content = get_site_content()
     brands = get_all_brands()
-    return render_template('index.html', content=site_content, brands=brands)
+    is_open = db_is_business_open()
+    return render_template('index.html', content=site_content, brands=brands, is_open=is_open)
 
 # ========== ROTAS ADMINISTRATIVAS ==========
 
@@ -351,6 +355,7 @@ def admin_laboratory():
 def admin_contact():
     site_content = db_get_site_content()
     contact = site_content.get('contact', {})
+    business_hours = get_business_hours()
     
     if request.method == 'POST':
         contact['phone'] = request.form.get('phone', '')
@@ -370,9 +375,19 @@ def admin_contact():
         
         save_site_content_section('contact', contact)
         
+        # Salvar horários detalhados
+        days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        for day in days:
+            business_hours[day] = {
+                'open': request.form.get(f'{day}_open', '09:00'),
+                'close': request.form.get(f'{day}_close', '18:00'),
+                'enabled': request.form.get(f'{day}_enabled') == 'on'
+            }
+        save_business_hours(business_hours)
+        
         return redirect(url_for('admin_contact'))
     
-    return render_template('admin/contact.html', contact=contact)
+    return render_template('admin/contact.html', contact=contact, business_hours=business_hours)
 
 @app.route('/admin/password', methods=['GET', 'POST'])
 @login_required
@@ -4114,6 +4129,19 @@ def api_get_pending_notifications():
             'success': True,
             'notifications': formatted_notifications,
             'last_check': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API: Status do negócio (aberto/fechado)
+@app.route('/api/business-status', methods=['GET'])
+def api_business_status():
+    """Retorna o status atual do negócio (aberto ou fechado)"""
+    try:
+        is_open = db_is_business_open()
+        return jsonify({
+            'success': True,
+            'is_open': is_open
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

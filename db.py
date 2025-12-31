@@ -754,6 +754,133 @@ def save_admin_password(password):
         config['admin_password'] = password
         _save_config_file(config)
 
+# ========== FUNÇÕES DE HORÁRIOS DE FUNCIONAMENTO ==========
+
+def get_business_hours():
+    """Obtém os horários de funcionamento"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('business_hours', {
+            'monday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'tuesday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'wednesday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'thursday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'friday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'saturday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'sunday': {'open': '09:00', 'close': '18:00', 'enabled': False}
+        })
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('business_hours', {
+                    'monday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'tuesday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'wednesday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'thursday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'friday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'saturday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'sunday': {'open': '09:00', 'close': '18:00', 'enabled': False}
+                })
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT value FROM admin_settings WHERE key = 'business_hours'")
+            row = cur.fetchone()
+            if row:
+                import json
+                return json.loads(row['value'])
+            else:
+                # Retornar padrão
+                return {
+                    'monday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'tuesday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'wednesday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'thursday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'friday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'saturday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+                    'sunday': {'open': '09:00', 'close': '18:00', 'enabled': False}
+                }
+    except Exception as e:
+        print(f"⚠️  Erro ao ler horários do banco: {e}")
+        config = _load_config_file()
+        return config.get('business_hours', {
+            'monday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'tuesday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'wednesday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'thursday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'friday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'saturday': {'open': '09:00', 'close': '18:00', 'enabled': True},
+            'sunday': {'open': '09:00', 'close': '18:00', 'enabled': False}
+        })
+
+def save_business_hours(business_hours):
+    """Salva os horários de funcionamento"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        config['business_hours'] = business_hours
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                config['business_hours'] = business_hours
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            import json
+            hours_json = json.dumps(business_hours)
+            cur.execute("""
+                INSERT INTO admin_settings (key, value, updated_at)
+                VALUES ('business_hours', %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (key) 
+                DO UPDATE SET value = %s, updated_at = CURRENT_TIMESTAMP
+            """, (hours_json, hours_json))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar horários no banco: {e}")
+        config = _load_config_file()
+        config['business_hours'] = business_hours
+        _save_config_file(config)
+
+def is_business_open():
+    """Verifica se o estabelecimento está aberto no momento atual"""
+    from datetime import datetime
+    
+    business_hours = get_business_hours()
+    
+    # Obter dia da semana atual (0 = segunda, 6 = domingo)
+    current_day = datetime.now().weekday()
+    
+    # Mapear número do dia para nome
+    days_map = {
+        0: 'monday',
+        1: 'tuesday',
+        2: 'wednesday',
+        3: 'thursday',
+        4: 'friday',
+        5: 'saturday',
+        6: 'sunday'
+    }
+    
+    day_name = days_map[current_day]
+    day_config = business_hours.get(day_name, {})
+    
+    # Se o dia está desabilitado, está fechado
+    if not day_config.get('enabled', False):
+        return False
+    
+    # Obter horário atual
+    current_time = datetime.now().strftime('%H:%M')
+    
+    # Obter horários de abertura e fechamento
+    open_time = day_config.get('open', '09:00')
+    close_time = day_config.get('close', '18:00')
+    
+    # Comparar horários (formato HH:MM)
+    return open_time <= current_time < close_time
+
 # ========== FUNÇÕES DE REPAIRS ==========
 
 def get_all_repairs():

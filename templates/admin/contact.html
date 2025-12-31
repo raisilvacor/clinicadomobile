@@ -38,7 +38,8 @@
             <input type="text" id="city" name="city" value="{{ contact.city or '' }}" placeholder="São Paulo - SP">
         </div>
 
-        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🕒 Horários</h3>
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🕒 Horários (Exibição)</h3>
+        <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">Estes campos são apenas para exibição textual no site.</p>
 
         <div class="form-group">
             <label for="hours_weekdays">Horário Dias Úteis:</label>
@@ -53,6 +54,52 @@
         <div class="form-group">
             <label for="hours_sunday">Horário Domingo:</label>
             <input type="text" id="hours_sunday" name="hours_sunday" value="{{ contact.hours_sunday or '' }}" placeholder="Domingo: somente agendado">
+        </div>
+
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🕒 Configuração de Horários (Status Aberto/Fechado)</h3>
+        <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">Configure os horários reais de funcionamento para o sistema calcular automaticamente se está aberto ou fechado.</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            {% set days = [
+                ('monday', 'Segunda-feira'),
+                ('tuesday', 'Terça-feira'),
+                ('wednesday', 'Quarta-feira'),
+                ('thursday', 'Quinta-feira'),
+                ('friday', 'Sexta-feira'),
+                ('saturday', 'Sábado'),
+                ('sunday', 'Domingo')
+            ] %}
+            {% for day_key, day_name in days %}
+            <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px;">
+                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="{{ day_key }}_enabled" name="{{ day_key }}_enabled" {% if business_hours[day_key].enabled %}checked{% endif %} style="margin-right: 0.5rem;">
+                    <label for="{{ day_key }}_enabled" style="font-weight: bold; margin: 0;">{{ day_name }}</label>
+                </div>
+                {% if business_hours[day_key].enabled %}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                        <label for="{{ day_key }}_open" style="font-size: 0.85rem; color: #666;">Abertura:</label>
+                        <input type="time" id="{{ day_key }}_open" name="{{ day_key }}_open" value="{{ business_hours[day_key].open }}" style="width: 100%; padding: 0.5rem;">
+                    </div>
+                    <div>
+                        <label for="{{ day_key }}_close" style="font-size: 0.85rem; color: #666;">Fechamento:</label>
+                        <input type="time" id="{{ day_key }}_close" name="{{ day_key }}_close" value="{{ business_hours[day_key].close }}" style="width: 100%; padding: 0.5rem;">
+                    </div>
+                </div>
+                {% else %}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; opacity: 0.5;">
+                    <div>
+                        <label for="{{ day_key }}_open" style="font-size: 0.85rem; color: #666;">Abertura:</label>
+                        <input type="time" id="{{ day_key }}_open" name="{{ day_key }}_open" value="{{ business_hours[day_key].open }}" style="width: 100%; padding: 0.5rem;" disabled>
+                    </div>
+                    <div>
+                        <label for="{{ day_key }}_close" style="font-size: 0.85rem; color: #666;">Fechamento:</label>
+                        <input type="time" id="{{ day_key }}_close" name="{{ day_key }}_close" value="{{ business_hours[day_key].close }}" style="width: 100%; padding: 0.5rem;" disabled>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
 
         <button type="submit" class="btn btn-primary">Salvar Alterações</button>

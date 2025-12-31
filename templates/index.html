@@ -1031,6 +1031,12 @@
             <div class="contact-card">
                 <div class="contact-icon">🕒</div>
                 <h3>Horário</h3>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 1rem 0; padding: 0.75rem; background: #f5f5f5; border-radius: 8px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background-color: {% if is_open %}#28a745{% else %}#dc3545{% endif %};"></div>
+                    <span style="font-weight: bold; color: {% if is_open %}#28a745{% else %}#dc3545{% endif %}; font-size: 1.1rem;">
+                        {% if is_open %}ABERTO AGORA{% else %}FECHADO{% endif %}
+                    </span>
+                </div>
                 <p>{{ content.contact.hours_weekdays if content and content.contact and content.contact.hours_weekdays else 'Segunda a Sexta: 9h - 18h' }}</p>
                 <p>{{ content.contact.hours_saturday if content and content.contact and content.contact.hours_saturday else 'Sábado: 9h - 18h' }}</p>
                 <p>{{ content.contact.hours_sunday if content and content.contact and content.contact.hours_sunday else 'Domingo: somente agendado' }}</p>
@@ -1213,6 +1219,44 @@
             
             videoObserver.observe(video);
         }
+
+        // Atualizar status de funcionamento em tempo real
+        function updateBusinessStatus() {
+            fetch('/api/business-status')
+                .then(response => response.json())
+                .then(data => {
+                    // Encontrar o card de horário pelo ícone
+                    const contactCards = document.querySelectorAll('.contact-card');
+                    let statusCard = null;
+                    for (let card of contactCards) {
+                        const icon = card.querySelector('.contact-icon');
+                        if (icon && icon.textContent.includes('🕒')) {
+                            statusCard = card;
+                            break;
+                        }
+                    }
+                    
+                    if (statusCard) {
+                        const statusDiv = statusCard.querySelector('div[style*="border-radius: 50%"]');
+                        const statusText = statusCard.querySelector('span[style*="font-weight: bold"]');
+                        if (statusDiv && statusText) {
+                            if (data.is_open) {
+                                statusDiv.style.backgroundColor = '#28a745';
+                                statusText.textContent = 'ABERTO AGORA';
+                                statusText.style.color = '#28a745';
+                            } else {
+                                statusDiv.style.backgroundColor = '#dc3545';
+                                statusText.textContent = 'FECHADO';
+                                statusText.style.color = '#dc3545';
+                            }
+                        }
+                    }
+                })
+                .catch(error => console.error('Erro ao atualizar status:', error));
+        }
+
+        // Atualizar status a cada minuto
+        setInterval(updateBusinessStatus, 60000);
     </script>
 </body>
 </html>
