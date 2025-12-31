@@ -848,38 +848,57 @@ def is_business_open():
     """Verifica se o estabelecimento está aberto no momento atual"""
     from datetime import datetime
     
-    business_hours = get_business_hours()
-    
-    # Obter dia da semana atual (0 = segunda, 6 = domingo)
-    current_day = datetime.now().weekday()
-    
-    # Mapear número do dia para nome
-    days_map = {
-        0: 'monday',
-        1: 'tuesday',
-        2: 'wednesday',
-        3: 'thursday',
-        4: 'friday',
-        5: 'saturday',
-        6: 'sunday'
-    }
-    
-    day_name = days_map[current_day]
-    day_config = business_hours.get(day_name, {})
-    
-    # Se o dia está desabilitado, está fechado
-    if not day_config.get('enabled', False):
+    try:
+        business_hours = get_business_hours()
+        
+        # Obter dia da semana atual (0 = segunda, 6 = domingo)
+        current_day = datetime.now().weekday()
+        
+        # Mapear número do dia para nome
+        days_map = {
+            0: 'monday',
+            1: 'tuesday',
+            2: 'wednesday',
+            3: 'thursday',
+            4: 'friday',
+            5: 'saturday',
+            6: 'sunday'
+        }
+        
+        day_name = days_map[current_day]
+        day_config = business_hours.get(day_name, {})
+        
+        # Debug: imprimir informações
+        print(f"🔍 Verificando status: Dia={day_name}, Config={day_config}")
+        
+        # Se o dia está desabilitado, está fechado
+        if not day_config.get('enabled', False):
+            print(f"❌ Dia {day_name} está desabilitado")
+            return False
+        
+        # Obter horário atual
+        now = datetime.now()
+        current_time = now.strftime('%H:%M')
+        
+        # Obter horários de abertura e fechamento
+        open_time = day_config.get('open', '09:00')
+        close_time = day_config.get('close', '18:00')
+        
+        # Garantir formato correto (HH:MM)
+        if len(open_time) == 5 and len(close_time) == 5:
+            # Comparar horários (formato HH:MM como string funciona porque é lexicográfico)
+            is_open = open_time <= current_time < close_time
+            print(f"⏰ Horário atual: {current_time}, Abertura: {open_time}, Fechamento: {close_time}, Status: {'ABERTO' if is_open else 'FECHADO'}")
+            return is_open
+        else:
+            print(f"⚠️  Formato de horário inválido: open={open_time}, close={close_time}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Erro ao verificar status: {e}")
+        import traceback
+        traceback.print_exc()
         return False
-    
-    # Obter horário atual
-    current_time = datetime.now().strftime('%H:%M')
-    
-    # Obter horários de abertura e fechamento
-    open_time = day_config.get('open', '09:00')
-    close_time = day_config.get('close', '18:00')
-    
-    # Comparar horários (formato HH:MM)
-    return open_time <= current_time < close_time
 
 # ========== FUNÇÕES DE REPAIRS ==========
 

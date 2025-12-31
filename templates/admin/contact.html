@@ -72,34 +72,46 @@
             {% for day_key, day_name in days %}
             <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px;">
                 <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                    <input type="checkbox" id="{{ day_key }}_enabled" name="{{ day_key }}_enabled" {% if business_hours[day_key].enabled %}checked{% endif %} style="margin-right: 0.5rem;">
+                    <input type="checkbox" id="{{ day_key }}_enabled" name="{{ day_key }}_enabled" {% if business_hours[day_key].enabled %}checked{% endif %} style="margin-right: 0.5rem;" onchange="toggleDayFields('{{ day_key }}')">
                     <label for="{{ day_key }}_enabled" style="font-weight: bold; margin: 0;">{{ day_name }}</label>
                 </div>
-                {% if business_hours[day_key].enabled %}
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                     <div>
                         <label for="{{ day_key }}_open" style="font-size: 0.85rem; color: #666;">Abertura:</label>
-                        <input type="time" id="{{ day_key }}_open" name="{{ day_key }}_open" value="{{ business_hours[day_key].open }}" style="width: 100%; padding: 0.5rem;">
+                        <input type="time" id="{{ day_key }}_open" name="{{ day_key }}_open" value="{{ business_hours[day_key].open }}" style="width: 100%; padding: 0.5rem;" {% if not business_hours[day_key].enabled %}readonly style="width: 100%; padding: 0.5rem; background: #f5f5f5; cursor: not-allowed;"{% endif %}>
                     </div>
                     <div>
                         <label for="{{ day_key }}_close" style="font-size: 0.85rem; color: #666;">Fechamento:</label>
-                        <input type="time" id="{{ day_key }}_close" name="{{ day_key }}_close" value="{{ business_hours[day_key].close }}" style="width: 100%; padding: 0.5rem;">
+                        <input type="time" id="{{ day_key }}_close" name="{{ day_key }}_close" value="{{ business_hours[day_key].close }}" style="width: 100%; padding: 0.5rem;" {% if not business_hours[day_key].enabled %}readonly style="width: 100%; padding: 0.5rem; background: #f5f5f5; cursor: not-allowed;"{% endif %}>
                     </div>
                 </div>
-                {% else %}
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; opacity: 0.5;">
-                    <div>
-                        <label for="{{ day_key }}_open" style="font-size: 0.85rem; color: #666;">Abertura:</label>
-                        <input type="time" id="{{ day_key }}_open" name="{{ day_key }}_open" value="{{ business_hours[day_key].open }}" style="width: 100%; padding: 0.5rem;" disabled>
-                    </div>
-                    <div>
-                        <label for="{{ day_key }}_close" style="font-size: 0.85rem; color: #666;">Fechamento:</label>
-                        <input type="time" id="{{ day_key }}_close" name="{{ day_key }}_close" value="{{ business_hours[day_key].close }}" style="width: 100%; padding: 0.5rem;" disabled>
-                    </div>
-                </div>
-                {% endif %}
             </div>
             {% endfor %}
+        </div>
+
+        <script>
+            function toggleDayFields(dayKey) {
+                const checkbox = document.getElementById(dayKey + '_enabled');
+                const openInput = document.getElementById(dayKey + '_open');
+                const closeInput = document.getElementById(dayKey + '_close');
+                
+                if (checkbox.checked) {
+                    openInput.removeAttribute('readonly');
+                    openInput.style.background = '';
+                    openInput.style.cursor = '';
+                    closeInput.removeAttribute('readonly');
+                    closeInput.style.background = '';
+                    closeInput.style.cursor = '';
+                } else {
+                    openInput.setAttribute('readonly', 'readonly');
+                    openInput.style.background = '#f5f5f5';
+                    openInput.style.cursor = 'not-allowed';
+                    closeInput.setAttribute('readonly', 'readonly');
+                    closeInput.style.background = '#f5f5f5';
+                    closeInput.style.cursor = 'not-allowed';
+                }
+            }
+        </script>
         </div>
 
         <button type="submit" class="btn btn-primary">Salvar Alterações</button>

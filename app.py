@@ -378,12 +378,34 @@ def admin_contact():
         # Salvar horários detalhados
         days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
         for day in days:
+            open_time = request.form.get(f'{day}_open', '09:00')
+            close_time = request.form.get(f'{day}_close', '18:00')
+            enabled = request.form.get(f'{day}_enabled') == 'on'
+            
+            # Garantir formato HH:MM
+            if len(open_time) == 5 and ':' in open_time:
+                pass  # Já está no formato correto
+            elif len(open_time) == 4:  # Formato H:MM
+                open_time = '0' + open_time
+            else:
+                open_time = '09:00'  # Default se inválido
+                
+            if len(close_time) == 5 and ':' in close_time:
+                pass  # Já está no formato correto
+            elif len(close_time) == 4:  # Formato H:MM
+                close_time = '0' + close_time
+            else:
+                close_time = '18:00'  # Default se inválido
+            
             business_hours[day] = {
-                'open': request.form.get(f'{day}_open', '09:00'),
-                'close': request.form.get(f'{day}_close', '18:00'),
-                'enabled': request.form.get(f'{day}_enabled') == 'on'
+                'open': open_time,
+                'close': close_time,
+                'enabled': enabled
             }
+            print(f"💾 Salvando horário {day}: {open_time} - {close_time}, enabled={enabled}")
+        
         save_business_hours(business_hours)
+        print(f"✅ Horários salvos: {business_hours}")
         
         return redirect(url_for('admin_contact'))
     
@@ -4139,12 +4161,31 @@ def api_business_status():
     """Retorna o status atual do negócio (aberto ou fechado)"""
     try:
         is_open = db_is_business_open()
+        business_hours = get_business_hours()
+        from datetime import datetime
+        now = datetime.now()
+        current_day = now.weekday()
+        days_map = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
+        day_name = days_map[current_day]
+        day_config = business_hours.get(day_name, {})
+        
         return jsonify({
             'success': True,
-            'is_open': is_open
+            'is_open': is_open,
+            'debug': {
+                'current_time': now.strftime('%H:%M'),
+                'current_day': day_name,
+                'day_config': day_config,
+                'business_hours': business_hours
+            }
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
