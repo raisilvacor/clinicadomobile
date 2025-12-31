@@ -4162,8 +4162,11 @@ def api_business_status():
     try:
         is_open = db_is_business_open()
         business_hours = get_business_hours()
-        from datetime import datetime
-        now = datetime.now()
+        from datetime import datetime, timedelta
+        
+        # Usar timezone do Brasil (UTC-3)
+        now_utc = datetime.utcnow()
+        now = now_utc - timedelta(hours=3)
         current_day = now.weekday()
         days_map = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
         day_name = days_map[current_day]
@@ -4173,7 +4176,8 @@ def api_business_status():
             'success': True,
             'is_open': is_open,
             'debug': {
-                'current_time': now.strftime('%H:%M'),
+                'current_time_utc': datetime.utcnow().strftime('%H:%M'),
+                'current_time_brasil': now.strftime('%H:%M'),
                 'current_day': day_name,
                 'day_config': day_config,
                 'business_hours': business_hours

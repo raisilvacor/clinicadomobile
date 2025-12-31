@@ -846,13 +846,18 @@ def save_business_hours(business_hours):
 
 def is_business_open():
     """Verifica se o estabelecimento está aberto no momento atual"""
-    from datetime import datetime
+    from datetime import datetime, timedelta
     
     try:
         business_hours = get_business_hours()
         
+        # Usar timezone do Brasil (UTC-3)
+        # Converter UTC para horário de Brasília (UTC-3)
+        now_utc = datetime.utcnow()
+        now = now_utc - timedelta(hours=3)
+        
         # Obter dia da semana atual (0 = segunda, 6 = domingo)
-        current_day = datetime.now().weekday()
+        current_day = now.weekday()
         
         # Mapear número do dia para nome
         days_map = {
@@ -876,8 +881,7 @@ def is_business_open():
             print(f"❌ Dia {day_name} está desabilitado")
             return False
         
-        # Obter horário atual
-        now = datetime.now()
+        # Obter horário atual no timezone do Brasil
         current_time = now.strftime('%H:%M')
         
         # Obter horários de abertura e fechamento
@@ -888,7 +892,7 @@ def is_business_open():
         if len(open_time) == 5 and len(close_time) == 5:
             # Comparar horários (formato HH:MM como string funciona porque é lexicográfico)
             is_open = open_time <= current_time < close_time
-            print(f"⏰ Horário atual: {current_time}, Abertura: {open_time}, Fechamento: {close_time}, Status: {'ABERTO' if is_open else 'FECHADO'}")
+            print(f"⏰ Horário atual (Brasil): {current_time}, Abertura: {open_time}, Fechamento: {close_time}, Status: {'ABERTO' if is_open else 'FECHADO'}")
             return is_open
         else:
             print(f"⚠️  Formato de horário inválido: open={open_time}, close={close_time}")
