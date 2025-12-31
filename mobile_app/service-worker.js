@@ -123,18 +123,13 @@ function startNotificationCheck() {
   setInterval(checkPendingNotifications, CHECK_INTERVAL);
 }
 
+// Variável para armazenar CPF (declarada antes das funções)
+let storedCpf = null;
+
 // Funções auxiliares para storage
 async function getStoredCpf() {
-  try {
-    const clients = await self.clients.matchAll();
-    if (clients.length > 0) {
-      // Tentar obter CPF do primeiro client
-      return null; // Será definido via message
-    }
-  } catch (e) {
-    console.error('Erro ao obter CPF:', e);
-  }
-  return null;
+  // Retornar CPF armazenado via mensagem
+  return storedCpf;
 }
 
 async function getStoredLastCheck() {
@@ -148,20 +143,41 @@ async function setStoredLastCheck(timestamp) {
 
 // Listener para mensagens do app (para definir CPF)
 self.addEventListener('message', (event) => {
+  // Processar mensagens síncronamente quando possível
   if (event.data && event.data.type === 'SET_CPF') {
     // Armazenar CPF para uso nas verificações
     storedCpf = event.data.cpf;
     console.log('CPF definido no service worker:', storedCpf);
-    // Verificar imediatamente após definir CPF
-    checkPendingNotifications();
+    // Verificar imediatamente após definir CPF (assíncrono)
+    checkPendingNotifications().catch(err => console.error('Erro ao verificar notificações:', err));
+    // Responder se houver porta
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({success: true, cpf: storedCpf});
+    }
+    return;
   }
+  
   if (event.data && event.data.type === 'CHECK_NOW') {
-    // Verificar notificações imediatamente
-    checkPendingNotifications();
+    // Verificar notificações imediatamente (assíncrono)
+    checkPendingNotifications().catch(err => console.error('Erro ao verificar notificações:', err));
+    // Responder se houver porta
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({success: true});
+    }
+    return;
   }
+  
   if (event.data && event.data.type === 'GET_CPF') {
     // Responder com CPF armazenado
-    event.ports[0].postMessage({cpf: storedCpf});
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({cpf: storedCpf});
+    }
+    return;
+  }
+  
+  // Responder para outras mensagens para evitar erro de canal fechado
+  if (event.ports && event.ports[0]) {
+    event.ports[0].postMessage({received: true});
   }
 });
 
