@@ -1184,6 +1184,34 @@
                 e.target.value = e.target.value.replace(/\D/g, '');
             });
         });
+        
+        // Verificar hash na URL para mostrar tela específica
+        window.addEventListener('load', () => {
+            if (window.location.hash) {
+                const hash = window.location.hash.substring(1); // Remove o #
+                if (hash === 'budgetRequestScreen') {
+                    showBudgetRequest();
+                } else if (hash === 'loginScreen') {
+                    showLogin();
+                } else if (hash === 'firstAccessScreen') {
+                    showFirstAccess();
+                }
+            }
+        });
+        
+        // Listener para mudanças no hash
+        window.addEventListener('hashchange', () => {
+            if (window.location.hash) {
+                const hash = window.location.hash.substring(1);
+                if (hash === 'budgetRequestScreen') {
+                    showBudgetRequest();
+                } else if (hash === 'loginScreen') {
+                    showLogin();
+                } else if (hash === 'firstAccessScreen') {
+                    showFirstAccess();
+                }
+            }
+        });
     </script>
 </body>
 </html>
