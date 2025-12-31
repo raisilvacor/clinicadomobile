@@ -1,4 +1,4 @@
-# Gerador de APK para Clínica CEL App
+# Gerador de APK para Clínica CELL App
 
 Este diretório contém os arquivos necessários para gerar um APK do app PWA.
 

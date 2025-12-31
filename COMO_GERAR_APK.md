@@ -1,4 +1,4 @@
-# 📱 Como Gerar APK do App Clínica CEL
+# 📱 Como Gerar APK do App Clínica CELL
 
 ## ⚡ Método Mais Simples: AppsGeyser (Recomendado - Funciona Sempre!)
 
@@ -11,7 +11,7 @@
 3. **Escolha "Web App"**
 
 4. **Preencha:**
-   - **App Name:** Clínica CEL
+   - **App Name:** Clínica CELL
    - **URL:** `https://clinicacel.onrender.com/mobile_app/`
    - **Icon:** Faça upload do arquivo `mobile_app/icon-192.png` (opcional)
 
@@ -86,7 +86,7 @@ O APK estará em: `./app-release.apk`
 3. Escolha "Web App"
 4. Cole a URL: `https://clinicacel.onrender.com/mobile_app/`
 5. Configure:
-   - Nome: Clínica CEL
+   - Nome: Clínica CELL
    - Ícone: Use o ícone do app
 6. Clique em "Create App"
 7. Baixe o APK
@@ -108,7 +108,7 @@ O APK estará em: `./app-release.apk`
    - Aguarde a instalação
 
 4. **Abrir o app:**
-   - O ícone "Clínica CEL" aparecerá na lista de apps
+   - O ícone "Clínica CELL" aparecerá na lista de apps
 
 ---
 

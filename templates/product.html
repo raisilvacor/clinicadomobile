@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO Meta Tags -->
-    <title>{{ product.title }} - Loja Clínica CEL</title>
-    <meta name="description" content="{{ product.description[:160] if product.description else 'Produto disponível na loja Clínica CEL' }}">
+    <title>{{ product.title }} - Loja Clínica CELL</title>
+    <meta name="description" content="{{ product.description[:160] if product.description else 'Produto disponível na loja Clínica CELL' }}">
     <meta name="keywords" content="{{ product.title }}, celular, smartphone, {{ 'novo' if product.condition == 'novo' else 'usado' }}">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ request.url_root.rstrip('/') }}/loja/{{ product.id }}">
@@ -14,7 +14,7 @@
     <!-- Open Graph -->
     <meta property="og:type" content="product">
     <meta property="og:url" content="{{ request.url_root.rstrip('/') }}/loja/{{ product.id }}">
-    <meta property="og:title" content="{{ product.title }} - Loja Clínica CEL">
+    <meta property="og:title" content="{{ product.title }} - Loja Clínica CELL">
     <meta property="og:description" content="{{ product.description[:160] if product.description else 'Produto disponível na loja' }}">
     {% if product.photos and product.photos[0] %}
     <meta property="og:image" content="{{ product.photos[0] if product.photos[0].startswith('http') else request.url_root.rstrip('/') + product.photos[0] }}">
@@ -37,7 +37,7 @@
         },
         "brand": {
             "@type": "Brand",
-            "name": "Clínica CEL"
+            "name": "Clínica CELL"
         }
     }
     </script>
@@ -59,7 +59,7 @@
     <header>
         <nav>
             <div class="logo">
-                <a href="/"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica CEL"></a>
+                <a href="/"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica CELL"></a>
             </div>
             <ul class="nav-links">
                 <li><a href="/#servicos">Serviços</a></li>

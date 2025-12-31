@@ -1129,7 +1129,7 @@ def admin_send_message(repair_id):
                 cpf=customer_cpf,
                 repair_id=repair_id,
                 notification_type='message',
-                title='Nova Mensagem - Clínica CEL',
+                title='Nova Mensagem - Clínica CELL',
                 body=message_content[:100],  # Limitar tamanho
                 data={
                     'type': 'message',
@@ -1525,7 +1525,7 @@ def public_repair_pdf(repair_id):
     )
     
     company_info = Paragraph(
-        f"<b>Clínica CEL</b><br/>"
+        f"<b>Clínica CELL</b><br/>"
         f"CNPJ: 62.891.287/0001-44<br/>"
         f"www.clinicacel.com.br",
         company_style
@@ -2554,7 +2554,7 @@ def admin_or_pdf_internal(repair_id):
     )
     
     company_info = Paragraph(
-        f"<b>Clínica CEL</b><br/>"
+        f"<b>Clínica CELL</b><br/>"
         f"CNPJ: 62.891.287/0001-44<br/>"
         f"www.clinicadomobile.com.br",
         company_style
@@ -2586,7 +2586,7 @@ def admin_or_pdf_internal(repair_id):
             leading=14
         )
         company_info_center = Paragraph(
-            f"<b>Clínica CEL</b><br/>"
+            f"<b>Clínica CELL</b><br/>"
             f"CNPJ: 62.891.287/0001-44<br/>"
             f"www.clinicadomobile.com.br",
             company_style_center
@@ -2849,7 +2849,7 @@ def admin_repair_pdf(repair_id):
     )
     
     company_info = Paragraph(
-        f"<b>Clínica CEL</b><br/>"
+        f"<b>Clínica CELL</b><br/>"
         f"CNPJ: 62.891.287/0001-44<br/>"
         f"www.clinicadomobile.com.br",
         company_style

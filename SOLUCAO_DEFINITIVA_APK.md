@@ -1,4 +1,4 @@
-# 📱 Solução Definitiva para Gerar APK - Clínica CEL
+# 📱 Solução Definitiva para Gerar APK - Clínica CELL
 
 ## ✅ Método 100% Funcional: AppsGeyser
 
@@ -12,7 +12,7 @@
    - **"Web App"** (primeira opção na lista)
 
 4. **Preencha o formulário:**
-   - **App Name:** `Clínica CEL`
+   - **App Name:** `Clínica CELL`
    - **URL:** `https://clinicacel.onrender.com/mobile_app/`
    - **Icon:** 
      - Clique em "Upload Icon"
@@ -54,7 +54,7 @@
    - Aguarde a instalação
 
 4. **Abra o app:**
-   - Procure por **"Clínica CEL"** na lista de apps
+   - Procure por **"Clínica CELL"** na lista de apps
    - Toque para abrir
 
 ---
@@ -67,7 +67,7 @@ Se o AppsGeyser não funcionar:
 
 2. **Preencha:**
    - **Website URL:** `https://clinicacel.onrender.com/mobile_app/`
-   - **App Name:** `Clínica CEL`
+   - **App Name:** `Clínica CELL`
    - **Package Name:** `com.clinicacel.app`
    - **Version:** `1.0.0`
 
@@ -79,7 +79,7 @@ Se o AppsGeyser não funcionar:
 
 ## ⚙️ Configurações do App
 
-- **Nome:** Clínica CEL
+- **Nome:** Clínica CELL
 - **Ícone:** Mesmo favicon do site (`static/images/favicon.png`)
 - **URL:** `https://clinicacel.onrender.com/mobile_app/`
 

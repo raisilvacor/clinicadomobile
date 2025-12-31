@@ -11,7 +11,7 @@
 3. **Escolha "Web App"**
 
 4. **Preencha:**
-   - **App Name:** Clínica CEL
+   - **App Name:** Clínica CELL
    - **URL:** `https://clinicacel.onrender.com/mobile_app/`
    - **Icon:** Faça upload do arquivo `mobile_app/icon-192.png`
 
@@ -32,7 +32,7 @@
 2. **Cole a URL:** `https://clinicacel.onrender.com/mobile_app/`
 
 3. **Configure:**
-   - Nome: Clínica CEL
+   - Nome: Clínica CELL
    - Package: com.clinicacel.app
 
 4. **Gere o APK**

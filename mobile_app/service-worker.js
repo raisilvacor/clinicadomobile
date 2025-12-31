@@ -111,7 +111,7 @@ async function showNotification(notif) {
     silent: false
   };
   
-  await self.registration.showNotification(notif.title || 'Clínica CEL', options);
+  await self.registration.showNotification(notif.title || 'Clínica CELL', options);
 }
 
 // Função para iniciar verificação periódica
