@@ -834,6 +834,22 @@ if (window.navigation && window.self !== window.top) {
 								newBtn.style.setProperty('color', '#ffffff', 'important'); // Force white text
 								newBtn.style.removeProperty('background-color'); // Remove orange bg
 								
+								// Ensure image is visible and correct
+								if (img) {
+									// Local assets
+									if (name === 'Lenovo') {
+										img.src = 'assets/lenovo.png';
+									} else if (name === 'TCL') {
+										img.src = 'assets/tcl.png';
+									}
+									img.style.display = 'block';
+									img.style.opacity = '1';
+									img.style.visibility = 'visible';
+									// Ensure it fits
+									img.style.maxWidth = '100%';
+									img.style.height = 'auto';
+								}
+
 								// Add click handler for models
 								newBtn.onclick = function(e) {
 									e.preventDefault();
@@ -858,10 +874,10 @@ if (window.navigation && window.self !== window.top) {
 						};
 						
 						if (!hasLenovo) {
-							addBrand('Lenovo', 'https://logodownload.org/wp-content/uploads/2014/09/lenovo-logo-0.png');
+							addBrand('Lenovo', 'assets/lenovo.png');
 						}
 						if (!hasTCL) {
-							addBrand('TCL', 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Logo_of_the_TCL_Corporation.svg/1280px-Logo_of_the_TCL_Corporation.svg.png');
+							addBrand('TCL', 'assets/tcl.png');
 						}
 					}
 				}
@@ -872,71 +888,120 @@ if (window.navigation && window.self !== window.top) {
 
 		// Show models for specific brand
 		function showModelsForBrand(brandName) {
-			// Find model container
-			const headerXpath = "//*[contains(text(), 'Escolha o modelo')]";
-			const result = document.evaluate(headerXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-			
-			if (result.snapshotLength > 0) {
-				const header = result.snapshotItem(0);
-				let container = header.parentElement;
+			try {
+				// Find model container
+				// Strategy: Look for "Escolha o modelo" text, then find the grid container near it
+				let modelHeader = null;
+				const headerXpath = "//*[contains(text(), 'Escolha o modelo')]";
+				const result = document.evaluate(headerXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+				
+				if (result.snapshotLength > 0) {
+					modelHeader = result.snapshotItem(0);
+				}
+
 				let modelContainer = null;
 				
-				// Traverse to find the grid/list of models
-				// It usually is a sibling or child of parent
-				// We look for a div with multiple buttons or grid class
-				let attempts = 0;
-				while (container && attempts < 5) {
-					const grids = container.querySelectorAll('.grid, .flex'); // Tail classes usually
-					for (let grid of grids) {
-						if (grid.querySelectorAll('button').length > 0 || grid.children.length > 0) {
-							modelContainer = grid;
+				if (modelHeader) {
+					// Traverse up to find the section container, then look down for the grid
+					let container = modelHeader.parentElement;
+					let attempts = 0;
+					
+					// Try to find a container that has 'grid' class or contains buttons
+					while (container && attempts < 5) {
+						// Look for the grid container inside this parent
+						const grids = container.querySelectorAll('.grid');
+						if (grids.length > 0) {
+							// Usually the model list is in a grid
+							modelContainer = grids[0];
 							break;
 						}
+						// Or look for a flex container with buttons
+						const flexes = container.querySelectorAll('.flex');
+						for (const flex of flexes) {
+							if (flex.querySelectorAll('button').length > 0) {
+								modelContainer = flex;
+								break;
+							}
+						}
+						if (modelContainer) break;
+
+						container = container.parentElement;
+						attempts++;
 					}
-					if (modelContainer) break;
-					container = container.parentElement;
-					attempts++;
 				}
 				
-				if (modelContainer) {
-					// Clear existing models
-					modelContainer.innerHTML = '';
-					
-					// Define models
-					let models = [];
-					if (brandName === 'Lenovo') {
-						models = [
-                            // Placeholder - waiting for user list
-							"K14 Plus", "K12 Prime", "K12 Note", "Legion Phone Duel", "K10 Note"
-						];
-					} else if (brandName === 'TCL') {
-						models = [
-                            // Placeholder - waiting for user list
-							"TCL 20 SE", "TCL 20 Pro 5G", "TCL 10 SE", "TCL L10 Pro"
-						];
-					}
-					
-					// Create buttons
-					models.forEach(model => {
-						const btn = document.createElement('button');
-						// Style similar to existing model buttons
-						btn.className = "p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-left group bg-brand-gray/20"; 
-						
-						const span = document.createElement('span');
-						span.textContent = model;
-						span.style.color = '#ffffff';
-						span.className = "text-lg font-medium";
-						
-						btn.appendChild(span);
-						
-						btn.onclick = function() {
-							// Handle model selection
-							alert('Modelo selecionado: ' + model);
-						};
-						
-						modelContainer.appendChild(btn);
-					});
+				if (!modelContainer) {
+					console.error('Model container not found');
+					return;
 				}
+
+				// Clear existing models
+				modelContainer.innerHTML = '';
+				
+				// Define models
+				let models = [];
+				if (brandName === 'Lenovo') {
+					models = [
+						// Modelos Lenovo (Placeholder - aguardando lista real)
+						"Lenovo K14 Plus", "Lenovo K12 Prime", "Lenovo K12 Note", 
+						"Lenovo Legion Phone Duel", "Lenovo K10 Note", "Lenovo K13 Note",
+                        "Lenovo K5 Pro", "Lenovo Z6 Pro", "Lenovo A6 Note"
+					];
+				} else if (brandName === 'TCL') {
+					models = [
+						// Modelos TCL (Placeholder - aguardando lista real)
+						"TCL 20 SE", "TCL 20 Pro 5G", "TCL 10 SE", "TCL L10 Pro",
+						"TCL 30 SE", "TCL 305", "TCL 20Y", "TCL 20B", "TCL 10 Plus"
+					];
+				}
+				
+				// Create buttons
+				models.forEach(model => {
+					const btn = document.createElement('button');
+					// Style to match existing buttons (inspected from source or inferred)
+					// Based on previous code: p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-left group bg-brand-gray/20
+					btn.className = "p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-left group bg-brand-gray/20 flex items-center justify-between w-full"; 
+					
+					const span = document.createElement('span');
+					span.textContent = model;
+					span.style.color = '#ffffff';
+					span.className = "text-lg font-medium";
+					
+					// Add arrow icon if typical
+					const icon = document.createElement('span');
+					icon.innerHTML = '&#8594;'; // Right arrow
+					icon.style.color = '#ff8c00'; // Brand orange
+					icon.className = "opacity-0 group-hover:opacity-100 transition-opacity";
+
+					btn.appendChild(span);
+					btn.appendChild(icon);
+					
+					btn.onclick = function(e) {
+						e.preventDefault();
+						// Handle model selection - normally this would trigger next step
+						// Since we don't have the full app logic, we alert or try to find a 'next' handler
+						console.log('Modelo selecionado: ' + model);
+						
+						// Highlight selection
+						Array.from(modelContainer.querySelectorAll('button')).forEach(b => {
+							b.classList.remove('border-brand-red');
+							b.style.removeProperty('border-color');
+						});
+						btn.classList.add('border-brand-red');
+						btn.style.borderColor = '#ff8c00';
+						
+						// Try to trigger app state update if possible, or just visual feedback
+						// Assuming there's a global function or event for this
+					};
+					
+					modelContainer.appendChild(btn);
+				});
+				
+				// Scroll to models
+				modelHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+			} catch (e) {
+				console.error('Error showing models:', e);
 			}
 		}
 
