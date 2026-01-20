@@ -770,38 +770,38 @@ if (window.navigation && window.self !== window.top) {
 
 		// Add missing brands (Lenovo, TCL)
 		function addMissingBrands() {
-			const headerXpath = "//*[contains(text(), 'Escolha a marca do seu aparelho')]";
-			const result = document.evaluate(headerXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-			
-			if (result.snapshotLength > 0) {
-				const header = result.snapshotItem(0);
-				let container = header.parentElement;
-				let attempts = 0;
+			try {
+				// Strategy: Find a known brand button to locate the grid container
+				// This is more robust than traversing from the header
+				const knownBrands = ['Samsung', 'Apple', 'Motorola', 'Xiaomi'];
+				let templateBtn = null;
 				let brandContainer = null;
 				
-				// Find the container with buttons
-				while (container && container.tagName !== 'BODY' && attempts < 5) {
-					const buttons = container.querySelectorAll('button');
-					if (buttons.length > 2) {
-						brandContainer = container;
+				const allButtons = Array.from(document.querySelectorAll('button'));
+				for (const btn of allButtons) {
+					// Check if button has brand text and an image (logo)
+					const text = btn.textContent.trim();
+					const hasImg = btn.querySelector('img');
+					
+					// We verify it's a brand button if it matches a known brand
+					if (hasImg && knownBrands.some(brand => text.includes(brand))) {
+						templateBtn = btn;
+						brandContainer = btn.parentElement;
 						break;
 					}
-					container = container.parentElement;
-					attempts++;
 				}
 				
-				if (brandContainer) {
-					// Check if Lenovo already exists to avoid duplicates
-					const buttons = Array.from(brandContainer.querySelectorAll('button'));
-					const hasLenovo = buttons.some(btn => btn.textContent.includes('Lenovo'));
-					const hasTCL = buttons.some(btn => btn.textContent.includes('TCL'));
+				if (brandContainer && templateBtn) {
+					// Check if Lenovo/TCL already exist in this container
+					// We check the text content of the container to be sure
+					const containerText = brandContainer.textContent;
+					const hasLenovo = containerText.includes('Lenovo');
+					const hasTCL = containerText.includes('TCL');
 					
 					if (!hasLenovo || !hasTCL) {
-						// Use the first button as a template
-						const templateBtn = buttons[0];
-						if (templateBtn) {
-							// Helper to create and append brand
-							const addBrand = (name, imgUrl) => {
+						// Helper to create and append brand
+						const addBrand = (name, imgUrl) => {
+							try {
 								const newBtn = templateBtn.cloneNode(true);
 								
 								// Update Image
@@ -809,17 +809,17 @@ if (window.navigation && window.self !== window.top) {
 								if (img) {
 									img.src = imgUrl;
 									img.alt = name;
-									// Remove srcset if exists to prevent loading old image
-									img.removeAttribute('srcset');
+									img.removeAttribute('srcset'); // Prevent loading old image
 								}
 								
 								// Update Text
+								// Find the text node that contains the brand name
 								let textFound = false;
 								const walk = (node) => {
 									if (textFound) return;
 									if (node.nodeType === Node.TEXT_NODE) {
 										const txt = node.textContent.trim();
-										if (txt && txt.length > 1) { // Avoid replacing generic symbols
+										if (txt && txt.length > 1) { 
 											node.textContent = name;
 											textFound = true;
 										}
@@ -829,9 +829,10 @@ if (window.navigation && window.self !== window.top) {
 								};
 								walk(newBtn);
 								
-								// Styling fixes for new button
-								newBtn.classList.remove('bg-brand-red'); // Remove active state if copied from active
+								// Styling fixes
+								newBtn.classList.remove('bg-brand-red'); // Remove active state
 								newBtn.style.setProperty('color', '#ffffff', 'important'); // Force white text
+								newBtn.style.removeProperty('background-color'); // Remove orange bg
 								
 								// Add click handler for models
 								newBtn.onclick = function(e) {
@@ -849,19 +850,23 @@ if (window.navigation && window.self !== window.top) {
 									showModelsForBrand(name);
 								};
 
-								// Append
+								// Append to the container
 								brandContainer.appendChild(newBtn);
-							};
-							
-							if (!hasLenovo) {
-								addBrand('Lenovo', 'https://logodownload.org/wp-content/uploads/2014/09/lenovo-logo-0.png');
+							} catch (err) {
+								console.error('Error creating brand button for ' + name, err);
 							}
-							if (!hasTCL) {
-								addBrand('TCL', 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Logo_of_the_TCL_Corporation.svg/1280px-Logo_of_the_TCL_Corporation.svg.png');
-							}
+						};
+						
+						if (!hasLenovo) {
+							addBrand('Lenovo', 'https://logodownload.org/wp-content/uploads/2014/09/lenovo-logo-0.png');
+						}
+						if (!hasTCL) {
+							addBrand('TCL', 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Logo_of_the_TCL_Corporation.svg/1280px-Logo_of_the_TCL_Corporation.svg.png');
 						}
 					}
 				}
+			} catch (e) {
+				console.error('Error in addMissingBrands:', e);
 			}
 		}
 
