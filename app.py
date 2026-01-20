@@ -96,6 +96,18 @@ def index():
     is_open = db_is_business_open()
     return render_template('index.html', content=site_content, brands=brands, is_open=is_open)
 
+@app.route('/orcamento')
+def orcamento_redirect():
+    return redirect('/orcamento/')
+
+@app.route('/orcamento/')
+def orcamento_index():
+    return send_from_directory('orcamento', 'index.html')
+
+@app.route('/orcamento/<path:filename>')
+def orcamento_files(filename):
+    return send_from_directory('orcamento', filename)
+
 # ========== ROTAS ADMINISTRATIVAS ==========
 
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -349,6 +361,16 @@ def admin_laboratory():
         return redirect(url_for('admin_laboratory'))
     
     return render_template('admin/laboratory.html', laboratory=laboratory)
+
+@app.route('/api/contact-info')
+def api_contact_info():
+    site_content = db_get_site_content()
+    contact = site_content.get('contact', {})
+    return jsonify({
+        'whatsapp': contact.get('whatsapp', ''),
+        'phone': contact.get('phone', ''),
+        'email': contact.get('email', '')
+    })
 
 @app.route('/admin/contact', methods=['GET', 'POST'])
 @login_required

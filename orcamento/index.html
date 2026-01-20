@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="icon" type="image/png" href="/static/images/favicon.png" />
+		<link rel="apple-touch-icon" href="/static/images/logo.png" />
+		<meta name="generator" content="Hostinger Horizons" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Hostinger Horizons</title>
+		<script type="module" crossorigin src="assets/index-914650a4.js"></script>
+		<link rel="stylesheet" href="assets/index-911a79ae.css">
+		<script type="module">
+window.onerror = (message, source, lineno, colno, errorObj) => {
+	const errorDetails = errorObj ? JSON.stringify({
+		name: errorObj.name,
+		message: errorObj.message,
+		stack: errorObj.stack,
+		source,
+		lineno,
+		colno,
+	}) : null;
+
+	window.parent.postMessage({
+		type: 'horizons-runtime-error',
+		message,
+		error: errorDetails
+	}, '*');
+};
+</script>
+		<script type="module">
+const observer = new MutationObserver((mutations) => {
+	for (const mutation of mutations) {
+		for (const addedNode of mutation.addedNodes) {
+			if (
+				addedNode.nodeType === Node.ELEMENT_NODE &&
+				(
+					addedNode.tagName?.toLowerCase() === 'vite-error-overlay' ||
+					addedNode.classList?.contains('backdrop')
+				)
+			) {
+				handleViteOverlay(addedNode);
+			}
+		}
+	}
+});
+
+observer.observe(document.documentElement, {
+	childList: true,
+	subtree: true
+});
+
+function handleViteOverlay(node) {
+	if (!node.shadowRoot) {
+		return;
+	}
+
+	const backdrop = node.shadowRoot.querySelector('.backdrop');
+
+	if (backdrop) {
+		const overlayHtml = backdrop.outerHTML;
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(overlayHtml, 'text/html');
+		const messageBodyElement = doc.querySelector('.message-body');
+		const fileElement = doc.querySelector('.file');
+		const messageText = messageBodyElement ? messageBodyElement.textContent.trim() : '';
+		const fileText = fileElement ? fileElement.textContent.trim() : '';
+		const error = messageText + (fileText ? ' File:' + fileText : '');
+
+		window.parent.postMessage({
+			type: 'horizons-vite-error',
+			error,
+		}, '*');
+	}
+}
+</script>
+		<script type="module">
+const originalConsoleError = console.error;
+console.error = function(...args) {
+	originalConsoleError.apply(console, args);
+
+	let errorString = '';
+
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (arg instanceof Error) {
+			errorString = arg.stack || `${arg.name}: ${arg.message}`;
+			break;
+		}
+	}
+
+	if (!errorString) {
+		errorString = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+	}
+
+	window.parent.postMessage({
+		type: 'horizons-console-error',
+		error: errorString
+	}, '*');
+};
+</script>
+		<script type="module">
+const originalFetch = window.fetch;
+
+window.fetch = function(...args) {
+	const url = args[0] instanceof Request ? args[0].url : args[0];
+
+	// Skip WebSocket URLs
+	if (url.startsWith('ws:') || url.startsWith('wss:')) {
+		return originalFetch.apply(this, args);
+	}
+
+	return originalFetch.apply(this, args)
+		.then(async response => {
+			const contentType = response.headers.get('Content-Type') || '';
+
+			// Exclude HTML document responses
+			const isDocumentResponse =
+				contentType.includes('text/html') ||
+				contentType.includes('application/xhtml+xml');
+
+			if (!response.ok && !isDocumentResponse) {
+					const responseClone = response.clone();
+					const errorFromRes = await responseClone.text();
+					const requestUrl = response.url;
+					console.error(`Fetch error from ${requestUrl}: ${errorFromRes}`);
+			}
+
+			return response;
+		})
+		.catch(error => {
+			if (!url.match(/.html?$/i)) {
+				console.error(error);
+			}
+
+			throw error;
+		});
+};
+</script>
+		<script type="module">
+if (window.navigation && window.self !== window.top) {
+	window.navigation.addEventListener('navigate', (event) => {
+		const url = event.destination.url;
+
+		try {
+			const destinationUrl = new URL(url);
+			const destinationOrigin = destinationUrl.origin;
+			const currentOrigin = window.location.origin;
+
+			if (destinationOrigin === currentOrigin) {
+				return;
+			}
+		} catch (error) {
+			return;
+		}
+
+		window.parent.postMessage({
+			type: 'horizons-navigation-error',
+			url,
+		}, '*');
+	});
+}
+</script>
+	</head>
+	<style>
+		:root {
+			--brand-orange: #ff8c00;
+		}
+		
+		/* Override Tailwind classes for colors */
+		.text-brand-red { color: #ff8c00 !important; }
+		.bg-brand-red { background-color: #ff8c00 !important; }
+		.border-brand-red { border-color: #ff8c00 !important; }
+		.shadow-brand-red { --tw-shadow-color: #ff8c00 !important; }
+		.from-brand-red { --tw-gradient-from: #ff8c00 !important; }
+		
+		/* Override specific red shades */
+		.to-red-600 { --tw-gradient-to: #ff8c00 !important; }
+		.bg-red-700 { background-color: #e07b00 !important; } /* Slightly darker orange for hover */
+		.hover\:bg-red-700:hover { background-color: #e07b00 !important; }
+		
+		/* Additional Red/Pink overrides */
+		.text-pink-500, .text-pink-600 { color: #ff8c00 !important; }
+		.bg-pink-500, .bg-pink-600 { background-color: #ff8c00 !important; }
+		
+		.text-red-50, .text-red-300, .text-red-400, .text-red-500, .text-red-600, .text-red-700, .text-red-800, .text-red-900, .text-red-950 { color: #ff8c00 !important; }
+		.bg-red-50, .bg-red-300, .bg-red-400, .bg-red-500, .bg-red-600, .bg-red-700, .bg-red-800, .bg-red-900, .bg-red-950 { background-color: #ff8c00 !important; }
+		
+		/* Opacity modifiers overrides */
+		.bg-brand-red\/10 { background-color: rgba(255, 140, 0, 0.1) !important; }
+		.border-brand-red\/30 { border-color: rgba(255, 140, 0, 0.3) !important; }
+		.hover\:border-brand-red\/30:hover { border-color: rgba(255, 140, 0, 0.3) !important; }
+		.hover\:text-brand-red:hover { color: #ff8c00 !important; }
+		
+		/* Specific Shadow overrides */
+		.shadow-\[0_0_20px_rgba\(220\,38\,38\,0\.3\)\] { box-shadow: 0 0 20px rgba(255, 140, 0, 0.3) !important; }
+		.shadow-\[0_0_8px_\#dc2626\] { box-shadow: 0 0 8px #ff8c00 !important; }
+
+		/* Brand Red Generic Overrides - Comprehensive */
+		.text-brand-red, 
+		.hover\:text-brand-red:hover, 
+		.group:hover .group-hover\:text-brand-red,
+		[class*="hover:text-brand-red"]:hover,
+		[class*="text-brand-red"] { 
+			color: #ff8c00 !important; 
+		}
+
+		.bg-brand-red, 
+		.hover\:bg-brand-red:hover, 
+		[class*="hover:bg-brand-red"]:hover,
+		[class*="bg-brand-red"] { 
+			background-color: #ff8c00 !important;
+			color: #000000 !important; /* Force black text on orange bg */
+		}
+
+		/* Force black text on any element inside an orange background container that tries to be white */
+		.bg-brand-red .text-white,
+		[class*="bg-brand-red"] .text-white,
+		.bg-red-500 .text-white,
+		[class*="bg-red-"] .text-white,
+		[class*="bg-pink-"] .text-white,
+		.bg-brand-red [class*="text-white"],
+		[class*="bg-brand-red"] [class*="text-white"] {
+			color: #000000 !important;
+		}
+
+		.hover\:bg-brand-red:hover .text-white,
+		.group:hover .group-hover\:bg-brand-red .text-white,
+		[class*="hover:bg-brand-red"]:hover .text-white,
+		[class*="bg-brand-red"] .text-white {
+			color: #000000 !important;
+		}
+
+		.border-brand-red, 
+		.hover\:border-brand-red:hover, 
+		[class*="hover:border-brand-red"]:hover,
+		[class*="border-brand-red"] { 
+			border-color: #ff8c00 !important; 
+		}
+
+		.ring-brand-red, 
+		.focus\:ring-brand-red:focus,
+		[class*="focus:ring-brand-red"]:focus { 
+			--tw-ring-color: #ff8c00 !important; 
+		}
+		
+		/* Shadow Brand Red Overrides */
+		.shadow-brand-red\/20, 
+		[class*="shadow-brand-red"] {
+			--tw-shadow-color: rgba(255, 140, 0, 0.2) !important;
+			box-shadow: 0 10px 15px -3px rgba(255, 140, 0, 0.2), 0 4px 6px -2px rgba(255, 140, 0, 0.1) !important;
+		}
+
+		/* Specific overrides found in JS scan */
+		.hover\:bg-red-700:hover, 
+		[class*="hover:bg-red-700"]:hover { 
+			background-color: #e07b00 !important; 
+			color: #000000 !important; /* Force black text on dark orange bg */
+		}
+		
+		.hover\:bg-red-900:hover,
+		[class*="hover:bg-red-900"]:hover {
+			background-color: #cc7000 !important;
+			color: #000000 !important; /* Force black text */
+		}
+		
+		.bg-red-900\/50,
+		[class*="bg-red-900"] {
+			background-color: rgba(255, 140, 0, 0.5) !important;
+			color: #000000 !important; /* Force black text */
+		}
+		
+		.border-red-800,
+		[class*="border-red-800"] {
+			border-color: #cc7000 !important;
+		}
+
+		.bg-red-500, .hover\:bg-red-600:hover {
+			background-color: #ff8c00 !important;
+			color: #000000 !important; /* Force black text */
+		}
+
+		/* Instagram/Gradient Button Overrides (Purple to Pink -> Orange to Dark Orange) */
+		.from-purple-500 { --tw-gradient-from: #ff8c00 !important; } 
+		.to-pink-500 { --tw-gradient-to: #e07b00 !important; } 
+		.hover\:from-purple-600:hover { --tw-gradient-from: #e07b00 !important; }
+		.hover\:to-pink-600:hover { --tw-gradient-to: #cc7000 !important; }
+		/* Force black text for gradient buttons which likely use these classes */
+		[class*="from-purple-500"], [class*="to-pink-500"] {
+			color: #000000 !important;
+		}
+		
+		/* Additional Red Color Specs */
+		.bg-red-500 { background-color: #ff8c00 !important; color: #000000 !important; }
+		.text-red-500 { color: #ff8c00 !important; }
+
+		/* Specific fix for "Escolha a marca" active state if it uses bg-brand-red */
+		/* Ensure text inside bg-brand-red is black */
+		.bg-brand-red * {
+			color: #000000 !important;
+		}
+
+		/* Remove logo glow background */
+		/* The glow is defined as: absolute -inset-1 bg-gradient-to-r from-brand-red to-red-600 rounded-full blur opacity-25 */
+		/* We can target the specific gradient combo or the specific container structure if needed */
+		/* But since the user wants to remove the "fundo vermelho da logo", we can target that specific div */
+		
+		/* Option 1: Use JS to remove the element (cleaner) - added to existing script below */
+		
+		video,
+		iframe,
+		#youtube-player,
+		#yt-player-container,
+		.aspect-video,
+		[class*="video"] {
+			display: none !important;
+		}
+
+		/* PROTECT WHITE TEXT ON BLACK BACKGROUNDS */
+		/* Ensure that if an element has a black/dark background, its text remains white */
+		/* This overrides the generic "orange background -> black text" rule for nested elements */
+		.bg-black .text-white,
+		.bg-gray-900 .text-white,
+		.bg-brand-gray .text-white,
+		[class*="bg-black"] .text-white,
+		[class*="bg-gray-9"] .text-white,
+		[class*="bg-brand-gray"] .text-white {
+			color: #ffffff !important;
+		}
+	</style>
+	<script>
+		let currentWhatsAppNumber = '5586988959957'; // Default fallback
+		
+		// Fetch contact info from backend
+		async function fetchContactInfo() {
+			try {
+				const response = await fetch('/api/contact-info');
+				if (response.ok) {
+					const data = await response.json();
+					if (data.whatsapp) {
+						// Clean number: remove all non-digits
+						const fetchedNumber = data.whatsapp.replace(/\D/g, '');
+						if (fetchedNumber) {
+							currentWhatsAppNumber = fetchedNumber;
+						}
+					}
+				}
+			} catch (error) {
+				console.error('Error fetching contact info:', error);
+			}
+		}
+		
+		// Initial fetch
+		fetchContactInfo();
+
+		// Remove video elements completely from DOM
+		function removeVideos() {
+			const selectors = ['video', 'iframe', '#youtube-player', '#yt-player-container', '.aspect-video'];
+			selectors.forEach(selector => {
+				document.querySelectorAll(selector).forEach(el => el.remove());
+			});
+		}
+
+		// Remove Speed Control ("Velocidade: 1x")
+		function removeSpeedControl() {
+			const xpath = "//*[contains(text(), 'Velocidade:')]";
+			try {
+				const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+				for (let i = 0; i < result.snapshotLength; i++) {
+					let element = result.snapshotItem(i);
+					
+					// Traverse up to find the button/container
+					// Structure appears to be: div.mb-2 > button > [text]
+					
+					// 1. Find the button-like element
+					let button = element.closest('button') || element.closest('[role="button"]');
+					
+					// If no button tag, try to find the element with specific classes seen in source
+					if (!button) {
+						let current = element;
+						for (let k = 0; k < 5; k++) { // Limit traversal
+							if (current && current.className && typeof current.className === 'string' && 
+								(current.className.includes('bg-white/5') || current.className.includes('w-full h-12'))) {
+								button = current;
+								break;
+							}
+							if (current.parentElement) current = current.parentElement;
+							else break;
+						}
+					}
+
+					if (button) {
+						// Hide the button
+						button.style.display = 'none';
+						
+						// Also hide the parent wrapper (div.mb-2) if it exists
+						if (button.parentElement) {
+							button.parentElement.style.display = 'none';
+							
+							// Hide the main container that holds the video and controls
+							// The structure seems to be:
+							// div.bg-brand-gray.rounded-3xl.p-4.mb-8.border.border-white/10.w-full.shadow-2xl.relative.overflow-hidden.group
+							//   > div (gradient line)
+							//   > div.aspect-video (video)
+							//   > div.mb-2 (speed control)
+							
+							// button.parentElement is div.mb-2
+							// button.parentElement.parentElement is the main container
+							if (button.parentElement.parentElement) {
+								const mainContainer = button.parentElement.parentElement;
+								if (mainContainer.classList.contains('bg-brand-gray') || 
+									mainContainer.className.includes('bg-brand-gray')) {
+									mainContainer.style.display = 'none';
+								}
+							}
+						}
+					} else {
+						// Fallback: just hide the text element and its immediate parent
+						element.style.display = 'none';
+						if (element.parentElement) element.parentElement.style.display = 'none';
+					}
+				}
+			} catch (e) {
+				// Ignore errors
+			}
+		}
+		
+		// Remove empty video container explicitly by class pattern
+		function removeVideoContainer() {
+			// Find the container with specific classes from the source code
+			// className:"bg-brand-gray rounded-3xl p-4 mb-8 border border-white/10 w-full shadow-2xl relative overflow-hidden group"
+			const divs = document.getElementsByTagName('div');
+			for (let i = 0; i < divs.length; i++) {
+				const div = divs[i];
+				if (div.className && typeof div.className === 'string' && 
+					div.className.includes('bg-brand-gray') && 
+					div.className.includes('rounded-3xl') && 
+					div.className.includes('shadow-2xl')) {
+					div.style.display = 'none';
+				}
+			}
+		}
+
+		// Remove logo red glow background
+		function removeLogoGlow() {
+			// Pattern: absolute -inset-1 bg-gradient-to-r from-brand-red to-red-600 rounded-full blur opacity-25
+			const divs = document.getElementsByTagName('div');
+			for (let i = 0; i < divs.length; i++) {
+				const div = divs[i];
+				if (div.className && typeof div.className === 'string' && 
+					div.className.includes('absolute') && 
+					div.className.includes('-inset-1') && 
+					div.className.includes('bg-gradient-to-r') &&
+					div.className.includes('blur')) {
+					div.style.display = 'none';
+				}
+			}
+		}
+
+		// Specific fix for "Trocar marca" button - OVERRIDE to WHITE if requested
+		function fixTrocarMarcaButton() {
+			// User requested "Trocar" text to be white.
+			// Previous logic set it to orange. We will update to white.
+			
+			const xpath = "//*[contains(text(), 'Trocar marca')]";
+			const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			for (let i = 0; i < result.snapshotLength; i++) {
+				let element = result.snapshotItem(i);
+				let button = element.closest('button');
+				
+				if (button) {
+					// Set to WHITE as per latest instruction
+					button.style.setProperty('color', '#ffffff', 'important');
+					button.style.transition = 'all 0.2s';
+					
+					// If it has a background that makes white invisible (like transparent on white bg), we might need to adjust
+					// But user said "tem que ser branco".
+					
+					// Handle Hover/Active state - maybe keep white or switch?
+					// User said "Ver preço, Trocar... tem que ser branco"
+					// Assuming always white for now to satisfy the "white text" requirement
+					
+					// But previously they wanted orange overlay on hover.
+					// Let's keep the orange overlay on hover but ensure text is readable (maybe white on orange?)
+					// Or black on orange?
+					// "o botao Trocar marca... overlay seja laranja e o texto mude para preto" (Previous)
+					// "Trocar... tem que ser branco esses textos" (Current)
+					
+					// Conflict resolution: The "Current" instruction usually overrides.
+					// However, "Trocar" in the list might refer to the text color in its DEFAULT state.
+					
+					// Let's try: Default = White Text. Hover = Orange BG + Black Text (as previously requested).
+					
+					button.style.setProperty('color', '#ffffff', 'important');
+					
+					button.onmouseenter = function() {
+						this.style.setProperty('background-color', '#ff8c00', 'important');
+						this.style.setProperty('color', '#000000', 'important');
+					};
+					
+					button.onmouseleave = function() {
+						this.style.setProperty('background-color', 'transparent', 'important');
+						this.style.setProperty('color', '#ffffff', 'important');
+					};
+				}
+			}
+		}
+
+		// Force specific texts to be WHITE
+		function fixSpecificWhiteTexts() {
+			// List of text strings to force to white
+			const textsToWhitify = [
+				'Ver preço',
+				'Trocar', // Will match "Trocar marca", "Trocar modelo" if we use contains
+				'Voltar',
+				'Conserte seu celular com a',
+				'Orçamento Online',
+				'Como enviar seu celular'
+			];
+			
+			// XPath to find elements containing these texts
+			textsToWhitify.forEach(text => {
+				const xpath = `//*[contains(text(), '${text}')]`;
+				const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+				
+				for (let i = 0; i < result.snapshotLength; i++) {
+					let element = result.snapshotItem(i);
+					
+					// Force color white
+					element.style.setProperty('color', '#ffffff', 'important');
+					
+					// Also force parent if it's a button and the text is inside a span
+					if (element.parentElement && (element.parentElement.tagName === 'BUTTON' || element.parentElement.tagName === 'A')) {
+						element.parentElement.style.setProperty('color', '#ffffff', 'important');
+					}
+				}
+			});
+			
+			// Special handling for "o valor do preco" (Price values like R$ 100,00)
+			// We look for "R$"
+			const priceXpath = "//*[contains(text(), 'R$')]";
+			const priceResult = document.evaluate(priceXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			for (let i = 0; i < priceResult.snapshotLength; i++) {
+				let element = priceResult.snapshotItem(i);
+				element.style.setProperty('color', '#ffffff', 'important');
+			}
+		}
+
+		// Fix brand names under "Escolha a marca do seu aparelho"
+		function fixBrandNames() {
+			const headerXpath = "//*[contains(text(), 'Escolha a marca do seu aparelho')]";
+			const result = document.evaluate(headerXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			if (result.snapshotLength > 0) {
+				const header = result.snapshotItem(0);
+				// Traverse up to find the common container for the section
+				let container = header.parentElement;
+				// We look for a container that has multiple buttons (the brands)
+				let attempts = 0;
+				while (container && container.tagName !== 'BODY' && attempts < 5) {
+					const buttons = container.querySelectorAll('button');
+					if (buttons.length > 2) {
+						// Found the container with brands
+						buttons.forEach(btn => {
+							// Force white text
+							btn.style.setProperty('color', '#ffffff', 'important');
+							// Also force any child text
+							const children = btn.querySelectorAll('*');
+							children.forEach(child => child.style.setProperty('color', '#ffffff', 'important'));
+						});
+						break; 
+					}
+					container = container.parentElement;
+					attempts++;
+				}
+			}
+		}
+
+		// Remove "Você sabe como funciona o procedimento?" popup
+		function removeProcedurePopup() {
+			const textXpath = "//*[contains(text(), 'Você sabe como funciona o procedimento?')]";
+			const btnXpath = "//*[contains(text(), 'Já sei como funciona')]";
+			
+			// Find the popup text
+			const textResult = document.evaluate(textXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			// Find the "Já sei como funciona" button
+			const btnResult = document.evaluate(btnXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			// Strategy:
+			// 1. Visually hide the popup immediately (so user doesn't see it)
+			// 2. Click the "Já sei como funciona" button to properly update the app state (close modal)
+			
+			if (textResult.snapshotLength > 0) {
+				for (let i = 0; i < textResult.snapshotLength; i++) {
+					let element = textResult.snapshotItem(i);
+					// Traverse up to find the fixed overlay/dialog and hide it
+					let current = element;
+					while (current && current !== document.body) {
+						// Check for common modal wrapper traits
+						if (current.getAttribute('role') === 'dialog' || 
+							(getComputedStyle(current).position === 'fixed') ||
+							(current.className && typeof current.className === 'string' && current.className.includes('fixed') && current.className.includes('z-50'))) {
+							current.style.display = 'none';
+							// Also try to hide the backdrop (usually a sibling)
+							if (current.previousElementSibling && 
+								current.previousElementSibling.className && 
+								typeof current.previousElementSibling.className === 'string' &&
+								(current.previousElementSibling.className.includes('backdrop') || current.previousElementSibling.className.includes('bg-black'))) {
+								current.previousElementSibling.style.display = 'none';
+							}
+							break;
+						}
+						current = current.parentElement;
+					}
+				}
+				
+				// Now simulate click to remove it logically
+				if (btnResult.snapshotLength > 0) {
+					const btn = btnResult.snapshotItem(0);
+					// Use a timeout to ensure the hide happens first visually, though JS is single threaded
+					// The click might trigger a re-render which removes the element anyway
+					btn.click();
+				}
+			}
+		}
+
+		// Replace "via Instagram" with "via WhatsApp"
+		function replaceInstagramText() {
+			const xpath = "//*[contains(text(), 'Peças originais apenas por cotação via Instagram')]";
+			const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			for (let i = 0; i < result.snapshotLength; i++) {
+				let element = result.snapshotItem(i);
+				if (element.textContent.includes('Peças originais apenas por cotação via Instagram')) {
+					element.textContent = element.textContent.replace('via Instagram', 'via WhatsApp');
+				}
+			}
+		}
+
+		// Replace "Enviar comprovante no Instagram" with "Enviar comprovante no WhatsApp" AND change Icon
+		function replaceInstagramProof() {
+			const xpath = "//*[contains(text(), 'Enviar comprovante no WhatsApp') or contains(text(), 'Enviar comprovante no Instagram')]";
+			const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			const whatsappPath = "M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z";
+
+			for (let i = 0; i < result.snapshotLength; i++) {
+				let element = result.snapshotItem(i);
+				
+				// 1. Replace Text
+				if (element.textContent.includes('Enviar comprovante no Instagram')) {
+					element.textContent = element.textContent.replace('Enviar comprovante no Instagram', 'Enviar comprovante no WhatsApp');
+				}
+				
+				// 2. Find and Replace Icon and Update Link
+				let button = element.closest('button') || element.closest('a');
+				if (button) {
+					// Update Link if we have a number
+					if (currentWhatsAppNumber) {
+						if (button.tagName === 'A') {
+							button.href = `https://wa.me/${currentWhatsAppNumber}`;
+							button.target = '_blank'; // Ensure it opens in new tab
+						} else {
+							// If it's a button, we might need to add a click listener or change it to an anchor
+							// For now, let's try setting onclick
+							button.onclick = function(e) {
+								e.preventDefault();
+								e.stopPropagation();
+								window.open(`https://wa.me/${currentWhatsAppNumber}`, '_blank');
+							};
+						}
+					}
+
+					// Look for SVG path inside the button
+					const paths = button.querySelectorAll('path');
+					paths.forEach(path => {
+						path.setAttribute('d', whatsappPath);
+					});
+					
+					const svgs = button.querySelectorAll('svg');
+					svgs.forEach(svg => {
+						svg.setAttribute('viewBox', '0 0 16 16');
+					});
+				}
+			}
+		}
+
+		// Add "Voltar ao Inicio" button fixed at top left
+		function addBackToHomeButton() {
+			if (document.getElementById('back-to-home-btn')) return;
+
+			const btn = document.createElement('a');
+			btn.id = 'back-to-home-btn';
+			btn.href = '/';
+			btn.innerHTML = '&#8592; Voltar ao Inicio';
+			
+			// Styling for fixed top-left position
+			btn.style.position = 'fixed';
+			btn.style.top = '20px';
+			btn.style.left = '20px';
+			btn.style.zIndex = '9999'; // Ensure it's on top
+			
+			btn.style.setProperty('color', '#ffffff', 'important');
+			btn.style.textDecoration = 'none';
+			btn.style.fontSize = '1rem';
+			btn.style.fontWeight = '500';
+			btn.style.cursor = 'pointer';
+			btn.style.display = 'flex';
+			btn.style.alignItems = 'center';
+			btn.style.gap = '8px';
+			btn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'; // Semi-transparent background for readability
+			btn.style.padding = '8px 16px';
+			btn.style.borderRadius = '30px';
+			btn.style.transition = 'all 0.3s ease';
+			btn.style.backdropFilter = 'blur(4px)';
+			btn.style.border = '1px solid rgba(255,255,255,0.2)';
+			
+			btn.onmouseenter = function() {
+				this.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+				this.style.borderColor = '#ffffff';
+				this.style.transform = 'translateX(-2px)';
+			};
+			btn.onmouseleave = function() {
+				this.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+				this.style.borderColor = 'rgba(255,255,255,0.2)';
+				this.style.transform = 'none';
+			};
+
+			document.body.appendChild(btn);
+		}
+
+		// Force specific texts to be BLACK
+		function fixSpecificBlackTexts() {
+			const textsToBlackify = [
+				'Clique nos serviços para revelar os valores e ver detalhes',
+				'Diagnóstico final após avaliação técnica',
+				'Enviar celular',
+				'O frete de vinda e volta é por conta do cliente',
+				'Após postar o aparelho, envie o código de rastreio',
+				'Enviar comprovante no WhatsApp',
+				'AVISO IMPORTANTE: Leia Antes de Enviar'
+			];
+
+			textsToBlackify.forEach(text => {
+				const xpath = `//*[contains(text(), "${text}")]`;
+				try {
+					const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+					
+					for (let i = 0; i < result.snapshotLength; i++) {
+						let element = result.snapshotItem(i);
+						
+						// Mark as force-black-text so the observer respects it
+						element.classList.add('force-black-text');
+						
+						// Force color black
+						element.style.setProperty('color', '#000000', 'important');
+						
+						// Also force parent if it's a button and the text is inside a span
+						if (element.parentElement && (element.parentElement.tagName === 'BUTTON' || element.parentElement.tagName === 'A')) {
+							element.parentElement.classList.add('force-black-text');
+							element.parentElement.style.setProperty('color', '#000000', 'important');
+						}
+					}
+				} catch (e) {
+					// Ignore invalid XPath errors
+				}
+			});
+		}
+
+		function cleanUp() {
+			removeVideos();
+			removeSpeedControl();
+			removeVideoContainer();
+			removeLogoGlow();
+			fixTrocarMarcaButton();
+			fixSpecificWhiteTexts();
+			fixBrandNames();
+			removeProcedurePopup();
+			replaceInstagramText();
+			replaceInstagramProof();
+			addBackToHomeButton();
+			fixSpecificBlackTexts();
+		}
+		
+		// Run initially and set interval to catch dynamically added elements
+		document.addEventListener('DOMContentLoaded', cleanUp);
+		setInterval(cleanUp, 100);
+
+		// Dynamic Style Injection for Red/Pink Classes
+		// This observer monitors the DOM for any element adding red/pink classes and forcibly changes them
+		const styleObserver = new MutationObserver((mutations) => {
+			mutations.forEach((mutation) => {
+				if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+					const el = mutation.target;
+					const className = el.className;
+					
+					// Check for red/pink classes
+					if (typeof className === 'string' && (
+						className.includes('red') || 
+						className.includes('pink') || 
+						className.includes('rose')
+					)) {
+						// CHECK FOR EXCEPTIONS FIRST
+						// If this element is marked as force-white-text, SKIP IT
+						if (el.classList.contains('force-white-text')) {
+							el.style.setProperty('color', '#ffffff', 'important');
+							return;
+						}
+						// If this element is marked as force-black-text, SKIP IT
+						if (el.classList.contains('force-black-text')) {
+							el.style.setProperty('color', '#000000', 'important');
+							return;
+						}
+
+						// If this element contains specific text that MUST be white, do not force it to black/orange here
+						const textContent = el.textContent || "";
+						const mustBeWhite = ['Ver preço', 'Trocar', 'Voltar', 'Conserte seu celular', 'R$', 'Orçamento Online', 'Como enviar seu celular'].some(t => textContent.includes(t));
+						
+						if (mustBeWhite) {
+							// It must be white, so we enforce white here to prevent fighting
+							el.style.setProperty('color', '#ffffff', 'important');
+							
+							// If it has a background that needs to be orange, we can still set the background
+							if (className.includes('bg-brand-red') || className.includes('bg-red') || className.includes('bg-pink')) {
+								el.style.setProperty('background-color', '#ff8c00', 'important');
+							}
+							return; // Skip the rest of the logic for this element
+						}
+
+						// Apply inline styles to override
+						if (className.includes('text-brand-red') || className.includes('text-red') || className.includes('text-pink')) {
+							el.style.setProperty('color', '#ff8c00', 'important');
+						}
+						if (className.includes('bg-brand-red') || className.includes('bg-red') || className.includes('bg-pink')) {
+							el.style.setProperty('background-color', '#ff8c00', 'important');
+							el.style.setProperty('color', '#000000', 'important'); // Also force text black
+							
+							// Also force children with text-white to be black, BUT protect those on black backgrounds
+							const whiteChildren = el.querySelectorAll('.text-white, [class*="text-white"]');
+							whiteChildren.forEach(child => {
+								// Check exceptions for children too
+								const childText = child.textContent || "";
+								const childMustBeWhite = ['Ver preço', 'Trocar', 'Voltar', 'Conserte seu celular', 'R$', 'Orçamento Online', 'Como enviar seu celular'].some(t => childText.includes(t));
+								if (childMustBeWhite) {
+									child.style.setProperty('color', '#ffffff', 'important');
+									return;
+								}
+
+								// Check if this child is inside a black/dark background container that is nested inside the orange element
+								// We check for common dark background classes
+								const darkParent = child.closest('.bg-black, .bg-gray-900, .bg-brand-gray, [class*="bg-black"], [class*="bg-gray-9"]');
+								
+								// If found a dark parent, and it is strictly inside 'el' (not 'el' itself)
+								if (darkParent && el.contains(darkParent) && darkParent !== el) {
+									// It is on a dark background -> Force White
+									child.style.setProperty('color', '#ffffff', 'important');
+								} else {
+									// It is directly on the orange background -> Force Black
+									child.style.setProperty('color', '#000000', 'important');
+								}
+							});
+						}
+						if (className.includes('border-brand-red') || className.includes('border-red')) {
+							el.style.setProperty('border-color', '#ff8c00', 'important');
+						}
+						// Specific hover handling via event listeners might be needed if CSS fails
+						// But CSS !important usually wins unless inline styles are used for hover (rare)
+					}
+				}
+			});
+		});
+		
+		styleObserver.observe(document.body, {
+			attributes: true, 
+			subtree: true, 
+			attributeFilter: ['class']
+		});
+
+	</script>
+	<body>
+		<div id="root"></div>
+		
+	</body>
+</html>
