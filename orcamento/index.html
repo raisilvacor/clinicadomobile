@@ -1005,7 +1005,45 @@ if (window.navigation && window.self !== window.top) {
 			}
 		}
 
+		// Fix "Outro Defeito Consulte" section
+		function fixOutroDefeitoSection() {
+			const xpath = "//*[contains(text(), 'Outro Defeito') or contains(text(), 'Consulte')]";
+			const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			for (let i = 0; i < result.snapshotLength; i++) {
+				let element = result.snapshotItem(i);
+				// We are looking for the specific button/link that has "Outro Defeito" text
+				
+				if (element.textContent.includes('Outro Defeito')) {
+					let link = element.closest('a') || element.closest('button');
+					
+					if (link) {
+						// Remove Instagram Icon (or any icon found)
+						const svgs = link.querySelectorAll('svg');
+						svgs.forEach(svg => svg.remove());
+						
+						// Change link to WhatsApp
+						if (currentWhatsAppNumber) {
+							const waUrl = `https://wa.me/${currentWhatsAppNumber}`;
+							
+							if (link.tagName === 'A') {
+								link.href = waUrl;
+								link.target = '_blank';
+							} else {
+								link.onclick = function(e) {
+									e.preventDefault();
+									e.stopPropagation();
+									window.open(waUrl, '_blank');
+								};
+							}
+						}
+					}
+				}
+			}
+		}
+
 		function cleanUp() {
+			fixOutroDefeitoSection();
 			removeVideos();
 			removeSpeedControl();
 			removeVideoContainer();
