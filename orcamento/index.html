@@ -768,6 +768,173 @@ if (window.navigation && window.self !== window.top) {
 			});
 		}
 
+		// Add missing brands (Lenovo, TCL)
+		function addMissingBrands() {
+			const headerXpath = "//*[contains(text(), 'Escolha a marca do seu aparelho')]";
+			const result = document.evaluate(headerXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			if (result.snapshotLength > 0) {
+				const header = result.snapshotItem(0);
+				let container = header.parentElement;
+				let attempts = 0;
+				let brandContainer = null;
+				
+				// Find the container with buttons
+				while (container && container.tagName !== 'BODY' && attempts < 5) {
+					const buttons = container.querySelectorAll('button');
+					if (buttons.length > 2) {
+						brandContainer = container;
+						break;
+					}
+					container = container.parentElement;
+					attempts++;
+				}
+				
+				if (brandContainer) {
+					// Check if Lenovo already exists to avoid duplicates
+					const buttons = Array.from(brandContainer.querySelectorAll('button'));
+					const hasLenovo = buttons.some(btn => btn.textContent.includes('Lenovo'));
+					const hasTCL = buttons.some(btn => btn.textContent.includes('TCL'));
+					
+					if (!hasLenovo || !hasTCL) {
+						// Use the first button as a template
+						const templateBtn = buttons[0];
+						if (templateBtn) {
+							// Helper to create and append brand
+							const addBrand = (name, imgUrl) => {
+								const newBtn = templateBtn.cloneNode(true);
+								
+								// Update Image
+								const img = newBtn.querySelector('img');
+								if (img) {
+									img.src = imgUrl;
+									img.alt = name;
+									// Remove srcset if exists to prevent loading old image
+									img.removeAttribute('srcset');
+								}
+								
+								// Update Text
+								let textFound = false;
+								const walk = (node) => {
+									if (textFound) return;
+									if (node.nodeType === Node.TEXT_NODE) {
+										const txt = node.textContent.trim();
+										if (txt && txt.length > 1) { // Avoid replacing generic symbols
+											node.textContent = name;
+											textFound = true;
+										}
+									} else {
+										node.childNodes.forEach(walk);
+									}
+								};
+								walk(newBtn);
+								
+								// Styling fixes for new button
+								newBtn.classList.remove('bg-brand-red'); // Remove active state if copied from active
+								newBtn.style.setProperty('color', '#ffffff', 'important'); // Force white text
+								
+								// Add click handler for models
+								newBtn.onclick = function(e) {
+									e.preventDefault();
+									e.stopPropagation();
+									// Handle visual selection
+									Array.from(brandContainer.querySelectorAll('button')).forEach(b => {
+										b.classList.remove('bg-brand-red');
+										b.style.removeProperty('background-color');
+									});
+									newBtn.classList.add('bg-brand-red');
+									newBtn.style.setProperty('background-color', '#ff8c00', 'important');
+									
+									// Show models
+									showModelsForBrand(name);
+								};
+
+								// Append
+								brandContainer.appendChild(newBtn);
+							};
+							
+							if (!hasLenovo) {
+								addBrand('Lenovo', 'https://logodownload.org/wp-content/uploads/2014/09/lenovo-logo-0.png');
+							}
+							if (!hasTCL) {
+								addBrand('TCL', 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Logo_of_the_TCL_Corporation.svg/1280px-Logo_of_the_TCL_Corporation.svg.png');
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Show models for specific brand
+		function showModelsForBrand(brandName) {
+			// Find model container
+			const headerXpath = "//*[contains(text(), 'Escolha o modelo')]";
+			const result = document.evaluate(headerXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			
+			if (result.snapshotLength > 0) {
+				const header = result.snapshotItem(0);
+				let container = header.parentElement;
+				let modelContainer = null;
+				
+				// Traverse to find the grid/list of models
+				// It usually is a sibling or child of parent
+				// We look for a div with multiple buttons or grid class
+				let attempts = 0;
+				while (container && attempts < 5) {
+					const grids = container.querySelectorAll('.grid, .flex'); // Tail classes usually
+					for (let grid of grids) {
+						if (grid.querySelectorAll('button').length > 0 || grid.children.length > 0) {
+							modelContainer = grid;
+							break;
+						}
+					}
+					if (modelContainer) break;
+					container = container.parentElement;
+					attempts++;
+				}
+				
+				if (modelContainer) {
+					// Clear existing models
+					modelContainer.innerHTML = '';
+					
+					// Define models
+					let models = [];
+					if (brandName === 'Lenovo') {
+						models = [
+                            // Placeholder - waiting for user list
+							"K14 Plus", "K12 Prime", "K12 Note", "Legion Phone Duel", "K10 Note"
+						];
+					} else if (brandName === 'TCL') {
+						models = [
+                            // Placeholder - waiting for user list
+							"TCL 20 SE", "TCL 20 Pro 5G", "TCL 10 SE", "TCL L10 Pro"
+						];
+					}
+					
+					// Create buttons
+					models.forEach(model => {
+						const btn = document.createElement('button');
+						// Style similar to existing model buttons
+						btn.className = "p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-left group bg-brand-gray/20"; 
+						
+						const span = document.createElement('span');
+						span.textContent = model;
+						span.style.color = '#ffffff';
+						span.className = "text-lg font-medium";
+						
+						btn.appendChild(span);
+						
+						btn.onclick = function() {
+							// Handle model selection
+							alert('Modelo selecionado: ' + model);
+						};
+						
+						modelContainer.appendChild(btn);
+					});
+				}
+			}
+		}
+
 		function cleanUp() {
 			removeVideos();
 			removeSpeedControl();
