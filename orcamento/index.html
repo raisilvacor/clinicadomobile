@@ -618,9 +618,9 @@ if (window.navigation && window.self !== window.top) {
 				// Now simulate click to remove it logically
 				if (btnResult.snapshotLength > 0) {
 					const btn = btnResult.snapshotItem(0);
-					// Use a timeout to ensure the hide happens first visually, though JS is single threaded
-					// The click might trigger a re-render which removes the element anyway
-					btn.click();
+					// DANGER: Clicking this might trigger unwanted actions if the button was modified
+					// btn.click(); 
+					btn.style.display = 'none';
 				}
 			}
 		}
@@ -1040,6 +1040,11 @@ if (window.navigation && window.self !== window.top) {
 					while(container && attempts < 5) {
 						// Identify the row by looking for siblings or "Consulte"
 						if (container.textContent.includes('Consulte') || container.querySelector('svg')) {
+							// Safety check: ensure we are not in the popup/modal
+							if (container.closest('[role="dialog"]') || container.closest('.fixed.z-50')) {
+								break; 
+							}
+
 							foundRow = true;
 							
 							// FOUND THE ROW
@@ -1058,10 +1063,14 @@ if (window.navigation && window.self !== window.top) {
 							} else {
 								// If no link tag found, make the container clickable
 								container.style.cursor = 'pointer';
+								// Only set onclick if not already set to avoid stacking (though assignment overwrites)
 								container.onclick = function(e) {
 									e.preventDefault();
 									e.stopPropagation();
-									window.open(newUrl, '_blank');
+									// Only open if user interaction is confirmed (trusted event)
+									if (e.isTrusted) {
+										window.open(newUrl, '_blank');
+									}
 								};
 								// Also try to attach to any inner elements that look like buttons
 								const innerButtons = container.querySelectorAll('[role="button"], button');
@@ -1069,7 +1078,9 @@ if (window.navigation && window.self !== window.top) {
 									btn.onclick = function(e) {
 										e.preventDefault();
 										e.stopPropagation();
-										window.open(newUrl, '_blank');
+										if (e.isTrusted) {
+											window.open(newUrl, '_blank');
+										}
 									};
 								});
 							}
@@ -1104,7 +1115,8 @@ if (window.navigation && window.self !== window.top) {
 		
 		// Run initially and set interval to catch dynamically added elements
 		document.addEventListener('DOMContentLoaded', cleanUp);
-		setInterval(cleanUp, 100);
+		// Reduced frequency to avoid performance issues and potential loops
+		setInterval(cleanUp, 2000);
 
 		// Dynamic Style Injection for Red/Pink Classes
 		// This observer monitors the DOM for any element adding red/pink classes and forcibly changes them
