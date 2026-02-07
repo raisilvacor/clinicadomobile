@@ -155,7 +155,7 @@
 <body>
     <header class="admin-header">
         <nav class="admin-nav">
-            <a href="index.html" class="admin-logo" style="text-decoration: none;">
+            <a href="admin.html" class="admin-logo" style="text-decoration: none;">
                 <img src="images/logo.png" alt="Logo Clínica CELL">
             </a>
             <button class="admin-menu-toggle" aria-label="Menu" onclick="toggleAdminMenu()">
@@ -165,9 +165,10 @@
             </button>
             <div class="admin-menu-overlay" onclick="toggleAdminMenu()"></div>
             <ul class="admin-nav-links">
-                <li><a href="index.html">Dashboard</a></li>
+                <li><a href="admin.html">Dashboard</a></li>
                 <li><a href="novo_reparo.html">Novo Reparo</a></li>
                 <li><a href="emitir_or.html" class="active">Emitir OR</a></li>
+                <li><a href="index.html" style="color: #ff8c00;">Voltar ao Site</a></li>
             </ul>
         </nav>
     </header>
@@ -324,14 +325,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (!repairId) {
                 alert('ID do reparo não fornecido.');
-                window.location.href = 'index.html';
+                window.location.href = 'admin.html';
                 return;
             }
 
             currentRepair = repairManager.getRepair(repairId);
             if (!currentRepair) {
                 alert('Reparo não encontrado.');
-                window.location.href = 'index.html';
+                window.location.href = 'admin.html';
                 return;
             }
 
@@ -464,7 +465,7 @@
             try {
                 await html2pdf().set(opt).from(element).save();
                 alert('Ordem de Retirada emitida e baixada com sucesso!');
-                window.location.href = 'index.html';
+                window.location.href = 'admin.html';
             } catch (err) {
                 console.error('Erro ao gerar PDF:', err);
                 alert('Erro ao gerar PDF. Verifique o console.');

@@ -138,7 +138,7 @@
 <body>
     <header class="admin-header">
         <nav class="admin-nav">
-            <a href="index.html" class="admin-logo" style="text-decoration: none;">
+            <a href="admin.html" class="admin-logo" style="text-decoration: none;">
                 <img src="images/logo.png" alt="Logo Clínica CELL">
             </a>
             <button class="admin-menu-toggle" aria-label="Menu" onclick="toggleAdminMenu()">
@@ -148,9 +148,10 @@
             </button>
             <div class="admin-menu-overlay" onclick="toggleAdminMenu()"></div>
             <ul class="admin-nav-links">
-                <li><a href="index.html">Dashboard</a></li>
+                <li><a href="admin.html">Dashboard</a></li>
                 <li><a href="novo_reparo.html" class="active">Novo Reparo</a></li>
                 <li><a href="emitir_or.html">Emitir OR</a></li>
+                <li><a href="index.html" style="color: #ff8c00;">Voltar ao Site</a></li>
             </ul>
         </nav>
     </header>
@@ -311,7 +312,7 @@
 
                 <div style="margin-top: 2rem; display: flex; gap: 1rem;">
                     <button type="submit" class="btn btn-primary">💾 Criar Reparo</button>
-                    <a href="index.html" class="btn btn-secondary">Cancelar</a>
+                    <a href="admin.html" class="btn btn-secondary">Cancelar</a>
                 </div>
             </form>
         </div>
@@ -369,7 +370,7 @@
             try {
                 const newRepair = repairManager.createRepair(data);
                 alert('Reparo criado com sucesso!');
-                window.location.href = 'index.html';
+                window.location.href = 'admin.html';
             } catch (err) {
                 console.error(err);
                 if (err.name === 'QuotaExceededError') {

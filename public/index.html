@@ -1,102 +1,292 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" itemscope itemtype="https://schema.org/LocalBusiness">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo - TechCell</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>Clínica CELL - Assistência Técnica Profissional para Android e iPhone</title>
+    <meta name="description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo. Troca de tela, bateria, reparos em geral.">
+    <meta name="keywords" content="assistência técnica celular, reparo iPhone, reparo Android, troca de tela, conserto celular, assistência técnica smartphone, reparo celular profissional">
+    <meta name="author" content="Clínica CELL">
+    
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="images/favicon.png">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+        }
+
+        /* Header e Navegação */
+        header {
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            padding: 1.5rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(255, 140, 0, 0.2);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            height: 60px;
+        }
+
+        .logo img {
+            height: 60px;
+            width: auto;
+            max-width: 300px;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #ff8c00;
+        }
+
+        .btn-tech {
+            background: #ff8c00;
+            color: #000;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .btn-tech:hover {
+            background: #e67e00;
+            color: #000 !important;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            min-height: 80vh;
+            background: url('images/head.jpg') center/cover no-repeat;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.5) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            z-index: 1;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #ff8c00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            color: #cccccc;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 3rem;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: #000000;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4);
+        }
+
+        /* Serviços */
+        .services {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #ff8c00;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .service-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            padding: 2.5rem;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .service-card:hover {
+            border-color: #ff8c00;
+            transform: translateY(-5px);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            color: #ff8c00;
+            margin-bottom: 1.5rem;
+        }
+
+        .service-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .service-card p {
+            color: #999;
+        }
+
+        /* Footer */
+        footer {
+            background: #0d0d0d;
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid #333;
+            margin-top: 4rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .nav-links { display: none; } /* Hide mobile nav for now to simplify */
+        }
+    </style>
 </head>
 <body>
-    <header class="admin-header">
-        <nav class="admin-nav">
-            <a href="index.html" class="admin-logo" style="text-decoration: none;">
-                <img src="images/logo.png" alt="Logo Clínica CELL">
-            </a>
-            <button class="admin-menu-toggle" aria-label="Menu" onclick="toggleAdminMenu()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <div class="admin-menu-overlay" onclick="toggleAdminMenu()"></div>
-            <ul class="admin-nav-links">
-                <li><a href="index.html" class="active">Dashboard</a></li>
-                <li><a href="novo_reparo.html">Novo Reparo</a></li>
-                <li><a href="emitir_or.html">Emitir OR</a></li>
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="images/logo.png" alt="Clínica CELL">
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home">Início</a></li>
+                <li><a href="#services">Serviços</a></li>
+                <li><a href="#contact">Contato</a></li>
+                <li><a href="admin.html" class="btn-tech"><i class="fas fa-tools"></i> Área do Técnico</a></li>
             </ul>
         </nav>
     </header>
 
-    <div class="admin-container">
-        <div class="admin-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>🔧 Reparos</h2>
-                <a href="novo_reparo.html" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Novo Reparo
+    <section class="hero" id="home">
+        <div class="hero-overlay">
+            <div class="hero-content">
+                <h1>Especialistas em Android e iPhone</h1>
+                <p>Recupere seu aparelho com quem entende do assunto. Qualidade, garantia e rapidez.</p>
+                <a href="https://wa.me/5511999999999" class="cta-button" target="_blank">
+                    <i class="fab fa-whatsapp"></i> Falar com Técnico
                 </a>
-            </div>
-
-            <div class="repairs-container" id="repairsList">
-                <!-- Reparos serão carregados aqui -->
+                <div style="margin-top: 2rem;">
+                    <a href="admin.html" style="color: #ff8c00; text-decoration: underline;">Acesso Administrativo</a>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <script src="js/app.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const repairsList = document.getElementById('repairsList');
-            const repairs = repairManager.getAllRepairs();
+    <section class="services" id="services">
+        <h2 class="section-title">Nossos Serviços</h2>
+        <div class="services-grid">
+            <div class="service-card">
+                <i class="fas fa-mobile-alt service-icon"></i>
+                <h3>Troca de Tela</h3>
+                <p>Substituição de displays quebrados com peças de alta qualidade.</p>
+            </div>
+            <div class="service-card">
+                <i class="fas fa-battery-full service-icon"></i>
+                <h3>Bateria</h3>
+                <p>Troca de bateria viciada ou estufada para dar vida nova ao seu aparelho.</p>
+            </div>
+            <div class="service-card">
+                <i class="fas fa-microchip service-icon"></i>
+                <h3>Placa</h3>
+                <p>Reparos avançados em placas de iPhone e Android.</p>
+            </div>
+        </div>
+    </section>
 
-            if (repairs.length === 0) {
-                repairsList.innerHTML = '<p style="text-align: center; color: #666;">Nenhum reparo cadastrado.</p>';
-                return;
-            }
-
-            repairsList.innerHTML = repairs.map(repair => `
-                <div class="repair-card">
-                    <div class="repair-header">
-                        <div class="repair-info">
-                            <h3>${repair.device_model || 'Dispositivo'}</h3>
-                            <div class="repair-id">ID: ${repair.id}</div>
-                        </div>
-                        <span class="status-badge status-${repair.status}">${repair.status}</span>
-                    </div>
-
-                    <div class="repair-details">
-                        <div class="detail-item">
-                            <strong>Cliente</strong>
-                            ${repair.customer_name}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Data</strong>
-                            ${new Date(repair.created_at).toLocaleDateString()}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Problema</strong>
-                            ${repair.problem_description}
-                        </div>
-                    </div>
-
-                    <div class="repair-actions">
-                        <a href="emitir_or.html?id=${repair.id}" class="btn btn-primary">
-                            <i class="fas fa-file-alt"></i> Emitir OR
-                        </a>
-                        <button onclick="deleteRepair('${repair.id}')" class="btn btn-danger">
-                            <i class="fas fa-trash"></i> Excluir
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        });
-
-        function deleteRepair(id) {
-            if(confirm('Tem certeza que deseja excluir este reparo?')) {
-                repairManager.deleteRepair(id);
-                window.location.reload();
-            }
-        }
-    </script>
+    <footer id="contact">
+        <p>&copy; 2024 Clínica CELL. Todos os direitos reservados.</p>
+        <p style="margin-top: 1rem; color: #666;">Rua Exemplo, 123 - Centro</p>
+    </footer>
 </body>
 </html>

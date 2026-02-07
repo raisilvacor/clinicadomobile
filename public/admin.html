@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - TechCell</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="admin-header">
+        <nav class="admin-nav">
+            <a href="admin.html" class="admin-logo" style="text-decoration: none;">
+                <img src="images/logo.png" alt="Logo Clínica CELL">
+            </a>
+            <button class="admin-menu-toggle" aria-label="Menu" onclick="toggleAdminMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="admin-menu-overlay" onclick="toggleAdminMenu()"></div>
+            <ul class="admin-nav-links">
+                <li><a href="admin.html" class="active">Dashboard</a></li>
+                <li><a href="novo_reparo.html">Novo Reparo</a></li>
+                <li><a href="emitir_or.html">Emitir OR</a></li>
+                <li><a href="index.html" style="color: #ff8c00;">Voltar ao Site</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="admin-container">
+        <div class="admin-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>🔧 Reparos</h2>
+                <a href="novo_reparo.html" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Reparo
+                </a>
+            </div>
+
+            <div class="repairs-container" id="repairsList">
+                <!-- Reparos serão carregados aqui -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const repairsList = document.getElementById('repairsList');
+            const repairs = repairManager.getAllRepairs();
+
+            if (repairs.length === 0) {
+                repairsList.innerHTML = '<p style="text-align: center; color: #666;">Nenhum reparo cadastrado.</p>';
+                return;
+            }
+
+            repairsList.innerHTML = repairs.map(repair => `
+                <div class="repair-card">
+                    <div class="repair-header">
+                        <div class="repair-info">
+                            <h3>${repair.device_model || 'Dispositivo'}</h3>
+                            <div class="repair-id">ID: ${repair.id}</div>
+                        </div>
+                        <span class="status-badge status-${repair.status}">${repair.status}</span>
+                    </div>
+
+                    <div class="repair-details">
+                        <div class="detail-item">
+                            <strong>Cliente</strong>
+                            ${repair.customer_name}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Data</strong>
+                            ${new Date(repair.created_at).toLocaleDateString()}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Problema</strong>
+                            ${repair.problem_description}
+                        </div>
+                    </div>
+
+                    <div class="repair-actions">
+                        <a href="emitir_or.html?id=${repair.id}" class="btn btn-primary">
+                            <i class="fas fa-file-alt"></i> Emitir OR
+                        </a>
+                        <button onclick="deleteRepair('${repair.id}')" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        });
+
+        function deleteRepair(id) {
+            if(confirm('Tem certeza que deseja excluir este reparo?')) {
+                repairManager.deleteRepair(id);
+                window.location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
