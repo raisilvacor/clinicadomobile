@@ -1,0 +1,7 @@
+python app.py
+
+
+Jinja2 estava escapando o HTML, fazendo as tags aparecerem como texto
+
+sistemaa funciona perfeitamente, agora todas as informacoes do projeto imagens, textos, PDFs, icones, emojis informacoes do admin como Hero, Serviços, Sobre, Dispositivos, Laboratório, Contato, Central de Reparos, Checklist Antifraude e Ordem de Retirada (OR) devem ser guardados no banco de dados do render evitando ser enfermeros para nao perder nenhum dado apos um deployd ou hibernacao do render.
+

@@ -51,7 +51,6 @@
         min-height: 100px;
     }
 
-
     .validation-message {
         background: rgba(255, 193, 7, 0.2);
         border: 1px solid #ffc107;
@@ -59,6 +58,84 @@
         padding: 1rem;
         border-radius: 8px;
         margin-bottom: 1rem;
+    }
+
+    .checklist-section {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+
+    .checklist-section:hover {
+        border-color: #ff8c00;
+        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+    }
+
+    .checklist-section h3 {
+        color: #ff8c00;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .test-box {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 2px solid #333333;
+    }
+
+    .test-box h4 {
+        color: #ff8c00;
+        margin-bottom: 1rem;
+    }
+
+    .test-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .test-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .test-item label {
+        color: #cccccc;
+        cursor: pointer;
+    }
+
+    /* Risk Score Styles */
+    .risk-high {
+        background: rgba(220, 53, 69, 0.1) !important;
+        border-color: #dc3545 !important;
+    }
+    .risk-high h3 {
+        color: #dc3545 !important;
+    }
+
+    .risk-medium {
+        background: rgba(255, 193, 7, 0.1) !important;
+        border-color: #ffc107 !important;
+    }
+    .risk-medium h3 {
+        color: #ffc107 !important;
+    }
+
+    .risk-low {
+        background: rgba(40, 167, 69, 0.1) !important;
+        border-color: #28a745 !important;
+    }
+    .risk-low h3 {
+        color: #28a745 !important;
     }
 </style>
 {% endblock %}
@@ -70,30 +147,6 @@
     {% if repair.status != 'concluido' %}
     <div class="validation-message">
         ⚠️ O reparo precisa estar com status "Concluído" para emitir a OR.
-    </div>
-    {% elif not conclusion_checklist %}
-    <div class="validation-message">
-        ⚠️ É necessário realizar o Checklist Antifraude de Conclusão antes de emitir a OR.
-        <a href="{{ url_for('admin_checklist_conclusao', repair_id=repair.id) }}" class="btn btn-primary" style="margin-top: 0.5rem; display: inline-block;">Realizar Checklist</a>
-    </div>
-    {% elif unsigned_checklists %}
-    <div class="validation-message">
-        ⚠️ Não é possível emitir a OR. Faltam assinaturas do cliente nos seguintes checklists:
-        <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
-            {% for cl in unsigned_checklists %}
-            <li>
-                {% if cl.type == 'inicial' %}
-                    Checklist Antifraude Inicial (ID: {{ cl.id }})
-                {% else %}
-                    Checklist Antifraude de Conclusão (ID: {{ cl.id }})
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-        <p style="margin-top: 1rem; color: #ff8c00;">
-            O cliente deve acessar o link de acompanhamento e assinar todos os checklists antes da emissão da OR.
-        </p>
-        <a href="{{ url_for('admin_repairs') }}" class="btn btn-secondary" style="margin-top: 0.5rem; display: inline-block;">Voltar para Reparos</a>
     </div>
     {% else %}
     <p>Preencha os dados para emitir a Ordem de Retirada.</p>
@@ -130,15 +183,15 @@
 
         <!-- Score de Risco do Cliente -->
         {% if risk_score %}
-        <div class="info-box" style="
-            {% if risk_score.level == 'high' %}
-                background: rgba(220, 53, 69, 0.1); border: 2px solid #dc3545;
-            {% elif risk_score.level == 'medium' %}
-                background: rgba(255, 193, 7, 0.1); border: 2px solid #ffc107;
-            {% else %}
-                background: rgba(40, 167, 69, 0.1); border: 2px solid #28a745;
-            {% endif %}">
-            <h3 style="color: {% if risk_score.level == 'high' %}#dc3545{% elif risk_score.level == 'medium' %}#ffc107{% else %}#28a745{% endif %};">
+        {% set risk_class = 'risk-low' %}
+        {% if risk_score.level == 'high' %}
+            {% set risk_class = 'risk-high' %}
+        {% elif risk_score.level == 'medium' %}
+            {% set risk_class = 'risk-medium' %}
+        {% endif %}
+        
+        <div class="info-box {{ risk_class }}">
+            <h3>
                 {{ risk_score.label }}
             </h3>
             <div class="info-item">
@@ -190,15 +243,53 @@
         </div>
         {% endif %}
 
-        <!-- Checklist de Conclusão -->
-        <div class="info-box">
-            <h3>✅ Checklist de Conclusão</h3>
-            <div class="info-item"><strong>ID do Checklist:</strong> {{ conclusion_checklist.id }}</div>
-            <div class="info-item"><strong>Data:</strong> {{ conclusion_checklist.timestamp[:10] if conclusion_checklist.timestamp else 'N/A' }}</div>
-        </div>
-
         <!-- Formulário da OR -->
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
+            
+            <!-- Checklist de Conclusão Integrado -->
+            <div class="checklist-section">
+                <h3>✅ Checklist Antifraude de Conclusão</h3>
+                <p style="color: #999; margin-bottom: 1rem;">Realize os testes finais obrigatórios.</p>
+                
+                <div class="test-box">
+                    <h4>✅ Teste DEPOIS do Reparo</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-power" name="test_after_power">
+                            <label for="test-after-power">Botão Power</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-volume" name="test_after_volume">
+                            <label for="test-after-volume">Botões de Volume</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-screen" name="test_after_screen">
+                            <label for="test-after-screen">Tela/Touch</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-camera" name="test_after_camera">
+                            <label for="test-after-camera">Câmeras</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-audio" name="test_after_audio">
+                            <label for="test-after-audio">Áudio/Microfone</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-charging" name="test_after_charging">
+                            <label for="test-after-charging">Carregamento</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-biometry" name="test_after_biometry">
+                            <label for="test-after-biometry">Biometria/FaceID</label>
+                        </div>
+                        <div class="test-item">
+                            <input type="checkbox" id="test-after-wifi" name="test_after_wifi">
+                            <label for="test-after-wifi">Wi-Fi/Bluetooth</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="info-box">
                 <h3>📝 Dados da Ordem de Retirada</h3>
                 
@@ -224,6 +315,4 @@
     </div>
     {% endif %}
 </div>
-
 {% endblock %}
-

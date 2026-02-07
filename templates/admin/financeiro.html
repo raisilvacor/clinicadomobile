@@ -137,18 +137,118 @@
         border: 1px solid #ffc107;
     }
     
-    .empty-state {
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; 
+        left: 0;
+        top: 0;
+        width: 100%; 
+        height: 100%; 
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.8); 
+    }
+
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 10% auto; 
+        padding: 2rem;
+        border: 2px solid #ff8c00;
+        width: 80%; 
+        max-width: 500px;
+        border-radius: 15px;
+        color: white;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #ff8c00;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #ff8c00;
+    }
+
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        background: #0d0d0d;
+        border: 1px solid #333;
+        border-radius: 5px;
+        color: white;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        width: 100%;
+    }
+    
+    .btn-success:hover {
+        background-color: #218838;
+    }
+    
+    .transaction-type-selector {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .type-option {
+        flex: 1;
+        padding: 0.5rem;
         text-align: center;
-        padding: 3rem;
-        color: #999;
+        border: 1px solid #333;
+        border-radius: 5px;
+        cursor: pointer;
+        background: #0d0d0d;
+    }
+    
+    .type-option.active.income {
+        background: rgba(40, 167, 69, 0.2);
+        border-color: #28a745;
+        color: #28a745;
+    }
+    
+    .type-option.active.expense {
+        background: rgba(220, 53, 69, 0.2);
+        border-color: #dc3545;
+        color: #dc3545;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="admin-card">
-    <h2>💰 Gestão Financeira</h2>
-    <p>Relatórios e métricas financeiras do negócio</p>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <h2>💰 Gestão Financeira Completa</h2>
+            <p>Fluxo de caixa, relatórios e métricas</p>
+        </div>
+        <button onclick="openModal()" style="background: #28a745; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+            <span>+</span> Lançar Movimentação
+        </button>
+    </div>
     
     <!-- Filtro de Data -->
     <div class="date-filter">
@@ -161,172 +261,364 @@
         </form>
     </div>
     
-    <!-- Métricas Principais -->
+    <!-- Cards de Resumo Consolidado -->
     <div class="financial-card">
-        <h3>📊 Resumo Financeiro</h3>
+        <h3>💵 Fluxo de Caixa (Consolidado)</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
             <div class="financial-metric">
-                <div class="financial-metric-label">Faturamento Total</div>
-                <div class="financial-metric-value">R$ {{ "%.2f"|format(financial_data.total_billing) }}</div>
-                <div class="financial-metric-label">Período selecionado</div>
+                <div class="financial-metric-label">Entradas Totais</div>
+                <div class="financial-metric-value" style="color: #28a745;">R$ {{ "%.2f"|format(financial_data.summary.total_income) }}</div>
+                <div class="financial-metric-label">Serviços + Vendas + Outros</div>
             </div>
             <div class="financial-metric">
-                <div class="financial-metric-label">Valor Perdido por Abandono</div>
-                <div class="financial-metric-value" style="color: #dc3545;">R$ {{ "%.2f"|format(financial_data.abandoned_value) }}</div>
-                <div class="financial-metric-label">{{ financial_data.abandoned_repairs|length }} reparo(s) abandonado(s)</div>
+                <div class="financial-metric-label">Saídas Totais</div>
+                <div class="financial-metric-value" style="color: #dc3545;">R$ {{ "%.2f"|format(financial_data.summary.total_expense) }}</div>
+                <div class="financial-metric-label">Peças + Despesas Operacionais</div>
             </div>
-            <div class="financial-metric">
-                <div class="financial-metric-label">Serviços em Garantia</div>
-                <div class="financial-metric-value" style="color: #ffc107;">{{ financial_data.warranty_repairs|length }}</div>
-                <div class="financial-metric-label">Reparos com garantia ativa</div>
+            <div class="financial-metric" style="border-color: {{ '#28a745' if financial_data.summary.net_profit >= 0 else '#dc3545' }}; background: {{ 'rgba(40, 167, 69, 0.1)' if financial_data.summary.net_profit >= 0 else 'rgba(220, 53, 69, 0.1)' }};">
+                <div class="financial-metric-label">Lucro Líquido</div>
+                <div class="financial-metric-value" style="color: {{ '#28a745' if financial_data.summary.net_profit >= 0 else '#dc3545' }};">
+                    R$ {{ "%.2f"|format(financial_data.summary.net_profit) }}
+                </div>
+                <div class="financial-metric-label">Resultado do período</div>
             </div>
         </div>
     </div>
     
-    <!-- Faturamento por Mês -->
-    {% if financial_data.billing_by_month %}
+    <!-- Gráficos de Categorias -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="financial-card" style="margin-bottom: 0;">
+            <h3>📥 Origem das Receitas</h3>
+            <canvas id="incomeChart"></canvas>
+        </div>
+        <div class="financial-card" style="margin-bottom: 0;">
+            <h3>📤 Destino das Despesas</h3>
+            <canvas id="expenseChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Tabela de Movimentações Recentes -->
     <div class="financial-card">
-        <h3>📈 Faturamento por Mês</h3>
+        <h3>📋 Histórico de Transações (Fluxo de Caixa)</h3>
         <div class="table-container">
             <table class="financial-table">
                 <thead>
                     <tr>
-                        <th>Mês</th>
-                        <th>Faturamento</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for month, value in financial_data.billing_by_month.items()|sort %}
-                    <tr>
-                        <td>{{ month }}</td>
-                        <td style="color: #28a745; font-weight: bold;">R$ {{ "%.2f"|format(value) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Serviços Mais Vendidos -->
-    {% if financial_data.top_services %}
-    <div class="financial-card">
-        <h3>🏆 Serviços Mais Vendidos</h3>
-        <div class="table-container">
-            <table class="financial-table">
-                <thead>
-                    <tr>
-                        <th>Posição</th>
-                        <th>Serviço</th>
-                        <th>Quantidade</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for service, count in financial_data.top_services %}
-                    <tr>
-                        <td style="color: #ff8c00; font-weight: bold;">#{{ loop.index }}</td>
-                        <td>{{ service }}</td>
-                        <td style="color: #28a745; font-weight: bold;">{{ count }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% else %}
-    <div class="financial-card">
-        <h3>🏆 Serviços Mais Vendidos</h3>
-        <div class="empty-state">
-            <p>Nenhum serviço encontrado no período selecionado.</p>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Valor Perdido por Abandono -->
-    {% if financial_data.abandoned_repairs %}
-    <div class="financial-card">
-        <h3>⚠️ Valor Perdido por Abandono</h3>
-        <p style="color: #dc3545; margin-bottom: 1rem; font-weight: bold;">
-            Total: R$ {{ "%.2f"|format(financial_data.abandoned_value) }} em {{ financial_data.abandoned_repairs|length }} reparo(s) abandonado(s)
-        </p>
-        <div class="table-container">
-            <table class="financial-table">
-                <thead>
-                    <tr>
-                        <th>ID Reparo</th>
-                        <th>Cliente</th>
-                        <th>Dispositivo</th>
-                        <th>Concluído em</th>
-                        <th>Dias Abandonado</th>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Categoria</th>
+                        <th>Descrição</th>
                         <th>Valor</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for repair in financial_data.abandoned_repairs %}
+                    <!-- Transações Manuais -->
+                    {% for t in financial_data.transactions %}
                     <tr>
-                        <td><a href="{{ url_for('admin_repairs') }}#repair-{{ repair.id }}" style="color: #ff8c00;">{{ repair.id }}</a></td>
-                        <td>{{ repair.customer_name }}</td>
-                        <td>{{ repair.device_name }}</td>
-                        <td>{{ repair.completed_at[:10] if repair.completed_at else 'N/A' }}</td>
-                        <td><span class="badge badge-danger">{{ repair.days_abandoned }} dias</span></td>
-                        <td style="color: #dc3545; font-weight: bold;">R$ {{ "%.2f"|format(repair.value) }}</td>
+                        <td>{{ t.date|default(t.created_at[:10]) }}</td>
+                        <td>
+                            <span class="badge {{ 'badge-success' if t.type == 'income' else 'badge-danger' }}">
+                                {{ 'Entrada' if t.type == 'income' else 'Saída' }}
+                            </span>
+                        </td>
+                        <td>{{ t.category }}</td>
+                        <td>{{ t.description }}</td>
+                        <td style="color: {{ '#28a745' if t.type == 'income' else '#dc3545' }}; font-weight: bold;">
+                            R$ {{ "%.2f"|format(t.amount) }}
+                        </td>
+                        <td>
+                            <form action="{{ url_for('admin_delete_transaction', transaction_id=t.id) }}" method="POST" onsubmit="return confirm('Tem certeza?');" style="display:inline;">
+                                <button type="submit" style="background:none; border:none; cursor:pointer; font-size:1.2rem;">🗑️</button>
+                            </form>
+                        </td>
                     </tr>
                     {% endfor %}
+                    
+                    {% if not financial_data.transactions %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
+                            Nenhuma transação manual lançada neste período.
+                        </td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
     </div>
-    {% else %}
+
+    <!-- Dashboard Automático (Existente - Performance de Reparos) -->
     <div class="financial-card">
-        <h3>⚠️ Valor Perdido por Abandono</h3>
-        <div class="empty-state">
-            <p>✅ Nenhum reparo abandonado encontrado. Ótimo trabalho!</p>
+        <h3>🚀 Performance de Reparos</h3>
+        
+        <!-- Row 1: Metas e Crescimento -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <!-- Card Crescimento -->
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333;">
+                <h4 style="color: #ccc; margin-bottom: 1rem;">📈 Crescimento (Reparos)</h4>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <span style="font-size: 2.5rem; font-weight: bold; color: {{ '#28a745' if financial_data.dashboard.growth.type == 'positive' else '#dc3545' if financial_data.dashboard.growth.type == 'negative' else '#ffc107' }};">
+                            {{ '+' if financial_data.dashboard.growth.type == 'positive' else '' }}{{ financial_data.dashboard.growth.rate }}%
+                        </span>
+                        <p style="color: #888; margin: 0;">Em relação ao mês anterior</p>
+                    </div>
+                    <div style="font-size: 3rem;">
+                        {{ '🚀' if financial_data.dashboard.growth.type == 'positive' else '📉' if financial_data.dashboard.growth.type == 'negative' else '⚖️' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Meta -->
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333;">
+                <h4 style="color: #ccc; margin-bottom: 1rem;">🎯 Meta Mensal (Faturamento)</h4>
+                <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                    <span style="color: #fff; font-weight: bold;">R$ {{ "%.2f"|format(financial_data.dashboard.goal.current) }}</span>
+                    <span style="color: #888;">Meta: R$ {{ "%.2f"|format(financial_data.dashboard.goal.target) }}</span>
+                </div>
+                <div style="background: #333; height: 15px; border-radius: 10px; overflow: hidden;">
+                    <div style="background: linear-gradient(90deg, #ff8c00, #ff0000); width: {{ financial_data.dashboard.goal.progress }}%; height: 100%; border-radius: 10px;"></div>
+                </div>
+                <p style="color: {{ '#28a745' if financial_data.dashboard.goal.progress >= 100 else '#ffc107' }}; margin-top: 0.5rem; font-weight: bold;">
+                    {{ "%.1f"|format(financial_data.dashboard.goal.progress) }}% atingido
+                </p>
+            </div>
+        </div>
+
+        <!-- Row 2: Gráficos Principais -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+            <!-- Gráfico Faturamento -->
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333;">
+                <h4 style="color: #ff8c00; margin-bottom: 1rem; text-align: center;">💰 Faturamento (Últimos 12 Meses)</h4>
+                <canvas id="revenueChart"></canvas>
+            </div>
+
+            <!-- Gráfico Lucro Líquido -->
+            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333;">
+                <h4 style="color: #28a745; margin-bottom: 1rem; text-align: center;">💸 Lucro Operacional (Reparos)</h4>
+                <canvas id="profitChart"></canvas>
+            </div>
         </div>
     </div>
-    {% endif %}
-    
-    <!-- Serviços em Garantia -->
-    {% if financial_data.warranty_repairs %}
-    <div class="financial-card">
-        <h3>🛡️ Serviços em Garantia</h3>
-        <p style="color: #ffc107; margin-bottom: 1rem; font-weight: bold;">
-            Total: {{ financial_data.warranty_repairs|length }} reparo(s) com garantia ativa
-        </p>
-        <div class="table-container">
-            <table class="financial-table">
-                <thead>
-                    <tr>
-                        <th>ID Reparo</th>
-                        <th>Cliente</th>
-                        <th>Dispositivo</th>
-                        <th>Concluído em</th>
-                        <th>Garantia</th>
-                        <th>Válida até</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for repair in financial_data.warranty_repairs %}
-                    <tr>
-                        <td><a href="{{ url_for('admin_repairs') }}#repair-{{ repair.id }}" style="color: #ff8c00;">{{ repair.id }}</a></td>
-                        <td>{{ repair.customer_name }}</td>
-                        <td>{{ repair.device_name }}</td>
-                        <td>{{ repair.completed_at[:10] if repair.completed_at else 'N/A' }}</td>
-                        <td><span class="badge badge-warning">{{ repair.period }}</span></td>
-                        <td style="color: #28a745; font-weight: bold;">{{ repair.valid_until[:10] if repair.valid_until else 'N/A' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% else %}
-    <div class="financial-card">
-        <h3>🛡️ Serviços em Garantia</h3>
-        <div class="empty-state">
-            <p>Nenhum serviço em garantia no momento.</p>
-        </div>
-    </div>
-    {% endif %}
 </div>
+
+<!-- Modal Nova Transação -->
+<div id="transactionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3 style="color: #ff8c00; margin-bottom: 1.5rem;">Nova Movimentação</h3>
+        
+        <form action="{{ url_for('admin_add_transaction') }}" method="POST">
+            <input type="hidden" name="type" id="transactionType" value="expense">
+            
+            <div class="transaction-type-selector">
+                <div class="type-option" onclick="selectType('income')" id="typeIncome">
+                    💰 Entrada
+                </div>
+                <div class="type-option active expense" onclick="selectType('expense')" id="typeExpense">
+                    📤 Saída
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Data</label>
+                <input type="date" name="date" required value="{{ end_date }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Categoria</label>
+                <select name="category" id="categorySelect" required>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Descrição</label>
+                <input type="text" name="description" placeholder="Ex: Aluguel, Venda de Capinha, etc." required>
+            </div>
+            
+            <div class="form-group">
+                <label>Valor (R$)</label>
+                <input type="number" name="amount" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            
+            <button type="submit" class="btn-success">Salvar Lançamento</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Dados do backend
+    const dashboardData = {{ financial_data.dashboard | tojson }};
+    const categoriesData = {{ financial_data.categories | tojson }};
+
+    // Funções do Modal
+    function openModal() {
+        document.getElementById('transactionModal').style.display = 'block';
+        selectType('expense'); // Default
+    }
+
+    function closeModal() {
+        document.getElementById('transactionModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('transactionModal')) {
+            closeModal();
+        }
+    }
+
+    function selectType(type) {
+        document.getElementById('transactionType').value = type;
+        const incomeBtn = document.getElementById('typeIncome');
+        const expenseBtn = document.getElementById('typeExpense');
+        const select = document.getElementById('categorySelect');
+        
+        // Limpar opções
+        select.innerHTML = '';
+        
+        if (type === 'income') {
+            incomeBtn.className = 'type-option active income';
+            expenseBtn.className = 'type-option';
+            
+            const options = ['Serviços', 'Venda de Acessórios', 'Venda de Aparelhos', 'Outros'];
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                select.appendChild(el);
+            });
+        } else {
+            incomeBtn.className = 'type-option';
+            expenseBtn.className = 'type-option active expense';
+            
+            const options = ['Peças', 'Aluguel', 'Energia', 'Internet', 'Água', 'Salários', 'Marketing', 'Impostos', 'Outros'];
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                select.appendChild(el);
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configuração comum
+        Chart.defaults.color = '#cccccc';
+        Chart.defaults.borderColor = '#333333';
+        
+        // 1. Gráfico de Faturamento (Performance)
+        if (document.getElementById('revenueChart')) {
+            new Chart(document.getElementById('revenueChart'), {
+                type: 'bar',
+                data: {
+                    labels: dashboardData.labels,
+                    datasets: [{
+                        label: 'Faturamento',
+                        data: dashboardData.revenue,
+                        backgroundColor: 'rgba(255, 140, 0, 0.5)',
+                        borderColor: '#ff8c00',
+                        borderWidth: 2,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: value => 'R$ ' + value.toLocaleString('pt-BR') }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Gráfico de Lucro (Performance)
+        if (document.getElementById('profitChart')) {
+            new Chart(document.getElementById('profitChart'), {
+                type: 'line',
+                data: {
+                    labels: dashboardData.labels,
+                    datasets: [{
+                        label: 'Lucro Líquido',
+                        data: dashboardData.profit,
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderColor: '#28a745',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: value => 'R$ ' + value.toLocaleString('pt-BR') }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 3. Gráfico de Categorias de Receita
+        if (document.getElementById('incomeChart')) {
+            const incomeLabels = Object.keys(categoriesData.income);
+            const incomeValues = Object.values(categoriesData.income);
+            
+            new Chart(document.getElementById('incomeChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: incomeLabels.length ? incomeLabels : ['Sem dados'],
+                    datasets: [{
+                        data: incomeValues.length ? incomeValues : [1],
+                        backgroundColor: [
+                            '#28a745', '#20c997', '#17a2b8', '#ffc107', '#fd7e14'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+        
+        // 4. Gráfico de Categorias de Despesa
+        if (document.getElementById('expenseChart')) {
+            const expenseLabels = Object.keys(categoriesData.expense);
+            const expenseValues = Object.values(categoriesData.expense);
+            
+            new Chart(document.getElementById('expenseChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: expenseLabels.length ? expenseLabels : ['Sem dados'],
+                    datasets: [{
+                        data: expenseValues.length ? expenseValues : [1],
+                        backgroundColor: [
+                            '#dc3545', '#e83e8c', '#6f42c1', '#fd7e14', '#ffc107', '#17a2b8'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
 

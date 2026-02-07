@@ -2,12 +2,142 @@
 
 {% block title %}Novo Reparo{% endblock %}
 
+{% block extra_css %}
+<style>
+    .checklist-section {
+        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+
+    .checklist-section:hover {
+        border-color: #ff8c00;
+        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+    }
+
+    .checklist-section h3 {
+        color: #ff8c00;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .checklist-item {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        border: 1px solid #333333;
+    }
+
+    .checklist-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .checklist-item-title {
+        color: #ffffff;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+
+    .status-pending {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 1px solid #ffc107;
+    }
+
+    .status-completed {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+
+    .photo-upload-area {
+        border: 2px dashed #ff8c00;
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: center;
+        background: rgba(255, 140, 0, 0.05);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+
+    .photo-upload-area:hover {
+        background: rgba(255, 140, 0, 0.1);
+        border-color: #ff6b00;
+    }
+
+    .photo-upload-area.has-photo {
+        border-color: #28a745;
+        background: rgba(40, 167, 69, 0.1);
+    }
+
+    .photo-preview {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 10px;
+        margin-top: 1rem;
+        display: none;
+    }
+
+    .photo-preview.show {
+        display: block;
+    }
+
+    .test-box {
+        background: #0d0d0d;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 2px solid #333333;
+    }
+
+    .test-box h4 {
+        color: #ff8c00;
+        margin-bottom: 1rem;
+    }
+
+    .test-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .test-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .test-item label {
+        color: #cccccc;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="admin-card">
     <h2>➕ Novo Reparo</h2>
     <p>Cadastre um novo reparo para acompanhamento do cliente.</p>
 
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         <h3 style="color: #ff8c00; margin-bottom: 1rem;">📋 Tipo de Reparo</h3>
         
         <div class="form-group">
@@ -92,6 +222,95 @@
             <small style="color: #999; display: block; margin-top: 0.5rem;">Associe um técnico ao reparo para calcular o score de qualidade</small>
         </div>
 
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🛡️ Checklist Antifraude Inicial</h3>
+        
+        <!-- Seção 1: Fotos Automáticas -->
+        <div class="checklist-section">
+            <h3>📸 Fotos Obrigatórias</h3>
+            
+            <div class="checklist-item">
+                <div class="checklist-item-header">
+                    <span class="checklist-item-title">Foto do IMEI</span>
+                    <span class="status-badge status-pending" id="imei-status">Pendente</span>
+                </div>
+                <p style="color: #999; margin-bottom: 1rem;">Foto do número IMEI do dispositivo</p>
+                <div class="photo-upload-area" onclick="document.getElementById('imei-photo').click()">
+                    <input type="file" id="imei-photo" name="imei_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'imei-preview', 'imei-status')">
+                    <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto do IMEI</p>
+                    <img id="imei-preview" class="photo-preview" alt="Preview IMEI">
+                </div>
+            </div>
+
+            <div class="checklist-item">
+                <div class="checklist-item-header">
+                    <span class="checklist-item-title">Foto da Placa</span>
+                    <span class="status-badge status-pending" id="placa-status">Pendente</span>
+                </div>
+                <p style="color: #999; margin-bottom: 1rem;">Foto da placa mãe do dispositivo</p>
+                <div class="photo-upload-area" onclick="document.getElementById('placa-photo').click()">
+                    <input type="file" id="placa-photo" name="placa_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'placa-preview', 'placa-status')">
+                    <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto da placa</p>
+                    <img id="placa-preview" class="photo-preview" alt="Preview Placa">
+                </div>
+            </div>
+
+            <div class="checklist-item">
+                <div class="checklist-item-header">
+                    <span class="checklist-item-title">Foto dos Conectores</span>
+                    <span class="status-badge status-pending" id="conectores-status">Pendente</span>
+                </div>
+                <p style="color: #999; margin-bottom: 1rem;">Foto dos conectores e portas do dispositivo</p>
+                <div class="photo-upload-area" onclick="document.getElementById('conectores-photo').click()">
+                    <input type="file" id="conectores-photo" name="conectores_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'conectores-preview', 'conectores-status')">
+                    <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto dos conectores</p>
+                    <img id="conectores-preview" class="photo-preview" alt="Preview Conectores">
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção 2: Testes Obrigatórios -->
+        <div class="checklist-section">
+            <h3>✅ Testes Obrigatórios (Antes do Reparo)</h3>
+            
+            <div class="test-box">
+                <h4>🔍 Teste ANTES do Reparo</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="test-item">
+                        <input type="checkbox" id="test-before-power" name="test_before_power">
+                        <label for="test-before-power">Botão Power</label>
+                    </div>
+                    <div class="test-item">
+                        <input type="checkbox" id="test-before-volume" name="test_before_volume">
+                        <label for="test-before-volume">Botões de Volume</label>
+                    </div>
+                    <div class="test-item">
+                        <input type="checkbox" id="test-before-screen" name="test_before_screen">
+                        <label for="test-before-screen">Tela/Touch</label>
+                    </div>
+                    <div class="test-item">
+                        <input type="checkbox" id="test-before-camera" name="test_before_camera">
+                        <label for="test-before-camera">Câmeras</label>
+                    </div>
+                    <div class="test-item">
+                        <input type="checkbox" id="test-before-audio" name="test_before_audio">
+                        <label for="test-before-audio">Áudio/Microfone</label>
+                    </div>
+                    <div class="test-item">
+                        <input type="checkbox" id="test-before-charging" name="test_before_charging">
+                        <label for="test-before-charging">Carregamento</label>
+                    </div>
+                    <div class="test-item">
+                        <input type="checkbox" id="test-before-biometry" name="test_before_biometry">
+                        <label for="test-before-biometry">Biometria/FaceID</label>
+                    </div>
+                    <div class="test-item">
+                        <input type="checkbox" id="test-before-wifi" name="test_before_wifi">
+                        <label for="test-before-wifi">Wi-Fi/Bluetooth</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">💰 Orçamento (Opcional)</h3>
 
         <div class="form-group">
@@ -112,3 +331,27 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+    // Preview de fotos
+    function previewPhoto(input, previewId, statusId) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById(previewId);
+                preview.src = e.target.result;
+                preview.classList.add('show');
+                
+                const uploadArea = input.closest('.photo-upload-area');
+                uploadArea.classList.add('has-photo');
+                
+                const status = document.getElementById(statusId);
+                status.textContent = 'Concluído';
+                status.className = 'status-badge status-completed';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+</script>
+{% endblock %}

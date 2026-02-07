@@ -141,21 +141,6 @@
         cursor: pointer;
     }
 
-    .signature-area {
-        border: 2px solid #ff8c00;
-        border-radius: 10px;
-        padding: 1.5rem;
-        background: #0d0d0d;
-        margin-top: 1rem;
-    }
-
-
-    .signature-controls {
-        display: flex;
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-
     .info-box {
         background: rgba(255, 140, 0, 0.1);
         border-left: 4px solid #ff8c00;
@@ -205,7 +190,6 @@
                     <li>Fotos obrigatórias (IMEI, placa, conectores)</li>
                     <li>Testes antes do reparo</li>
                     <li>Testes depois do reparo</li>
-                    <li>Assinatura digital do cliente</li>
                 </ul>
             </div>
             <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid #333333; cursor: pointer; transition: all 0.3s ease;" onclick="selectChecklistType('conclusao')" id="type-conclusao">
@@ -355,10 +339,6 @@
                             <label for="test-before-back-camera">Câmera Traseira</label>
                         </div>
                         <div class="test-item">
-                            <input type="checkbox" id="test-before-flash" name="test_before_flash">
-                            <label for="test-before-flash">Flash</label>
-                        </div>
-                        <div class="test-item">
                             <input type="checkbox" id="test-before-face-id" name="test_before_face_id">
                             <label for="test-before-face-id">Face ID</label>
                         </div>
@@ -453,10 +433,6 @@
                         <div class="test-item">
                             <input type="checkbox" id="test-after-back-camera" name="test_after_back_camera">
                             <label for="test-after-back-camera">Câmera Traseira</label>
-                        </div>
-                        <div class="test-item">
-                            <input type="checkbox" id="test-after-flash" name="test_after_flash">
-                            <label for="test-after-flash">Flash</label>
                         </div>
                         <div class="test-item">
                             <input type="checkbox" id="test-after-face-id" name="test_after_face_id">
@@ -560,7 +536,7 @@
                 {% if checklist.signature %}
                 <div style="margin-top: 1rem;">
                     <p style="color: #999; font-size: 0.85rem; margin-bottom: 0.5rem;">Assinatura:</p>
-                    <a href="{{ checklist.signature }}" target="_blank" style="color: #28a745; text-decoration: none;">✍️ Ver Assinatura</a>
+                    
                 </div>
                 {% endif %}
                 <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">

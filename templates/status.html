@@ -655,12 +655,6 @@
                             <span style="color: #ffffff; font-size: 0.9rem;">Câmera Traseira (Antes)</span>
                         </div>
                         {% endif %}
-                        {% if checklist.tests.test_before_flash %}
-                        <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #28a745;">✅</span>
-                            <span style="color: #ffffff; font-size: 0.9rem;">Flash (Antes)</span>
-                        </div>
-                        {% endif %}
                         {% if checklist.tests.test_before_face_id %}
                         <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="color: #28a745;">✅</span>
@@ -799,12 +793,6 @@
                     <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
                         <span style="color: #28a745;">✅</span>
                         <span style="color: #ffffff; font-size: 0.9rem;">Câmera Traseira (Depois)</span>
-                    </div>
-                    {% endif %}
-                    {% if checklist.tests.test_after_flash %}
-                    <div style="background: #0d0d0d; padding: 0.75rem; border-radius: 5px; border: 1px solid #333333; display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="color: #28a745;">✅</span>
-                        <span style="color: #ffffff; font-size: 0.9rem;">Flash (Depois)</span>
                     </div>
                     {% endif %}
                     {% if checklist.tests.test_after_face_id %}

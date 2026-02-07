@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: clinicadomobile
+    name: techcell-app
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --config gunicorn.conf.py
+    startCommand: gunicorn app:app
+    plan: free
     envVars:
-      - key: DATABASE_URL
-        value: postgresql://rai:nk1HAfaFPhbOvg34lqWl7YC5LfPNmNS3@dpg-d57kenggjchc739lcorg-a.virginia-postgres.render.com/mobiledb_p0w2
-
+      - key: PYTHON_VERSION
+        value: 3.10.0

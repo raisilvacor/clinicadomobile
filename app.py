@@ -688,26 +688,71 @@ def admin_nfse():
 @login_required
 def admin_financeiro():
     """Gestão financeira - relatórios e métricas"""
-    from db import get_financial_data
+    from db import get_financial_summary
     from datetime import datetime, timedelta
     
     # Obter parâmetros de data
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
     
-    # Se não houver datas, usar últimos 30 dias
+    # Se não houver datas, usar o mês atual para contexto inicial
     if not start_date:
-        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        now = datetime.now()
+        start_date = now.replace(day=1).strftime('%Y-%m-%d')
     if not end_date:
-        end_date = datetime.now().strftime('%Y-%m-%d')
+        now = datetime.now()
+        next_month = now.replace(day=28) + timedelta(days=4)
+        end_date = (next_month - timedelta(days=next_month.day)).strftime('%Y-%m-%d')
     
-    # Buscar dados financeiros
-    financial_data = get_financial_data(start_date, end_date)
+    # Buscar resumo financeiro consolidado
+    summary_data = get_financial_summary(start_date, end_date)
     
     return render_template('admin/financeiro.html', 
-                         financial_data=financial_data,
+                         financial_data=summary_data, # Usando a nova estrutura consolidada
                          start_date=start_date,
                          end_date=end_date)
+
+@app.route('/admin/financeiro/transaction/add', methods=['POST'])
+@login_required
+def admin_add_transaction():
+    """Adiciona uma nova transação financeira manual"""
+    from db import save_transaction
+    import uuid
+    from datetime import datetime
+    
+    try:
+        transaction_id = str(uuid.uuid4())[:8]
+        
+        amount_str = request.form.get('amount', '0').replace('R$', '').replace('.', '').replace(',', '.')
+        amount = float(amount_str)
+        
+        transaction_data = {
+            'id': transaction_id,
+            'type': request.form.get('type'), # 'income' ou 'expense'
+            'category': request.form.get('category'),
+            'description': request.form.get('description', ''),
+            'amount': amount,
+            'date': request.form.get('date') or datetime.now().strftime('%Y-%m-%d'),
+            'created_at': datetime.now().isoformat()
+        }
+        
+        save_transaction(transaction_id, transaction_data)
+        
+        return redirect(url_for('admin_financeiro'))
+    except Exception as e:
+        return f"Erro ao salvar transação: {e}", 500
+
+@app.route('/admin/financeiro/transaction/<transaction_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_transaction(transaction_id):
+    """Remove uma transação financeira"""
+    from db import delete_transaction
+    try:
+        delete_transaction(transaction_id)
+        return redirect(url_for('admin_financeiro'))
+    except Exception as e:
+        return f"Erro ao excluir transação: {e}", 500
+
 
 @app.route('/admin/risk-scores', methods=['GET'])
 @login_required
@@ -1002,6 +1047,65 @@ def admin_new_repair():
                 'action': f'Orçamento criado: R$ {budget_amount}',
                 'status': 'orcamento'
             })
+        
+        # ========== Processar Checklist Inicial (Integrado) ==========
+        import os
+        import base64
+        
+        # Verificar se foram enviados dados do checklist (pelo menos uma foto ou teste)
+        # Assumimos que se o form tem campos de teste, vamos criar o checklist
+        checklist_id = str(uuid.uuid4())[:8]
+        checklist_data = {
+            'id': checklist_id,
+            'type': 'inicial',
+            'repair_id': repair_id,
+            'timestamp': datetime.now().isoformat(),
+            'photos': {},
+            'tests': {},
+            'signature': None # Assinatura física será usada
+        }
+        
+        # Criar pasta para fotos se não existir
+        photos_dir = os.path.join('static', 'checklist_photos')
+        if not os.path.exists(photos_dir):
+            os.makedirs(photos_dir)
+        
+        # Salvar fotos
+        photo_fields = ['imei_photo', 'placa_photo', 'conectores_photo']
+        if '_photo_data' not in checklist_data:
+            checklist_data['_photo_data'] = {}
+            
+        for field in photo_fields:
+            if field in request.files:
+                file = request.files[field]
+                if file and file.filename:
+                    filename = f"{field}_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+                    filepath = os.path.join(photos_dir, filename)
+                    file.save(filepath)
+                    checklist_data['photos'][field] = f"/static/checklist_photos/{filename}"
+                    
+                    # Salvar também como base64
+                    file.seek(0)
+                    file_data = file.read()
+                    checklist_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
+        
+        # Salvar testes
+        test_fields = [
+            'test_before_power', 'test_before_volume', 'test_before_screen',
+            'test_before_camera', 'test_before_audio', 'test_before_charging',
+            'test_before_biometry', 'test_before_wifi'
+        ]
+        for field in test_fields:
+            checklist_data['tests'][field] = field in request.form
+        
+        # Salvar checklist
+        save_checklist(checklist_id, checklist_data)
+        
+        # Associar ao reparo
+        if 'checklists' not in repair:
+            repair['checklists'] = []
+        repair['checklists'].append(checklist_id)
+        repair['initial_checklist_id'] = checklist_id
         
         # Salvar diretamente no banco de dados
         save_repair(repair_id, repair)
@@ -1902,30 +2006,10 @@ def admin_orders():
     completed_repairs = [r for r in repairs if r.get('status') == 'concluido' and not r.get('order_id')]
     available_repairs = []
     for repair in completed_repairs:
-        repair_id = repair.get('id')
-        repair_checklists = get_checklists_by_repair(repair_id)
-        
-        # Verificar se existe checklist de conclusão
-        conclusion_checklist = None
-        for cl in repair_checklists:
-            if cl.get('type') == 'conclusao':
-                conclusion_checklist = cl
-                break
-        
-        if conclusion_checklist:
-            # Verificar se TODAS as assinaturas dos checklists foram feitas
-            all_signed = True
-            for cl in repair_checklists:
-                if not cl.get('signature'):
-                    all_signed = False
-                    break
-            
-            # Só adicionar se todas as assinaturas estiverem feitas
-            if all_signed:
-                available_repairs.append({
-                    'repair': repair,
-                    'conclusion_checklist': conclusion_checklist
-                })
+        available_repairs.append({
+            'repair': repair,
+            'conclusion_checklist': None  # Será criado na emissão
+        })
     
     return render_template('admin/orders.html', orders=enriched_orders, available_repairs=available_repairs)
 
@@ -2456,33 +2540,41 @@ def admin_emit_or(repair_id):
     # Buscar todos os checklists associados ao reparo
     repair_checklists = get_checklists_by_repair(repair_id)
     
-    # Verificar se existe checklist de conclusão
-    conclusion_checklist = None
-    for cl in repair_checklists:
-        if cl.get('type') == 'conclusao':
-            conclusion_checklist = cl
-            break
-    
-    if not conclusion_checklist:
-        return "É necessário realizar o Checklist Antifraude de Conclusão antes de emitir a OR", 400
-    
-    # Verificar se TODAS as assinaturas dos checklists foram feitas pelo cliente
-    unsigned_checklists = []
-    for cl in repair_checklists:
-        if not cl.get('signature'):
-            unsigned_checklists.append(cl)
-    
-    if unsigned_checklists:
-        checklist_types = []
-        for cl in unsigned_checklists:
-            if cl.get('type') == 'inicial':
-                checklist_types.append('Checklist Antifraude Inicial')
-            elif cl.get('type') == 'conclusao':
-                checklist_types.append('Checklist Antifraude de Conclusão')
-        
-        return f"Não é possível emitir a OR. Faltam assinaturas do cliente nos seguintes checklists: {', '.join(checklist_types)}. O cliente deve acessar o link de acompanhamento e assinar todos os checklists antes da emissão da OR.", 400
-    
     if request.method == 'POST':
+        # ========== Processar Checklist Conclusão (Integrado) ==========
+        import os
+        import base64
+        
+        checklist_id = str(uuid.uuid4())[:8]
+        checklist_data = {
+            'id': checklist_id,
+            'type': 'conclusao',
+            'repair_id': repair_id,
+            'timestamp': datetime.now().isoformat(),
+            'photos': {},
+            'tests': {},
+            'signature': None
+        }
+        
+        # Salvar testes
+        test_fields = [
+            'test_after_power', 'test_after_volume', 'test_after_screen',
+            'test_after_camera', 'test_after_audio', 'test_after_charging',
+            'test_after_biometry', 'test_after_wifi'
+        ]
+        for field in test_fields:
+            checklist_data['tests'][field] = field in request.form
+            
+        save_checklist(checklist_id, checklist_data)
+        
+        # Associar ao reparo
+        if 'checklists' not in repair:
+            repair['checklists'] = []
+        repair['checklists'].append(checklist_id)
+        repair['conclusion_checklist_id'] = checklist_id
+        
+        save_repair(repair_id, repair)
+        
         # Criar Ordem de Retirada
         order_id = str(uuid.uuid4())[:8]
         or_data = {
@@ -2508,7 +2600,6 @@ def admin_emit_or(repair_id):
         return redirect(url_for('admin_view_or', repair_id=repair_id))
     
     # GET - mostrar formulário
-    # Passar lista de checklists sem assinatura para exibir no template
     # Calcular score de risco do cliente
     from db import calculate_customer_risk_score
     customer_cpf = repair.get('customer_cpf', '')
@@ -2518,8 +2609,8 @@ def admin_emit_or(repair_id):
     
     return render_template('admin/emit_or.html', 
                          repair=repair, 
-                         conclusion_checklist=conclusion_checklist, 
-                         unsigned_checklists=unsigned_checklists,
+                         conclusion_checklist=None, 
+                         unsigned_checklists=[],
                          risk_score=risk_score)
 
 @app.route('/admin/repairs/<repair_id>/or/view', methods=['GET'])
@@ -2764,6 +2855,124 @@ def admin_or_pdf_internal(repair_id):
         story.append(Paragraph(order.get('observations'), obs_style))
         story.append(Spacer(1, 0.2*cm))
     
+    # Checklists Antifraude (Apenas Conclusão)
+    repair_checklists = get_checklists_by_repair(repair_id)
+    conclusion_checklists = [c for c in repair_checklists if c.get('type') == 'conclusao']
+    
+    if conclusion_checklists:
+        story.append(Spacer(1, 0.4*cm))
+        story.append(Paragraph("CHECKLIST ANTIFRAUDE DE CONCLUSÃO", heading_style))
+        
+        for checklist in conclusion_checklists:
+            story.append(Paragraph(f"<b>Checklist Antifraude de Conclusão - ID: {checklist.get('id', 'N/A')}</b>", info_value_style))
+            
+            checklist_date = checklist.get('timestamp', '')[:16] if checklist.get('timestamp') else 'N/A'
+            story.append(Paragraph(f"<b>Data:</b> {checklist_date}", info_value_style))
+            story.append(Spacer(1, 0.2*cm))
+            
+            # Fotos do Checklist
+            if checklist.get('photos'):
+                photos = checklist.get('photos', {})
+                story.append(Paragraph("<b>📸 Fotos:</b>", info_value_style))
+                
+                if photos.get('imei_photo'):
+                    photo_path = photos['imei_photo']
+                    if photo_path.startswith('/static/'): photo_path = photo_path[1:]
+                    elif not photo_path.startswith('static/'): photo_path = 'static/' + photo_path.lstrip('/')
+                    if os.path.exists(photo_path):
+                        try:
+                            from PIL import Image as PILImage
+                            pil_photo = PILImage.open(photo_path)
+                            photo_width, photo_height = pil_photo.size
+                            photo_aspect = photo_width / photo_height
+                            max_width = 6*cm
+                            photo_height_calc = max_width / photo_aspect
+                            if photo_height_calc > 4*cm:
+                                photo_height_calc = 4*cm
+                                max_width = photo_height_calc * photo_aspect
+                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
+                            story.append(Paragraph("<b>Foto do IMEI:</b>", info_value_style))
+                            story.append(photo_img)
+                            story.append(Spacer(1, 0.2*cm))
+                        except: pass
+
+                if photos.get('placa_photo'):
+                    photo_path = photos['placa_photo']
+                    if photo_path.startswith('/static/'): photo_path = photo_path[1:]
+                    elif not photo_path.startswith('static/'): photo_path = 'static/' + photo_path.lstrip('/')
+                    if os.path.exists(photo_path):
+                        try:
+                            from PIL import Image as PILImage
+                            pil_photo = PILImage.open(photo_path)
+                            photo_width, photo_height = pil_photo.size
+                            photo_aspect = photo_width / photo_height
+                            max_width = 6*cm
+                            photo_height_calc = max_width / photo_aspect
+                            if photo_height_calc > 4*cm:
+                                photo_height_calc = 4*cm
+                                max_width = photo_height_calc * photo_aspect
+                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
+                            story.append(Paragraph("<b>Foto da Placa:</b>", info_value_style))
+                            story.append(photo_img)
+                            story.append(Spacer(1, 0.2*cm))
+                        except: pass
+
+                if photos.get('conectores_photo'):
+                    photo_path = photos['conectores_photo']
+                    if photo_path.startswith('/static/'): photo_path = photo_path[1:]
+                    elif not photo_path.startswith('static/'): photo_path = 'static/' + photo_path.lstrip('/')
+                    if os.path.exists(photo_path):
+                        try:
+                            from PIL import Image as PILImage
+                            pil_photo = PILImage.open(photo_path)
+                            photo_width, photo_height = pil_photo.size
+                            photo_aspect = photo_width / photo_height
+                            max_width = 6*cm
+                            photo_height_calc = max_width / photo_aspect
+                            if photo_height_calc > 4*cm:
+                                photo_height_calc = 4*cm
+                                max_width = photo_height_calc * photo_aspect
+                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
+                            story.append(Paragraph("<b>Foto dos Conectores:</b>", info_value_style))
+                            story.append(photo_img)
+                            story.append(Spacer(1, 0.2*cm))
+                        except: pass
+            
+            # Testes do Checklist
+            if checklist.get('tests'):
+                tests = checklist.get('tests', {})
+                story.append(Paragraph("<b>🧪 Testes Realizados:</b>", info_value_style))
+                
+                test_labels = {
+                    'test_after_power': 'Botão Power', 'test_after_volume': 'Botões de Volume',
+                    'test_after_silent': 'Botão Silenciar', 'test_after_home': 'Botão Home',
+                    'test_after_other_buttons': 'Outros Botões', 'test_after_display_touch': 'Display e Touch',
+                    'test_after_signal': 'Sinal da Operadora', 'test_after_proximity': 'Sensor de Proximidade',
+                    'test_after_speaker': 'Auto-Falante', 'test_after_earpiece': 'Auricular',
+                    'test_after_microphone': 'Microfone', 'test_after_touch_id': 'Touch ID',
+                    'test_after_vibration': 'Vibra', 'test_after_front_camera': 'Câmera Frontal',
+                    'test_after_back_camera': 'Câmera Traseira',
+                    'test_after_face_id': 'Face ID', 'test_after_wifi': 'Wi-FI',
+                    'test_after_bluetooth': 'Bluetooth', 'test_after_charging': 'Carregamento',
+                    'test_after_headphone': 'Fone de Ouvido', 'test_after_biometric': 'Sensor Biométrico',
+                    'test_after_nfc': 'NFC', 'test_after_wireless_charging': 'Carga por Indução'
+                }
+                
+                test_list = []
+                for test_key, test_label in test_labels.items():
+                    if test_key.startswith('test_after_') and tests.get(test_key):
+                        test_list.append(f"✅ {test_label} (Depois)")
+                
+                if test_list:
+                    for test_item in test_list:
+                        story.append(Paragraph(test_item, styles['Normal']))
+                else:
+                    story.append(Paragraph("Nenhum teste registrado", styles['Normal']))
+                
+                story.append(Spacer(1, 0.2*cm))
+            
+            story.append(Spacer(1, 0.4*cm))
+
     # Assinaturas - Organizadas em tabela lado a lado
     story.append(Spacer(1, 0.2*cm))
     
@@ -3153,81 +3362,6 @@ def admin_repair_pdf(repair_id):
         
         story.append(Spacer(1, 0.4*cm))
     
-    # Assinatura Digital
-    if repair.get('signature') and repair['signature'].get('image'):
-        story.append(Paragraph("ASSINATURA DIGITAL", heading_style))
-        signature_path = repair['signature']['image']
-        # Normalizar o caminho - garantir que comece com 'static/'
-        if signature_path.startswith('/static/'):
-            signature_path = signature_path[1:]  # Remove a barra inicial: /static/ -> static/
-        elif signature_path.startswith('static/'):
-            pass  # Já está correto
-        elif signature_path.startswith('/'):
-            # Se começa com / mas não tem static, adicionar
-            signature_path = 'static' + signature_path
-        else:
-            # Se não começa com nada, adicionar static/
-            signature_path = 'static/' + signature_path.lstrip('/')
-        
-        # Tentar carregar a imagem da assinatura
-        signature_loaded = False
-        if os.path.exists(signature_path):
-            try:
-                # Verificar dimensões da imagem para manter proporção
-                from PIL import Image as PILImage
-                pil_sig = PILImage.open(signature_path)
-                sig_width, sig_height = pil_sig.size
-                sig_aspect = sig_width / sig_height
-                
-                # Definir largura máxima e calcular altura proporcional
-                max_width = 10*cm
-                sig_height_calc = max_width / sig_aspect
-                if sig_height_calc > 5*cm:
-                    sig_height_calc = 5*cm
-                    max_width = sig_height_calc * sig_aspect
-                
-                signature_img = Image(signature_path, width=max_width, height=sig_height_calc)
-                story.append(signature_img)
-                signature_loaded = True
-            except Exception as e:
-                print(f"Erro ao carregar assinatura: {e}")
-                # Tentar caminho alternativo
-                alt_path = signature_path.replace('static/', '').replace('/static/', '')
-                if os.path.exists(alt_path):
-                    try:
-                        from PIL import Image as PILImage
-                        pil_sig = PILImage.open(alt_path)
-                        sig_width, sig_height = pil_sig.size
-                        sig_aspect = sig_width / sig_height
-                        max_width = 10*cm
-                        sig_height_calc = max_width / sig_aspect
-                        if sig_height_calc > 5*cm:
-                            sig_height_calc = 5*cm
-                            max_width = sig_height_calc * sig_aspect
-                        signature_img = Image(alt_path, width=max_width, height=sig_height_calc)
-                        story.append(signature_img)
-                        signature_loaded = True
-                    except:
-                        pass
-        
-        if signature_loaded:
-            story.append(Spacer(1, 0.3*cm))
-            signed_date = repair['signature'].get('signed_at', '')
-            if signed_date:
-                signed_date_formatted = signed_date[:16].replace('T', ' ')
-            else:
-                signed_date_formatted = 'N/A'
-            story.append(Paragraph(f"<b>Assinado em:</b> {signed_date_formatted}", styles['Normal']))
-            story.append(Spacer(1, 0.5*cm))
-        else:
-            # Mostrar mensagem mesmo se não conseguir carregar a imagem
-            story.append(Paragraph("Assinatura digital presente (imagem não disponível)", styles['Normal']))
-            signed_date = repair['signature'].get('signed_at', '')
-            if signed_date:
-                signed_date_formatted = signed_date[:16].replace('T', ' ')
-                story.append(Paragraph(f"<b>Assinado em:</b> {signed_date_formatted}", styles['Normal']))
-            story.append(Spacer(1, 0.5*cm))
-    
     # Histórico
     if repair.get('history'):
         story.append(Paragraph("HISTÓRICO", heading_style))
@@ -3262,16 +3396,16 @@ def admin_repair_pdf(repair_id):
             story.append(Paragraph(msg_text, styles['Normal']))
             story.append(Spacer(1, 0.3*cm))
     
-    # Checklists Antifraude
+    # Checklists Antifraude (Apenas Inicial)
     repair_checklists = get_checklists_by_repair(repair_id)
+    initial_checklists = [c for c in repair_checklists if c.get('type') == 'inicial']
     
-    if repair_checklists:
+    if initial_checklists:
         story.append(Spacer(1, 0.4*cm))
-        story.append(Paragraph("CHECKLISTS ANTIFRAUDE", heading_style))
+        story.append(Paragraph("CHECKLIST ANTIFRAUDE INICIAL", heading_style))
         
-        for checklist in repair_checklists:
-            checklist_type_name = "Checklist Antifraude Inicial" if checklist.get('type') == 'inicial' else "Checklist Antifraude de Conclusão"
-            story.append(Paragraph(f"<b>{checklist_type_name} - ID: {checklist.get('id', 'N/A')}</b>", info_value_style))
+        for checklist in initial_checklists:
+            story.append(Paragraph(f"<b>Checklist Antifraude Inicial - ID: {checklist.get('id', 'N/A')}</b>", info_value_style))
             
             checklist_date = checklist.get('timestamp', '')[:16] if checklist.get('timestamp') else 'N/A'
             story.append(Paragraph(f"<b>Data:</b> {checklist_date}", info_value_style))
@@ -3380,7 +3514,6 @@ def admin_repair_pdf(repair_id):
                     'test_before_vibration': 'Vibra',
                     'test_before_front_camera': 'Câmera Frontal',
                     'test_before_back_camera': 'Câmera Traseira',
-                    'test_before_flash': 'Flash',
                     'test_before_face_id': 'Face ID',
                     'test_before_wifi': 'Wi-FI',
                     'test_before_bluetooth': 'Bluetooth',
@@ -3404,7 +3537,6 @@ def admin_repair_pdf(repair_id):
                     'test_after_vibration': 'Vibra',
                     'test_after_front_camera': 'Câmera Frontal',
                     'test_after_back_camera': 'Câmera Traseira',
-                    'test_after_flash': 'Flash',
                     'test_after_face_id': 'Face ID',
                     'test_after_wifi': 'Wi-FI',
                     'test_after_bluetooth': 'Bluetooth',
@@ -3436,35 +3568,53 @@ def admin_repair_pdf(repair_id):
                 
                 story.append(Spacer(1, 0.2*cm))
             
-            # Assinatura do Checklist
-            if checklist.get('signature'):
-                signature_path = checklist['signature']
-                if signature_path.startswith('/static/'):
-                    signature_path = signature_path[1:]
-                elif not signature_path.startswith('static/'):
-                    signature_path = 'static/' + signature_path.lstrip('/')
-                
-                if os.path.exists(signature_path):
-                    try:
-                        from PIL import Image as PILImage
-                        pil_sig = PILImage.open(signature_path)
-                        sig_width, sig_height = pil_sig.size
-                        sig_aspect = sig_width / sig_height
-                        max_width = 6*cm
-                        sig_height_calc = max_width / sig_aspect
-                        if sig_height_calc > 3*cm:
-                            sig_height_calc = 3*cm
-                            max_width = sig_height_calc * sig_aspect
-                        signature_img = Image(signature_path, width=max_width, height=sig_height_calc)
-                        story.append(Paragraph("<b>✍️ Assinatura Digital do Cliente:</b>", info_value_style))
-                        story.append(signature_img)
-                        story.append(Spacer(1, 0.2*cm))
-                    except:
-                        pass
-            else:
-                story.append(Paragraph("<b>✍️ Assinatura Digital:</b> Pendente", info_value_style))
-            
             story.append(Spacer(1, 0.4*cm))
+
+    # Assinaturas Físicas
+    story.append(Spacer(1, 0.5*cm))
+    
+    signature_line_style = ParagraphStyle(
+        'SignatureLine',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=4,
+        leading=11,
+        alignment=1  # Centralizado
+    )
+    
+    # Linha de assinatura do cliente (física)
+    customer_line = Table([['']], colWidths=[7*cm])
+    customer_line.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -1), 1, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    
+    # Linha de assinatura do técnico (física)
+    tech_line = Table([['']], colWidths=[7*cm])
+    tech_line.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -1), 1, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    
+    # Tabela para colocar as assinaturas lado a lado
+    sigs_data = [
+        [Paragraph("ASSINATURA DO CLIENTE", signature_line_style), Paragraph("ASSINATURA DO TÉCNICO", signature_line_style)],
+        [customer_line, tech_line],
+        [Paragraph(f"<b>{repair.get('customer_name', 'Cliente')}</b>", signature_line_style), Paragraph("<b>Técnico Responsável</b>", signature_line_style)]
+    ]
+    
+    sigs_table = Table(sigs_data, colWidths=[9*cm, 9*cm])
+    sigs_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(sigs_table)
     
     # Rodapé
     story.append(Spacer(1, 1*cm))

@@ -89,7 +89,7 @@ def _save_config_file(config):
 
 def init_db():
     """Inicializa o pool de conexões"""
-    global USE_DATABASE, pool, ConnectionPool
+    global USE_DATABASE, pool, ConnectionPool, DATABASE_URL
     if not USE_DATABASE:
         print("⚠️  Banco de dados desabilitado - usando config.json")
         return None
@@ -100,7 +100,16 @@ def init_db():
     if pool is None:
         try:
             print(f"🔌 Conectando ao banco de dados PostgreSQL...")
-            print(f"🔌 DATABASE_URL: {DATABASE_URL[:30]}...")  # Mostrar apenas início por segurança
+            
+            # Garantir SSL na string de conexão
+            if 'sslmode' not in DATABASE_URL:
+                if '?' in DATABASE_URL:
+                    DATABASE_URL += '&sslmode=require'
+                else:
+                    DATABASE_URL += '?sslmode=require'
+                    
+            print(f"🔌 DATABASE_URL: {DATABASE_URL[:40]}...")  # Mostrar apenas início por segurança
+            
             # Configurar pool com timeout maior e parâmetros otimizados
             # psycopg_pool ConnectionPool aceita: min_size, max_size, timeout, max_waiting, max_idle, reconnect_timeout
             try:
@@ -336,6 +345,16 @@ def create_tables():
             CREATE TABLE IF NOT EXISTS orders (
                 id VARCHAR(50) PRIMARY KEY,
                 repair_id VARCHAR(50) NOT NULL,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela para transações financeiras (Fluxo de Caixa)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS transactions (
+                id VARCHAR(50) PRIMARY KEY,
                 data JSONB NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -2195,15 +2214,35 @@ def get_financial_data(start_date=None, end_date=None):
     # Serviços em garantia
     warranty_repairs = []
     
+    # Dados para custos (se disponíveis no orçamento)
+    total_cost = 0.0
+    costs_by_month = {}
+    
     for repair in repairs:
         status = repair.get('status', '').lower()  # Normalizar para lowercase
         completed_at = repair.get('completed_at')
         order = get_order_by_repair(repair.get('id'))
         budget = repair.get('budget')
         budget_amount = 0.0
+        cost_amount = 0.0
         
         if budget and isinstance(budget, dict) and budget.get('status') == 'approved':
-            budget_amount = float(budget.get('amount', 0))
+            try:
+                # Helper para converter valores monetários com segurança
+                def safe_money(val):
+                    if not val: return 0.0
+                    if isinstance(val, (int, float)): return float(val)
+                    if isinstance(val, str):
+                        return float(val.replace('R$', '').replace(' ', '').replace(',', '.'))
+                    return 0.0
+
+                budget_amount = safe_money(budget.get('amount', 0))
+                # Tentar obter custo (se existir campo 'cost' ou 'parts_cost')
+                cost_amount = safe_money(budget.get('cost', 0)) or safe_money(budget.get('parts_cost', 0))
+            except Exception as e:
+                print(f"Erro ao processar valores do orçamento: {e}")
+                budget_amount = 0.0
+                cost_amount = 0.0
             
             # Se está concluído OU tem OR, conta como faturado
             # IMPORTANTE: Reparos concluídos devem ser contados mesmo sem OR
@@ -2249,10 +2288,12 @@ def get_financial_data(start_date=None, end_date=None):
                     
                     if start_date_only <= repair_date_only <= end_date_only:
                         total_billing += budget_amount
+                        total_cost += cost_amount
                         
                         # Por mês
                         month_key = repair_date.strftime('%Y-%m')
                         billing_by_month[month_key] = billing_by_month.get(month_key, 0) + budget_amount
+                        costs_by_month[month_key] = costs_by_month.get(month_key, 0) + cost_amount
                         
                         # Por status
                         billing_by_status[status] = billing_by_status.get(status, 0) + budget_amount
@@ -2269,10 +2310,12 @@ def get_financial_data(start_date=None, end_date=None):
                             
                             if start_date_only <= repair_date_only <= end_date_only:
                                 total_billing += budget_amount
+                                total_cost += cost_amount
                                 
                                 # Por mês
                                 month_key = repair_date.strftime('%Y-%m')
                                 billing_by_month[month_key] = billing_by_month.get(month_key, 0) + budget_amount
+                                costs_by_month[month_key] = costs_by_month.get(month_key, 0) + cost_amount
                                 
                                 # Por status
                                 billing_by_status[status] = billing_by_status.get(status, 0) + budget_amount
@@ -2332,8 +2375,99 @@ def get_financial_data(start_date=None, end_date=None):
     # Ordenar serviços mais vendidos
     services_sorted = sorted(services_count.items(), key=lambda x: x[1], reverse=True)[:10]
     
+    # Preparar dados para o dashboard financeiro (Últimos 12 meses)
+    today = datetime.now()
+    chart_months = []
+    
+    # Gerar chaves dos últimos 12 meses (inclusive o atual)
+    for i in range(11, -1, -1):
+        # Para garantir mês correto, subtraímos do primeiro dia do mês atual
+        first_day_current = today.replace(day=1)
+        # Subtrair meses aproximadamente
+        # Maneira segura de subtrair meses
+        month_target = first_day_current.month - i
+        year_target = first_day_current.year
+        while month_target <= 0:
+            month_target += 12
+            year_target -= 1
+        
+        key = f"{year_target}-{month_target:02d}"
+        chart_months.append(key)
+    
+    # Dados para os gráficos
+    chart_labels = []
+    chart_revenue = []
+    chart_cost = []
+    chart_profit = []
+    
+    current_month_key = today.strftime('%Y-%m')
+    last_month_key = (today.replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
+    
+    current_revenue = 0
+    last_revenue = 0
+    
+    for key in chart_months:
+        revenue = billing_by_month.get(key, 0)
+        cost = costs_by_month.get(key, 0)
+        profit = revenue - cost
+        
+        # Formatar label (Ex: "Out/2023")
+        try:
+            dt = datetime.strptime(key, '%Y-%m')
+            # Traduzir mês manualmente para evitar dependência de locale
+            months_pt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+            label = f"{months_pt[dt.month-1]}/{dt.year}"
+        except:
+            label = key
+        
+        chart_labels.append(label)
+        chart_revenue.append(revenue)
+        chart_cost.append(cost)
+        chart_profit.append(profit)
+        
+        if key == current_month_key:
+            current_revenue = revenue
+        elif key == last_month_key:
+            last_revenue = revenue
+
+    # Crescimento
+    growth_rate = 0
+    growth_type = 'neutral' # positive, negative, neutral
+    if last_revenue > 0:
+        growth_rate = ((current_revenue - last_revenue) / last_revenue) * 100
+        if growth_rate > 0:
+            growth_type = 'positive'
+        elif growth_rate < 0:
+            growth_type = 'negative'
+    elif current_revenue > 0:
+        growth_rate = 100 # Se mês passado foi 0 e este tem receita, crescimento de 100% (ou infinito)
+        growth_type = 'positive'
+        
+    # Meta Automática (Média dos últimos 3 meses anteriores + 20%)
+    last_3_months_revenue = 0
+    count_3_months = 0
+    
+    # Pegar índices dos meses anteriores ao atual
+    try:
+        current_idx = chart_months.index(current_month_key)
+        start_idx = max(0, current_idx - 3)
+        for i in range(start_idx, current_idx):
+            last_3_months_revenue += chart_revenue[i]
+            count_3_months += 1
+    except:
+        pass
+        
+    average_revenue = last_3_months_revenue / count_3_months if count_3_months > 0 else 0
+    revenue_goal = average_revenue * 1.2 # Meta: 20% acima da média
+    if revenue_goal == 0 and current_revenue > 0:
+        revenue_goal = current_revenue * 1.2 # Se não tem histórico, meta é 20% acima do atual
+    
+    goal_progress = (current_revenue / revenue_goal * 100) if revenue_goal > 0 else 0
+    
     return {
         'total_billing': total_billing,
+        'total_cost': total_cost,
+        'total_profit': total_billing - total_cost,
         'billing_by_month': billing_by_month,
         'billing_by_status': billing_by_status,
         'top_services': services_sorted,
@@ -2343,6 +2477,23 @@ def get_financial_data(start_date=None, end_date=None):
         'period': {
             'start': start_date,
             'end': end_date
+        },
+        'dashboard': {
+            'labels': chart_labels,
+            'revenue': chart_revenue,
+            'cost': chart_cost,
+            'profit': chart_profit,
+            'growth': {
+                'rate': round(growth_rate, 1),
+                'type': growth_type,
+                'current': current_revenue,
+                'last': last_revenue
+            },
+            'goal': {
+                'target': round(revenue_goal, 2),
+                'progress': round(goal_progress, 1),
+                'current': current_revenue
+            }
         }
     }
 
@@ -3079,7 +3230,7 @@ def delete_technician(technician_id):
             config['technicians'] = [t for t in config['technicians'] if t.get('id') != technician_id]
             _save_config_file(config)
         return
-    
+
     try:
         with get_db_connection() as conn:
             if not conn:
@@ -3097,3 +3248,243 @@ def delete_technician(technician_id):
         if 'technicians' in config:
             config['technicians'] = [t for t in config['technicians'] if t.get('id') != technician_id]
             _save_config_file(config)
+
+
+# ========== GESTÃO FINANCEIRA ==========
+
+def get_all_transactions(start_date=None, end_date=None):
+    """Obtém todas as transações financeiras"""
+    from datetime import datetime
+    
+    if not USE_DATABASE:
+        config = _load_config_file()
+        transactions = config.get('transactions', [])
+        # Filtrar por data se necessário
+        if start_date and end_date:
+            try:
+                start_dt = datetime.fromisoformat(start_date) if isinstance(start_date, str) else start_date
+                end_dt = datetime.fromisoformat(end_date) if isinstance(end_date, str) else end_date
+                
+                filtered = []
+                for t in transactions:
+                    date_str = t.get('date') or t.get('created_at')
+                    if date_str:
+                        t_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        if t_date.tzinfo:
+                            t_date = t_date.replace(tzinfo=None)
+                        if start_dt <= t_date <= end_dt:
+                            filtered.append(t)
+                return sorted(filtered, key=lambda x: x.get('date') or x.get('created_at'), reverse=True)
+            except:
+                return sorted(transactions, key=lambda x: x.get('date') or x.get('created_at'), reverse=True)
+        return sorted(transactions, key=lambda x: x.get('date') or x.get('created_at'), reverse=True)
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('transactions', [])
+            
+            cur = _get_cursor(conn, dict_cursor=True)
+            
+            query = "SELECT data FROM transactions"
+            params = []
+            
+            if start_date and end_date:
+                query += " WHERE (data->>'date')::timestamp BETWEEN %s AND %s"
+                params.extend([start_date, end_date])
+            
+            query += " ORDER BY (data->>'date')::timestamp DESC"
+            
+            cur.execute(query, tuple(params))
+            rows = cur.fetchall()
+            return [row['data'] for row in rows]
+    except Exception as e:
+        print(f"⚠️  Erro ao ler transações do banco: {e}")
+        return []
+
+def get_transaction(transaction_id):
+    """Obtém uma transação específica"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        transactions = config.get('transactions', [])
+        for t in transactions:
+            if t.get('id') == transaction_id:
+                return t
+        return None
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM transactions WHERE id = %s", (transaction_id,))
+            row = cur.fetchone()
+            return row['data'] if row else None
+    except Exception as e:
+        print(f"⚠️  Erro ao ler transação: {e}")
+        return None
+
+def save_transaction(transaction_id, transaction_data):
+    """Salva ou atualiza uma transação"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'transactions' not in config:
+            config['transactions'] = []
+        transactions = config.get('transactions', [])
+        found = False
+        for i, t in enumerate(transactions):
+            if t.get('id') == transaction_id:
+                transactions[i] = transaction_data
+                found = True
+                break
+        if not found:
+            transactions.append(transaction_data)
+        config['transactions'] = transactions
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                # Fallback
+                config = _load_config_file()
+                if 'transactions' not in config:
+                    config['transactions'] = []
+                transactions = config.get('transactions', [])
+                found = False
+                for i, t in enumerate(transactions):
+                    if t.get('id') == transaction_id:
+                        transactions[i] = transaction_data
+                        found = True
+                        break
+                if not found:
+                    transactions.append(transaction_data)
+                config['transactions'] = transactions
+                _save_config_file(config)
+                return
+
+            cur = _get_cursor(conn)
+            data_json = json.dumps(transaction_data)
+            
+            cur.execute("""
+                INSERT INTO transactions (id, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (transaction_id, data_json, data_json))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar transação: {e}")
+
+def delete_transaction(transaction_id):
+    """Remove uma transação"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'transactions' in config:
+            config['transactions'] = [t for t in config['transactions'] if t.get('id') != transaction_id]
+            _save_config_file(config)
+        return
+
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'transactions' in config:
+                    config['transactions'] = [t for t in config['transactions'] if t.get('id') != transaction_id]
+                    _save_config_file(config)
+                return
+            
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM transactions WHERE id = %s", (transaction_id,))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao excluir transação: {e}")
+
+def get_financial_summary(start_date=None, end_date=None):
+    """
+    Retorna resumo financeiro consolidado (Reparos + Transações Manuais)
+    """
+    from datetime import datetime, timedelta
+    
+    # Se não informar datas, assume mês atual
+    if not start_date or not end_date:
+        now = datetime.now()
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if now.month == 12:
+            end_date = now.replace(year=now.year+1, month=1, day=1) - timedelta(seconds=1)
+        else:
+            end_date = now.replace(month=now.month+1, day=1) - timedelta(seconds=1)
+    
+    # 1. Dados de Reparos (Automático)
+    repair_data = get_financial_data(start_date, end_date)
+    
+    # 2. Dados de Transações Manuais
+    transactions = get_all_transactions(start_date, end_date)
+    
+    manual_income = 0.0
+    manual_expense = 0.0
+    
+    category_totals = {}
+    
+    # Somar transações manuais
+    for t in transactions:
+        amount = float(t.get('amount', 0))
+        t_type = t.get('type') # 'income' ou 'expense'
+        category = t.get('category', 'Outros')
+        
+        if t_type == 'income':
+            manual_income += amount
+            # Categorias de entrada
+            cat_key = f"in_{category}"
+            category_totals[cat_key] = category_totals.get(cat_key, 0) + amount
+        elif t_type == 'expense':
+            manual_expense += amount
+            # Categorias de saída
+            cat_key = f"out_{category}"
+            category_totals[cat_key] = category_totals.get(cat_key, 0) + amount
+    
+    # Adicionar dados de reparos às categorias
+    repair_revenue = repair_data.get('total_billing', 0)
+    repair_cost = repair_data.get('total_cost', 0)
+    
+    category_totals['in_Serviços'] = category_totals.get('in_Serviços', 0) + repair_revenue
+    category_totals['out_Peças'] = category_totals.get('out_Peças', 0) + repair_cost
+    
+    # Totais consolidados
+    total_income = repair_revenue + manual_income
+    total_expense = repair_cost + manual_expense
+    net_profit = total_income - total_expense
+    
+    # Preparar dados para gráficos
+    # Agrupar por categoria para o gráfico
+    expense_categories = {k.replace('out_', ''): v for k, v in category_totals.items() if k.startswith('out_')}
+    income_categories = {k.replace('in_', ''): v for k, v in category_totals.items() if k.startswith('in_')}
+    
+    # Base do retorno é os dados de reparo (para manter compatibilidade com dashboard existente)
+    result = repair_data.copy()
+    
+    # Atualizar/Adicionar novos dados
+    result.update({
+        'period': {
+            'start': start_date,
+            'end': end_date
+        },
+        'summary': {
+            'total_income': total_income,
+            'total_expense': total_expense,
+            'net_profit': net_profit,
+            'repair_revenue': repair_revenue,
+            'repair_cost': repair_cost,
+            'manual_income': manual_income,
+            'manual_expense': manual_expense
+        },
+        'categories': {
+            'income': income_categories,
+            'expense': expense_categories
+        },
+        'transactions': transactions # Lista para exibir na tabela
+    })
+    
+    return result
+

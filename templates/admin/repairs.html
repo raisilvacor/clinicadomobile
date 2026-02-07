@@ -430,13 +430,7 @@
                 {% endif %}
 
                 <!-- Assinatura -->
-                {% if repair.signature %}
-                <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; margin-top: 1rem; border: 1px solid #28a745;">
-                    <h4 style="color: #28a745; margin-bottom: 1rem;">✍️ Assinatura Digital</h4>
-                    <p style="color: #999; margin-bottom: 1rem;">Assinada em: {{ repair.signature.signed_at[:16] if repair.signature.signed_at else 'N/A' }}</p>
-                    <img src="{{ repair.signature.image }}" alt="Assinatura" style="max-width: 100%; border: 2px solid #28a745; border-radius: 10px; padding: 1rem; background: #ffffff;">
-                </div>
-                {% endif %}
+
 
                 <!-- Ações -->
                 <div class="repair-actions" style="margin-top: 1.5rem;">
@@ -447,6 +441,12 @@
                     <button class="btn btn-danger" onclick="deleteRepair('{{ repair.id }}')">🗑️ Excluir</button>
                     {% if repair.status != 'concluido' %}
                     <button class="btn btn-primary" onclick="completeRepair('{{ repair.id }}')" style="background: #28a745;">✅ Concluir Reparo</button>
+                    {% else %}
+                        {% if repair.order_id %}
+                        <a href="{{ url_for('admin_view_or', repair_id=repair.id) }}" class="btn btn-secondary" style="background: #17a2b8; border-color: #17a2b8;">📋 Ver OR</a>
+                        {% else %}
+                        <a href="{{ url_for('admin_emit_or', repair_id=repair.id) }}" class="btn btn-primary" style="background: #ff8c00; border-color: #ff8c00;">📄 Emitir OR</a>
+                        {% endif %}
                     {% endif %}
                 </div>
                 </div>
