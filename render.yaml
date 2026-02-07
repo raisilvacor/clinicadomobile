@@ -1,5 +1,10 @@
 services:
-  - type: static
-    name: techcell-static
-    buildCommand: ""
-    staticPublishPath: ./public
+  - type: web
+    name: techcell-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
