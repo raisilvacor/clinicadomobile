@@ -9,47 +9,24 @@
         gap: 2rem;
     }
 
-    .checklist-section {
-        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
-        border-radius: 15px;
-        padding: 2rem;
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-    }
-
-    .checklist-section:hover {
-        border-color: #ff8c00;
-        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
-    }
-
-    .checklist-section h3 {
-        color: #ff8c00;
-        margin-bottom: 1.5rem;
-        font-size: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .checklist-item {
-        background: #0d0d0d;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-bottom: 1rem;
-        border: 1px solid #333333;
-    }
-
-    .checklist-item-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .checklist-item-title {
-        color: #ffffff;
+    /* Custom styles for checklist specific elements */
+    .checklist-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
         font-weight: bold;
-        font-size: 1.1rem;
+    }
+    
+    .checklist-badge-inicial {
+        background: rgba(255, 140, 0, 0.2);
+        color: #ff8c00;
+        border: 1px solid #ff8c00;
+    }
+    
+    .checklist-badge-conclusao {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid #28a745;
     }
 
     .status-badge {
@@ -104,25 +81,6 @@
         display: block;
     }
 
-    .test-section {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-top: 1rem;
-    }
-
-    .test-box {
-        background: #0d0d0d;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border: 2px solid #333333;
-    }
-
-    .test-box h4 {
-        color: #ff8c00;
-        margin-bottom: 1rem;
-    }
-
     .test-item {
         display: flex;
         align-items: center;
@@ -140,30 +98,6 @@
         color: #cccccc;
         cursor: pointer;
     }
-
-    .info-box {
-        background: rgba(255, 140, 0, 0.1);
-        border-left: 4px solid #ff8c00;
-        padding: 1rem;
-        border-radius: 5px;
-        margin-top: 1rem;
-    }
-
-    .info-box p {
-        color: #cccccc;
-        margin: 0.5rem 0;
-        line-height: 1.6;
-    }
-
-    .info-box strong {
-        color: #ff8c00;
-    }
-
-    @media (max-width: 768px) {
-        .test-section {
-            grid-template-columns: 1fr;
-        }
-    }
 </style>
 {% endblock %}
 
@@ -172,17 +106,17 @@
     <h2>🛡️ Checklist Antifraude</h2>
     <p>Sistema de proteção que elimina golpes e garante segurança jurídica.</p>
 
-    <div class="info-box">
+    <div class="item-card" style="margin-top: 1rem;">
         <p><strong>👉 Elimina golpe do "chegou funcionando"</strong></p>
         <p><strong>👉 Segurança jurídica</strong></p>
         <p>Este sistema exige fotos automáticas, testes obrigatórios e assinatura digital do cliente.</p>
     </div>
 
     <!-- Seção de Seleção de Tipo de Checklist -->
-    <div class="admin-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border: 2px solid #333333; margin-bottom: 2rem;" id="typeSelectionSection">
+    <div class="item-card" style="margin-top: 2rem; margin-bottom: 2rem;" id="typeSelectionSection">
         <h3 style="color: #ff8c00; margin-bottom: 1.5rem;">Selecione o Tipo de Checklist</h3>
         <p style="color: #999; margin-bottom: 1.5rem;">Escolha qual tipo de checklist você deseja realizar:</p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
             <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid #ff8c00; cursor: pointer; transition: all 0.3s ease;" onclick="selectChecklistType('inicial')" id="type-inicial">
                 <h4 style="color: #ff8c00; margin-bottom: 0.5rem;">📥 Checklist Antifraude Inicial</h4>
                 <p style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">Realize quando receber o aparelho para reparo.</p>
@@ -228,12 +162,12 @@
         <div class="checklist-container">
             
             <!-- Seção 1: Fotos Automáticas -->
-            <div class="checklist-section">
-                <h3>📸 Fotos Automáticas (Obrigatórias)</h3>
+            <div class="item-card">
+                <h3 style="color: #ff8c00; margin-bottom: 1.5rem;">📸 Fotos Automáticas (Obrigatórias)</h3>
                 
-                <div class="checklist-item">
-                    <div class="checklist-item-header">
-                        <span class="checklist-item-title">Foto do IMEI</span>
+                <div class="item-card" style="margin-bottom: 1rem; border: 1px solid #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="color: #fff; font-weight: bold; font-size: 1.1rem;">Foto do IMEI</span>
                         <span class="status-badge status-pending" id="imei-status">Pendente</span>
                     </div>
                     <p style="color: #999; margin-bottom: 1rem;">Foto do número IMEI do dispositivo</p>
@@ -244,9 +178,9 @@
                     </div>
                 </div>
 
-                <div class="checklist-item">
-                    <div class="checklist-item-header">
-                        <span class="checklist-item-title">Foto da Placa</span>
+                <div class="item-card" style="margin-bottom: 1rem; border: 1px solid #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="color: #fff; font-weight: bold; font-size: 1.1rem;">Foto da Placa</span>
                         <span class="status-badge status-pending" id="placa-status">Pendente</span>
                     </div>
                     <p style="color: #999; margin-bottom: 1rem;">Foto da placa mãe do dispositivo</p>
@@ -257,9 +191,9 @@
                     </div>
                 </div>
 
-                <div class="checklist-item">
-                    <div class="checklist-item-header">
-                        <span class="checklist-item-title">Foto dos Conectores</span>
+                <div class="item-card" style="margin-bottom: 1rem; border: 1px solid #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="color: #fff; font-weight: bold; font-size: 1.1rem;">Foto dos Conectores</span>
                         <span class="status-badge status-pending" id="conectores-status">Pendente</span>
                     </div>
                     <p style="color: #999; margin-bottom: 1rem;">Foto dos conectores e portas do dispositivo</p>
@@ -272,13 +206,13 @@
             </div>
 
             <!-- Seção 2: Testes Obrigatórios -->
-            <div class="checklist-section">
-                <h3 id="testSectionTitle">✅ Teste Obrigatório (Antes e Depois)</h3>
+            <div class="item-card">
+                <h3 id="testSectionTitle" style="color: #ff8c00; margin-bottom: 1.5rem;">✅ Teste Obrigatório (Antes e Depois)</h3>
                 
-                <div class="test-section">
-                    <div class="test-box" id="testBeforeBox">
-                        <h4>🔍 Teste ANTES do Reparo</h4>
-                        <div class="test-item">
+                <div class="items-list">
+                <div class="item-card" id="testBeforeBox">
+                    <h3 style="color: #ff8c00; margin-bottom: 1rem;">🔍 Teste ANTES do Reparo</h3>
+                    <div class="test-item">
                             <input type="checkbox" id="test-before-power" name="test_before_power">
                             <label for="test-before-power">Botão Power</label>
                         </div>
@@ -372,9 +306,9 @@
                         </div>
                     </div>
 
-                    <div class="test-box" id="testAfterBox">
-                        <h4>✅ Teste DEPOIS do Reparo</h4>
-                        <div class="test-item">
+                <div class="item-card" id="testAfterBox">
+                    <h3 style="color: #ff8c00; margin-bottom: 1rem;">✅ Teste DEPOIS do Reparo</h3>
+                    <div class="test-item">
                             <input type="checkbox" id="test-after-power" name="test_after_power">
                             <label for="test-after-power">Botão Power</label>
                         </div>
@@ -488,9 +422,9 @@
                 ➕ Novo Checklist
             </button>
         </div>
-        <div style="display: grid; gap: 1rem;">
+        <div class="items-list">
             {% for checklist in checklists|reverse %}
-            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 1px solid #333333;">
+            <div class="item-card">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                     <div>
                         <h4 style="color: #ffffff; margin: 0 0 0.5rem 0;">
@@ -508,12 +442,7 @@
                             Data: {{ checklist.timestamp[:16] if checklist.timestamp else 'N/A' }}
                         </p>
                     </div>
-                    <span style="padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: bold; 
-                        {% if checklist.type == 'inicial' %}
-                            background: rgba(255, 140, 0, 0.2); color: #ff8c00; border: 1px solid #ff8c00;
-                        {% else %}
-                            background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;
-                        {% endif %}">
+                    <span class="checklist-badge checklist-badge-{{ checklist.type }}">
                         {{ checklist.type|title }}
                     </span>
                 </div>

@@ -4,25 +4,8 @@
 
 {% block extra_css %}
 <style>
-    .brands-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 2rem;
-        margin-top: 2rem;
-    }
-
     .brand-card {
-        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
-        border-radius: 15px;
-        padding: 2rem;
-        border: 2px solid #333333;
-        transition: all 0.3s ease;
         text-align: center;
-    }
-
-    .brand-card:hover {
-        border-color: #ff8c00;
-        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
     }
 
     .brand-image-container {
@@ -84,9 +67,9 @@
     </div>
 
     {% if brands %}
-    <div class="brands-container">
+    <div class="items-list">
         {% for brand in brands %}
-        <div class="brand-card">
+        <div class="item-card brand-card">
             <div class="brand-image-container">
                 {% if brand.image %}
                 <img src="{{ brand.image }}" alt="{{ brand.name }}" onerror="this.parentElement.innerHTML='<div style=\'color: #000; font-weight: bold;\'>{{ brand.name }}</div>'">

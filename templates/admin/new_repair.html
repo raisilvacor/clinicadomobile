@@ -2,216 +2,86 @@
 
 {% block title %}Novo Reparo{% endblock %}
 
-{% block extra_css %}
-<style>
-    .checklist-section {
-        background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
-        border-radius: 15px;
-        padding: 2rem;
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-        margin-bottom: 2rem;
-    }
-
-    .checklist-section:hover {
-        border-color: #ff8c00;
-        box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
-    }
-
-    .checklist-section h3 {
-        color: #ff8c00;
-        margin-bottom: 1.5rem;
-        font-size: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .checklist-item {
-        background: #0d0d0d;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-bottom: 1rem;
-        border: 1px solid #333333;
-    }
-
-    .checklist-item-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .checklist-item-title {
-        color: #ffffff;
-        font-weight: bold;
-        font-size: 1.1rem;
-    }
-
-    .status-badge {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: bold;
-    }
-
-    .status-pending {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-        border: 1px solid #ffc107;
-    }
-
-    .status-completed {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-        border: 1px solid #28a745;
-    }
-
-    .photo-upload-area {
-        border: 2px dashed #ff8c00;
-        border-radius: 10px;
-        padding: 2rem;
-        text-align: center;
-        background: rgba(255, 140, 0, 0.05);
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 1rem;
-    }
-
-    .photo-upload-area:hover {
-        background: rgba(255, 140, 0, 0.1);
-        border-color: #ff6b00;
-    }
-
-    .photo-upload-area.has-photo {
-        border-color: #28a745;
-        background: rgba(40, 167, 69, 0.1);
-    }
-
-    .photo-preview {
-        max-width: 100%;
-        max-height: 200px;
-        border-radius: 10px;
-        margin-top: 1rem;
-        display: none;
-    }
-
-    .photo-preview.show {
-        display: block;
-    }
-
-    .test-box {
-        background: #0d0d0d;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border: 2px solid #333333;
-    }
-
-    .test-box h4 {
-        color: #ff8c00;
-        margin-bottom: 1rem;
-    }
-
-    .test-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .test-item input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-    }
-
-    .test-item label {
-        color: #cccccc;
-        cursor: pointer;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="admin-card">
     <h2>➕ Novo Reparo</h2>
     <p>Cadastre um novo reparo para acompanhamento do cliente.</p>
 
     <form method="POST" enctype="multipart/form-data">
-        <h3 style="color: #ff8c00; margin-bottom: 1rem;">📋 Tipo de Reparo</h3>
+        <h3 class="section-title">📋 Tipo de Reparo</h3>
         
         <div class="form-group">
-            <label style="display: block; margin-bottom: 0.5rem; color: #ffffff; font-weight: bold;">Tipo de Reparo:</label>
+            <label class="text-white">Tipo de Reparo:</label>
             <div style="display: flex; gap: 2rem; margin-top: 0.5rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #ffffff;">
+                <label class="checkbox-item">
                     <input type="radio" name="repair_type" value="novo" checked style="width: auto; cursor: pointer;">
                     <span>🆕 Novo Reparo</span>
                 </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #ffffff;">
+                <label class="checkbox-item">
                     <input type="radio" name="repair_type" value="retorno" style="width: auto; cursor: pointer;">
                     <span>🔄 Retorno (Reparo Novamente)</span>
                 </label>
             </div>
-            <small style="color: #999; display: block; margin-top: 0.5rem;">
+            <small class="text-muted" style="display: block; margin-top: 0.5rem;">
                 Selecione se é um reparo novo ou se o aparelho está retornando para reparo novamente
             </small>
         </div>
 
-        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">📱 Informações do Dispositivo</h3>
+        <h3 class="section-title">📱 Informações do Dispositivo</h3>
         
         <div class="form-group">
             <label for="device_name">Nome do Dispositivo:</label>
-            <input type="text" id="device_name" name="device_name" placeholder="iPhone 13 Pro" required>
+            <input type="text" id="device_name" name="device_name" placeholder="iPhone 13 Pro" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="device_model">Modelo:</label>
-            <input type="text" id="device_model" name="device_model" placeholder="A2482" required>
+            <input type="text" id="device_model" name="device_model" placeholder="A2482" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="device_imei">IMEI:</label>
-            <input type="text" id="device_imei" name="device_imei" placeholder="123456789012345" required>
+            <input type="text" id="device_imei" name="device_imei" placeholder="123456789012345" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="problem_description">Descrição do Problema:</label>
-            <textarea id="problem_description" name="problem_description" required placeholder="Descreva o problema do dispositivo..."></textarea>
+            <textarea id="problem_description" name="problem_description" required placeholder="Descreva o problema do dispositivo..." class="form-control" rows="4"></textarea>
         </div>
 
-        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">👤 Informações do Cliente</h3>
+        <h3 class="section-title">👤 Informações do Cliente</h3>
 
         <div class="form-group">
             <label for="customer_name">Nome do Cliente:</label>
-            <input type="text" id="customer_name" name="customer_name" placeholder="João Silva" required>
+            <input type="text" id="customer_name" name="customer_name" placeholder="João Silva" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="customer_phone">Telefone:</label>
-            <input type="text" id="customer_phone" name="customer_phone" placeholder="(11) 99999-9999" required>
+            <input type="text" id="customer_phone" name="customer_phone" placeholder="(11) 99999-9999" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="customer_cpf">CPF (11 dígitos):</label>
-            <input type="text" id="customer_cpf" name="customer_cpf" placeholder="12345678901" maxlength="11" pattern="[0-9]{11}">
-            <small style="color: #999; display: block; margin-top: 0.5rem;">Apenas números, sem pontos ou traços</small>
+            <input type="text" id="customer_cpf" name="customer_cpf" placeholder="12345678901" maxlength="11" pattern="[0-9]{11}" class="form-control">
+            <small class="text-muted" style="display: block; margin-top: 0.5rem;">Apenas números, sem pontos ou traços</small>
         </div>
 
         <div class="form-group">
             <label for="customer_address">Endereço:</label>
-            <input type="text" id="customer_address" name="customer_address" placeholder="Rua, número, bairro">
+            <input type="text" id="customer_address" name="customer_address" placeholder="Rua, número, bairro" class="form-control">
         </div>
 
         <div class="form-group">
             <label for="customer_email">E-mail (opcional):</label>
-            <input type="email" id="customer_email" name="customer_email" placeholder="cliente@email.com">
+            <input type="email" id="customer_email" name="customer_email" placeholder="cliente@email.com" class="form-control">
         </div>
 
-        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🔧 Técnico Responsável (Opcional)</h3>
+        <h3 class="section-title">🔧 Técnico Responsável (Opcional)</h3>
 
         <div class="form-group">
             <label for="technician_id">Técnico:</label>
-            <select id="technician_id" name="technician_id" style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            <select id="technician_id" name="technician_id" class="form-control">
                 <option value="">Selecione um técnico...</option>
                 {% for tech in technicians %}
                 {% if tech.is_active %}
@@ -219,108 +89,110 @@
                 {% endif %}
                 {% endfor %}
             </select>
-            <small style="color: #999; display: block; margin-top: 0.5rem;">Associe um técnico ao reparo para calcular o score de qualidade</small>
+            <small class="text-muted" style="display: block; margin-top: 0.5rem;">Associe um técnico ao reparo para calcular o score de qualidade</small>
         </div>
 
-        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🛡️ Checklist Antifraude Inicial</h3>
+        <h3 class="section-title">🛡️ Checklist Antifraude Inicial</h3>
         
         <!-- Seção 1: Fotos Automáticas -->
-        <div class="checklist-section">
-            <h3>📸 Fotos Obrigatórias</h3>
+        <div class="item-card" style="margin-bottom: 2rem;">
+            <h3 class="text-warning" style="margin-bottom: 1rem; border-bottom: 1px solid #333; padding-bottom: 0.5rem;">📸 Fotos Obrigatórias</h3>
             
-            <div class="checklist-item">
-                <div class="checklist-item-header">
-                    <span class="checklist-item-title">Foto do IMEI</span>
-                    <span class="status-badge status-pending" id="imei-status">Pendente</span>
+            <div class="items-list">
+                <div class="item-card" style="border: 1px solid #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="color: #fff; font-weight: bold; font-size: 1.1rem;">Foto do IMEI</span>
+                        <span class="status-badge pending" id="imei-status">Pendente</span>
+                    </div>
+                    <p class="text-muted" style="margin-bottom: 1rem;">Foto do número IMEI do dispositivo</p>
+                    <div class="file-upload-area" onclick="document.getElementById('imei-photo').click()">
+                        <input type="file" id="imei-photo" name="imei_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'imei-preview', 'imei-status')">
+                        <p class="text-warning" style="margin: 0;">📷 Clique para tirar/fazer upload da foto do IMEI</p>
+                        <img id="imei-preview" class="photo-preview" alt="Preview IMEI">
+                    </div>
                 </div>
-                <p style="color: #999; margin-bottom: 1rem;">Foto do número IMEI do dispositivo</p>
-                <div class="photo-upload-area" onclick="document.getElementById('imei-photo').click()">
-                    <input type="file" id="imei-photo" name="imei_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'imei-preview', 'imei-status')">
-                    <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto do IMEI</p>
-                    <img id="imei-preview" class="photo-preview" alt="Preview IMEI">
-                </div>
-            </div>
 
-            <div class="checklist-item">
-                <div class="checklist-item-header">
-                    <span class="checklist-item-title">Foto da Placa</span>
-                    <span class="status-badge status-pending" id="placa-status">Pendente</span>
+                <div class="item-card" style="border: 1px solid #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="color: #fff; font-weight: bold; font-size: 1.1rem;">Foto da Placa</span>
+                        <span class="status-badge pending" id="placa-status">Pendente</span>
+                    </div>
+                    <p class="text-muted" style="margin-bottom: 1rem;">Foto da placa mãe do dispositivo</p>
+                    <div class="file-upload-area" onclick="document.getElementById('placa-photo').click()">
+                        <input type="file" id="placa-photo" name="placa_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'placa-preview', 'placa-status')">
+                        <p class="text-warning" style="margin: 0;">📷 Clique para tirar/fazer upload da foto da placa</p>
+                        <img id="placa-preview" class="photo-preview" alt="Preview Placa">
+                    </div>
                 </div>
-                <p style="color: #999; margin-bottom: 1rem;">Foto da placa mãe do dispositivo</p>
-                <div class="photo-upload-area" onclick="document.getElementById('placa-photo').click()">
-                    <input type="file" id="placa-photo" name="placa_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'placa-preview', 'placa-status')">
-                    <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto da placa</p>
-                    <img id="placa-preview" class="photo-preview" alt="Preview Placa">
-                </div>
-            </div>
 
-            <div class="checklist-item">
-                <div class="checklist-item-header">
-                    <span class="checklist-item-title">Foto dos Conectores</span>
-                    <span class="status-badge status-pending" id="conectores-status">Pendente</span>
-                </div>
-                <p style="color: #999; margin-bottom: 1rem;">Foto dos conectores e portas do dispositivo</p>
-                <div class="photo-upload-area" onclick="document.getElementById('conectores-photo').click()">
-                    <input type="file" id="conectores-photo" name="conectores_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'conectores-preview', 'conectores-status')">
-                    <p style="color: #ff8c00; margin: 0;">📷 Clique para tirar/fazer upload da foto dos conectores</p>
-                    <img id="conectores-preview" class="photo-preview" alt="Preview Conectores">
+                <div class="item-card" style="border: 1px solid #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="color: #fff; font-weight: bold; font-size: 1.1rem;">Foto dos Conectores</span>
+                        <span class="status-badge pending" id="conectores-status">Pendente</span>
+                    </div>
+                    <p class="text-muted" style="margin-bottom: 1rem;">Foto dos conectores e portas do dispositivo</p>
+                    <div class="file-upload-area" onclick="document.getElementById('conectores-photo').click()">
+                        <input type="file" id="conectores-photo" name="conectores_photo" accept="image/*" capture="environment" style="display: none;" onchange="previewPhoto(this, 'conectores-preview', 'conectores-status')">
+                        <p class="text-warning" style="margin: 0;">📷 Clique para tirar/fazer upload da foto dos conectores</p>
+                        <img id="conectores-preview" class="photo-preview" alt="Preview Conectores">
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Seção 2: Testes Obrigatórios -->
-        <div class="checklist-section">
-            <h3>✅ Testes Obrigatórios (Antes do Reparo)</h3>
+        <div class="item-card" style="margin-bottom: 2rem;">
+            <h3 class="text-warning" style="margin-bottom: 1rem; border-bottom: 1px solid #333; padding-bottom: 0.5rem;">✅ Testes Obrigatórios (Antes do Reparo)</h3>
             
-            <div class="test-box">
-                <h4>🔍 Teste ANTES do Reparo</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="test-item">
-                        <input type="checkbox" id="test-before-power" name="test_before_power">
+            <div class="item-card" style="border: 2px solid #333333;">
+                <h4 class="text-warning" style="margin-bottom: 1rem;">🔍 Teste ANTES do Reparo</h4>
+                <div class="checkbox-grid">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="test-before-power" name="test_before_power" style="width: 20px; height: 20px;">
                         <label for="test-before-power">Botão Power</label>
                     </div>
-                    <div class="test-item">
-                        <input type="checkbox" id="test-before-volume" name="test_before_volume">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="test-before-volume" name="test_before_volume" style="width: 20px; height: 20px;">
                         <label for="test-before-volume">Botões de Volume</label>
                     </div>
-                    <div class="test-item">
-                        <input type="checkbox" id="test-before-screen" name="test_before_screen">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="test-before-screen" name="test_before_screen" style="width: 20px; height: 20px;">
                         <label for="test-before-screen">Tela/Touch</label>
                     </div>
-                    <div class="test-item">
-                        <input type="checkbox" id="test-before-camera" name="test_before_camera">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="test-before-camera" name="test_before_camera" style="width: 20px; height: 20px;">
                         <label for="test-before-camera">Câmeras</label>
                     </div>
-                    <div class="test-item">
-                        <input type="checkbox" id="test-before-audio" name="test_before_audio">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="test-before-audio" name="test_before_audio" style="width: 20px; height: 20px;">
                         <label for="test-before-audio">Áudio/Microfone</label>
                     </div>
-                    <div class="test-item">
-                        <input type="checkbox" id="test-before-charging" name="test_before_charging">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="test-before-charging" name="test_before_charging" style="width: 20px; height: 20px;">
                         <label for="test-before-charging">Carregamento</label>
                     </div>
-                    <div class="test-item">
-                        <input type="checkbox" id="test-before-biometry" name="test_before_biometry">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="test-before-biometry" name="test_before_biometry" style="width: 20px; height: 20px;">
                         <label for="test-before-biometry">Biometria/FaceID</label>
                     </div>
-                    <div class="test-item">
-                        <input type="checkbox" id="test-before-wifi" name="test_before_wifi">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="test-before-wifi" name="test_before_wifi" style="width: 20px; height: 20px;">
                         <label for="test-before-wifi">Wi-Fi/Bluetooth</label>
                     </div>
                 </div>
             </div>
         </div>
 
-        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">💰 Orçamento (Opcional)</h3>
+        <h3 class="section-title">💰 Orçamento (Opcional)</h3>
 
         <div class="form-group">
             <label for="budget_amount">Valor do Orçamento (R$):</label>
-            <input type="number" id="budget_amount" name="budget_amount" step="0.01" placeholder="0.00">
+            <input type="number" id="budget_amount" name="budget_amount" step="0.01" placeholder="0.00" class="form-control">
         </div>
 
         <div class="form-group">
             <label for="budget_description">Descrição do Orçamento:</label>
-            <textarea id="budget_description" name="budget_description" placeholder="Descrição dos serviços e peças..."></textarea>
+            <textarea id="budget_description" name="budget_description" placeholder="Descrição dos serviços e peças..." class="form-control"></textarea>
         </div>
 
         <div style="margin-top: 2rem; display: flex; gap: 1rem;">
@@ -343,12 +215,12 @@
                 preview.src = e.target.result;
                 preview.classList.add('show');
                 
-                const uploadArea = input.closest('.photo-upload-area');
+                const uploadArea = input.closest('.file-upload-area');
                 uploadArea.classList.add('has-photo');
                 
                 const status = document.getElementById(statusId);
                 status.textContent = 'Concluído';
-                status.className = 'status-badge status-completed';
+                status.className = 'status-badge active';
             };
             reader.readAsDataURL(file);
         }

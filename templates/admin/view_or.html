@@ -11,39 +11,41 @@
         <a href="{{ url_for('admin_repairs') }}" class="btn btn-secondary">Voltar</a>
     </div>
 
-    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-bottom: 1rem;">
-        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Informações da OR</h3>
-        <p><strong>Número da OR:</strong> {{ order.id }}</p>
-        <p><strong>ID do Reparo:</strong> {{ repair.id }}</p>
-        <p><strong>Data de Emissão:</strong> {{ order.emitted_at[:10] if order.emitted_at else 'N/A' }}</p>
-        <p><strong>Emitido por:</strong> {{ order.emitted_by or 'N/A' }}</p>
-    </div>
+    <div class="items-list">
+        <div class="item-card">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem;">Informações da OR</h3>
+            <p><strong>Número da OR:</strong> {{ order.id }}</p>
+            <p><strong>ID do Reparo:</strong> {{ repair.id }}</p>
+            <p><strong>Data de Emissão:</strong> {{ order.emitted_at[:10] if order.emitted_at else 'N/A' }}</p>
+            <p><strong>Emitido por:</strong> {{ order.emitted_by or 'N/A' }}</p>
+        </div>
 
-    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-bottom: 1rem;">
-        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Cliente</h3>
-        <p><strong>Nome:</strong> {{ repair.customer_name or 'N/A' }}</p>
-        <p><strong>Telefone:</strong> {{ repair.customer_phone or 'N/A' }}</p>
-        {% if repair.customer_cpf %}
-        <p><strong>CPF:</strong> 
-            {% set cpf = repair.customer_cpf %}
-            {% if cpf|length == 11 %}
-                {{ cpf[:3] }}.{{ cpf[3:6] }}.{{ cpf[6:9] }}-{{ cpf[9:] }}
-            {% else %}
-                {{ cpf }}
+        <div class="item-card">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem;">Cliente</h3>
+            <p><strong>Nome:</strong> {{ repair.customer_name or 'N/A' }}</p>
+            <p><strong>Telefone:</strong> {{ repair.customer_phone or 'N/A' }}</p>
+            {% if repair.customer_cpf %}
+            <p><strong>CPF:</strong> 
+                {% set cpf = repair.customer_cpf %}
+                {% if cpf|length == 11 %}
+                    {{ cpf[:3] }}.{{ cpf[3:6] }}.{{ cpf[6:9] }}-{{ cpf[9:] }}
+                {% else %}
+                    {{ cpf }}
+                {% endif %}
+            </p>
             {% endif %}
-        </p>
-        {% endif %}
-    </div>
+        </div>
 
-    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-bottom: 1rem;">
-        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Dispositivo</h3>
-        <p><strong>Nome:</strong> {{ repair.device_name or 'N/A' }}</p>
-        <p><strong>Modelo:</strong> {{ repair.device_model or 'N/A' }}</p>
-        <p><strong>IMEI:</strong> {{ repair.device_imei or 'N/A' }}</p>
+        <div class="item-card">
+            <h3 style="color: #ff8c00; margin-bottom: 1rem;">Dispositivo</h3>
+            <p><strong>Nome:</strong> {{ repair.device_name or 'N/A' }}</p>
+            <p><strong>Modelo:</strong> {{ repair.device_model or 'N/A' }}</p>
+            <p><strong>IMEI:</strong> {{ repair.device_imei or 'N/A' }}</p>
+        </div>
     </div>
 
     {% if order.observations %}
-    <div class="info-box" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 2rem; border: 2px solid #333333; margin-bottom: 1rem;">
+    <div class="item-card" style="margin-top: 1.5rem;">
         <h3 style="color: #ff8c00; margin-bottom: 1rem;">Observações</h3>
         <p>{{ order.observations }}</p>
     </div>

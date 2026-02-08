@@ -10,12 +10,12 @@
     <form method="POST">
         <div class="form-group">
             <label for="title">Título da Seção:</label>
-            <input type="text" id="title" name="title" value="{{ laboratory.title or '' }}" required>
+            <input type="text" id="title" name="title" value="{{ laboratory.title or '' }}" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="images">URLs das Imagens (uma por linha):</label>
-            <textarea id="images" name="images" rows="10" required>{{ laboratory.images|join('\n') if laboratory.images else '' }}</textarea>
+            <textarea id="images" name="images" rows="10" required class="form-control">{{ laboratory.images|join('\n') if laboratory.images else '' }}</textarea>
             <small style="color: #888; display: block; margin-top: 0.5rem;">
                 Digite uma URL por linha. Exemplos:<br>
                 /static/images/lab1.jpg<br>

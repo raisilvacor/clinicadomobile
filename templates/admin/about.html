@@ -10,33 +10,33 @@
     <form method="POST">
         <div class="form-group">
             <label for="title">Título da Seção:</label>
-            <input type="text" id="title" name="title" value="{{ about.title or '' }}" required>
+            <input type="text" id="title" name="title" value="{{ about.title or '' }}" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="heading">Cabeçalho Principal:</label>
-            <input type="text" id="heading" name="heading" value="{{ about.heading or '' }}" required>
+            <input type="text" id="heading" name="heading" value="{{ about.heading or '' }}" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="description1">Primeira Descrição:</label>
-            <textarea id="description1" name="description1" required>{{ about.description1 or '' }}</textarea>
+            <textarea id="description1" name="description1" required class="form-control" rows="4">{{ about.description1 or '' }}</textarea>
         </div>
 
         <div class="form-group">
             <label for="description2">Segunda Descrição:</label>
-            <textarea id="description2" name="description2" required>{{ about.description2 or '' }}</textarea>
+            <textarea id="description2" name="description2" required class="form-control" rows="4">{{ about.description2 or '' }}</textarea>
         </div>
 
         <div class="form-group">
             <label for="video">URL do Vídeo:</label>
-            <input type="text" id="video" name="video" value="{{ about.video or '' }}" placeholder="/static/videos/iphone.mp4">
+            <input type="text" id="video" name="video" value="{{ about.video or '' }}" placeholder="/static/videos/iphone.mp4" class="form-control">
             <small style="color: #888; display: block; margin-top: 0.5rem;">Exemplo: /static/videos/iphone.mp4</small>
         </div>
 
         <div class="form-group">
             <label for="features">Características (uma por linha):</label>
-            <textarea id="features" name="features" rows="10">{{ about.features|join('\n') if about.features else '' }}</textarea>
+            <textarea id="features" name="features" rows="10" class="form-control">{{ about.features|join('\n') if about.features else '' }}</textarea>
             <small style="color: #888; display: block; margin-top: 0.5rem;">Digite uma característica por linha</small>
         </div>
 

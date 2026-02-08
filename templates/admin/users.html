@@ -10,82 +10,77 @@
     </div>
 
     {% if users %}
-    <div style="display: grid; gap: 1.5rem;">
+    <div class="items-list">
         {% for user in users %}
-        <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid {% if user.is_active %}#28a745{% else %}#dc3545{% endif %};">
-            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
-                <div style="flex: 1;">
-                    <h3 style="color: #ff8c00; margin: 0 0 0.5rem 0;">
+        <div class="item-card {% if user.is_active %}border-success{% else %}border-danger{% endif %}">
+            <div class="card-content-wrapper">
+                <div class="card-main-content">
+                    <h3 class="card-title-clean">
                         {{ user.name }}
-                        <span style="padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.85rem; font-weight: bold; margin-left: 1rem;
-                            {% if user.is_active %}
-                                background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;
-                            {% else %}
-                                background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545;
-                            {% endif %}">
+                        <span class="status-badge {% if user.is_active %}active{% else %}inactive{% endif %}" style="margin-left: 1rem;">
                             {% if user.is_active %}Ativo{% else %}Inativo{% endif %}
                         </span>
                     </h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <div class="details-grid mt-3">
                         <div>
-                            <strong style="color: #ff8c00;">Usuário:</strong>
-                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ user.username }}</p>
+                            <strong class="text-warning">Usuário:</strong>
+                            <p class="text-value">{{ user.username }}</p>
                         </div>
                         <div>
-                            <strong style="color: #ff8c00;">Email:</strong>
-                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ user.email or 'N/A' }}</p>
+                            <strong class="text-warning">Email:</strong>
+                            <p class="text-value">{{ user.email or 'N/A' }}</p>
                         </div>
                         <div>
-                            <strong style="color: #ff8c00;">Telefone:</strong>
-                            <p style="color: #ffffff; margin: 0.25rem 0;">{{ user.phone or 'N/A' }}</p>
+                            <strong class="text-warning">Telefone:</strong>
+                            <p class="text-value">{{ user.phone or 'N/A' }}</p>
                         </div>
                     </div>
                     
                     {% if user.permissions %}
-                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333;">
-                        <strong style="color: #ff8c00; display: block; margin-bottom: 0.5rem;">Permissões:</strong>
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    <div class="specialties-section">
+                        <strong class="text-warning" style="display: block; margin-bottom: 0.5rem;">Permissões:</strong>
+                        <div class="tags-container">
                             {% if user.permissions.repairs %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Reparos</span>
+                            <span class="status-badge info">Reparos</span>
                             {% endif %}
                             {% if user.permissions.checklist %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Checklist</span>
+                            <span class="status-badge info">Checklist</span>
                             {% endif %}
                             {% if user.permissions.orders %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Ordens</span>
+                            <span class="status-badge info">Ordens</span>
                             {% endif %}
                             {% if user.permissions.suppliers %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Fornecedores</span>
+                            <span class="status-badge info">Fornecedores</span>
                             {% endif %}
                             {% if user.permissions.products %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Produtos</span>
+                            <span class="status-badge info">Produtos</span>
                             {% endif %}
                             {% if user.permissions.budget_requests %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Orçamentos</span>
+                            <span class="status-badge info">Orçamentos</span>
                             {% endif %}
                             {% if user.permissions.financeiro %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Financeiro</span>
+                            <span class="status-badge info">Financeiro</span>
                             {% endif %}
                             {% if user.permissions.risk_scores %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Score Risco</span>
+                            <span class="status-badge info">Score Risco</span>
                             {% endif %}
                             {% if user.permissions.users %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Usuários</span>
+                            <span class="status-badge info">Usuários</span>
                             {% endif %}
                             {% if user.permissions.technicians %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Técnicos</span>
+                            <span class="status-badge info">Técnicos</span>
                             {% endif %}
                             {% if user.permissions.settings %}
-                            <span style="padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); color: #ff8c00; border-radius: 15px; font-size: 0.85rem;">Configurações</span>
+                            <span class="status-badge info">Configurações</span>
                             {% endif %}
                         </div>
                     </div>
                     {% endif %}
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
+                <div class="item-actions mt-0">
                     <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-secondary">✏️ Editar</a>
                     <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');">
-                        <button type="submit" class="btn btn-secondary" style="background: #dc3545;">🗑️ Excluir</button>
+                        <button type="submit" class="btn btn-danger">🗑️ Excluir</button>
                     </form>
                 </div>
             </div>
@@ -101,5 +96,3 @@
     {% endif %}
 </div>
 {% endblock %}
-
-

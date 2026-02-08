@@ -1038,69 +1038,80 @@
 
         // Assinaturas de Checklists
         {% if all_repair_checklists %}
-        {% for checklist in all_repair_checklists %}
-        {% if not checklist.signature %}
-        (function() {
-            const checklistId = '{{ checklist.id }}';
-            const canvasId = 'checklist-signature-canvas-' + checklistId;
-            const canvas = document.getElementById(canvasId);
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-                let isDrawing = false;
+        const checklists = [
+            {% for checklist in all_repair_checklists %}
+            {
+                id: '{{ checklist.id }}',
+                signature: '{{ checklist.signature or "" }}'
+            },
+            {% endfor %}
+        ];
+
+        checklists.forEach(function(checklist) {
+            if (!checklist.signature) {
+                const checklistId = checklist.id;
+                const canvasId = 'checklist-signature-canvas-' + checklistId;
+                const canvas = document.getElementById(canvasId);
                 
-                // Ajustar tamanho do canvas
-                const rect = canvas.getBoundingClientRect();
-                canvas.width = rect.width;
-                canvas.height = 200;
-                
-                function startDrawing(e) {
-                    isDrawing = true;
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 2;
+                    let isDrawing = false;
+                    
+                    // Ajustar tamanho do canvas
                     const rect = canvas.getBoundingClientRect();
-                    ctx.beginPath();
-                    if (e.touches) {
-                        ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-                    } else {
-                        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                    canvas.width = rect.width;
+                    canvas.height = 200;
+                    
+                    function startDrawing(e) {
+                        isDrawing = true;
+                        const rect = canvas.getBoundingClientRect();
+                        ctx.beginPath();
+                        if (e.touches) {
+                            ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+                        } else {
+                            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                        }
                     }
-                }
-                
-                function draw(e) {
-                    if (!isDrawing) return;
-                    const rect = canvas.getBoundingClientRect();
-                    if (e.touches) {
-                        ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-                    } else {
-                        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+                    
+                    function draw(e) {
+                        if (!isDrawing) return;
+                        const rect = canvas.getBoundingClientRect();
+                        if (e.touches) {
+                            ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+                        } else {
+                            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+                        }
+                        ctx.stroke();
                     }
-                    ctx.stroke();
-                }
-                
-                function stopDrawing() {
-                    if (isDrawing) {
-                        isDrawing = false;
-                        const dataURL = canvas.toDataURL('image/png');
-                        document.getElementById('checklist-signature-data-' + checklistId).value = dataURL;
+                    
+                    function stopDrawing() {
+                        if (isDrawing) {
+                            isDrawing = false;
+                            const dataURL = canvas.toDataURL('image/png');
+                            const input = document.getElementById('checklist-signature-data-' + checklistId);
+                            if (input) input.value = dataURL;
+                        }
                     }
+
+                    canvas.addEventListener('mousedown', startDrawing);
+                    canvas.addEventListener('mousemove', draw);
+                    canvas.addEventListener('mouseup', stopDrawing);
+                    canvas.addEventListener('mouseout', stopDrawing);
+                    
+                    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); });
+                    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+                    canvas.addEventListener('touchend', (e) => { e.preventDefault(); stopDrawing(); });
+                    
+                    window['clearChecklistSignature_' + checklistId] = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        const input = document.getElementById('checklist-signature-data-' + checklistId);
+                        if (input) input.value = '';
+                    };
                 }
-                
-                canvas.addEventListener('mousedown', startDrawing);
-                canvas.addEventListener('mousemove', draw);
-                canvas.addEventListener('mouseup', stopDrawing);
-                canvas.addEventListener('mouseout', stopDrawing);
-                canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); });
-                canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
-                canvas.addEventListener('touchend', (e) => { e.preventDefault(); stopDrawing(); });
-                
-                window['clearChecklistSignature_' + checklistId] = function() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    document.getElementById('checklist-signature-data-' + checklistId).value = '';
-                };
             }
-        })();
-        {% endif %}
-        {% endfor %}
+        });
         {% endif %}
         
         function clearChecklistSignature(checklistId) {

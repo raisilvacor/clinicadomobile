@@ -6,96 +6,91 @@
 <div class="admin-card">
     <h2>{% if user %}✏️ Editar Usuário{% else %}➕ Novo Usuário{% endif %}</h2>
     
-    <form method="POST" style="margin-top: 2rem;">
-        <div style="display: grid; gap: 1.5rem;">
-            <div>
-                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Nome Completo *</label>
-                <input type="text" name="name" value="{{ user.name if user else '' }}" required 
-                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+    <form method="POST" class="mt-4">
+        <div class="form-grid-layout">
+            <div class="form-group">
+                <label>Nome Completo *</label>
+                <input type="text" name="name" value="{{ user.name if user else '' }}" required class="form-control">
             </div>
             
-            <div>
-                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Usuário (Login) *</label>
-                <input type="text" name="username" value="{{ user.username if user else '' }}" required 
-                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            <div class="form-group">
+                <label>Usuário (Login) *</label>
+                <input type="text" name="username" value="{{ user.username if user else '' }}" required class="form-control">
             </div>
             
-            <div>
-                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Senha {% if user %}(deixe em branco para não alterar){% else %}*{% endif %}</label>
-                <input type="password" name="password" {% if not user %}required{% endif %}
-                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            <div class="form-group">
+                <label>Senha {% if user %}(deixe em branco para não alterar){% else %}*{% endif %}</label>
+                <input type="password" name="password" {% if not user %}required{% endif %} class="form-control">
             </div>
             
-            <div>
-                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Email</label>
-                <input type="email" name="email" value="{{ user.email if user else '' }}"
-                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" value="{{ user.email if user else '' }}" class="form-control">
             </div>
             
-            <div>
-                <label style="display: block; color: #ff8c00; margin-bottom: 0.5rem; font-weight: bold;">Telefone</label>
-                <input type="text" name="phone" value="{{ user.phone if user else '' }}"
-                       style="width: 100%; padding: 0.75rem; background: #0d0d0d; border: 2px solid #333; border-radius: 8px; color: #ffffff; font-size: 1rem;">
+            <div class="form-group">
+                <label>Telefone</label>
+                <input type="text" name="phone" value="{{ user.phone if user else '' }}" class="form-control">
             </div>
             
-            <div style="background: #0d0d0d; padding: 1.5rem; border-radius: 10px; border: 2px solid #333;">
-                <label style="display: block; color: #ff8c00; margin-bottom: 1rem; font-weight: bold;">Permissões de Acesso</label>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+            <div class="item-card">
+                <label class="mb-3">Permissões de Acesso</label>
+                <div class="checkbox-grid">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_repairs" {% if user and user.permissions and user.permissions.repairs %}checked{% endif %}>
                         <span>🔧 Reparos</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_checklist" {% if user and user.permissions and user.permissions.checklist %}checked{% endif %}>
                         <span>🛡️ Checklist</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_orders" {% if user and user.permissions and user.permissions.orders %}checked{% endif %}>
                         <span>📋 Ordens</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_suppliers" {% if user and user.permissions and user.permissions.suppliers %}checked{% endif %}>
                         <span>🏢 Fornecedores</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_products" {% if user and user.permissions and user.permissions.products %}checked{% endif %}>
                         <span>🛒 Produtos</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_budget_requests" {% if user and user.permissions and user.permissions.budget_requests %}checked{% endif %}>
                         <span>💰 Orçamentos</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_financeiro" {% if user and user.permissions and user.permissions.financeiro %}checked{% endif %}>
                         <span>💵 Financeiro</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_risk_scores" {% if user and user.permissions and user.permissions.risk_scores %}checked{% endif %}>
                         <span>🛡️ Score Risco</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_users" {% if user and user.permissions and user.permissions.users %}checked{% endif %}>
                         <span>👥 Usuários</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_technicians" {% if user and user.permissions and user.permissions.technicians %}checked{% endif %}>
                         <span>🔧 Técnicos</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_settings" {% if user and user.permissions and user.permissions.settings %}checked{% endif %}>
                         <span>⚙️ Configurações</span>
                     </label>
                 </div>
             </div>
             
-            <div>
-                <label style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; cursor: pointer;">
+            <div class="form-group">
+                <label class="checkbox-item">
                     <input type="checkbox" name="is_active" {% if not user or user.is_active %}checked{% endif %}>
                     <span>Usuário Ativo</span>
                 </label>
             </div>
             
-            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">💾 Salvar</button>
                 <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">❌ Cancelar</a>
             </div>
@@ -103,5 +98,3 @@
     </form>
 </div>
 {% endblock %}
-
-

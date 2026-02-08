@@ -12,17 +12,17 @@
         
         <div class="form-group">
             <label for="phone">Telefone:</label>
-            <input type="text" id="phone" name="phone" value="{{ contact.phone if contact.phone else (contact.phone1 or '') }}" placeholder="(11) 9999-9999" required>
+            <input type="text" id="phone" name="phone" value="{{ contact.phone if contact.phone else (contact.phone1 or '') }}" placeholder="(11) 9999-9999" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="email">E-mail:</label>
-            <input type="email" id="email" name="email" value="{{ contact.email if contact.email else (contact.email1 or '') }}" placeholder="contato@techcell.com.br" required>
+            <input type="email" id="email" name="email" value="{{ contact.email if contact.email else (contact.email1 or '') }}" placeholder="contato@techcell.com.br" required class="form-control">
         </div>
 
         <div class="form-group">
             <label for="whatsapp">WhatsApp (número completo com código do país, ex: 5511999999999):</label>
-            <input type="text" id="whatsapp" name="whatsapp" value="{{ contact.whatsapp or '' }}" placeholder="5511999999999" required>
+            <input type="text" id="whatsapp" name="whatsapp" value="{{ contact.whatsapp or '' }}" placeholder="5511999999999" required class="form-control">
             <small style="color: #888; display: block; margin-top: 0.5rem;">Apenas números, sem espaços ou caracteres especiais. Exemplo: 5511999999999</small>
         </div>
 
@@ -30,12 +30,12 @@
 
         <div class="form-group">
             <label for="address">Endereço:</label>
-            <input type="text" id="address" name="address" value="{{ contact.address or '' }}" placeholder="Rua Exemplo, 123">
+            <input type="text" id="address" name="address" value="{{ contact.address or '' }}" placeholder="Rua Exemplo, 123" class="form-control">
         </div>
 
         <div class="form-group">
             <label for="city">Cidade/Estado:</label>
-            <input type="text" id="city" name="city" value="{{ contact.city or '' }}" placeholder="São Paulo - SP">
+            <input type="text" id="city" name="city" value="{{ contact.city or '' }}" placeholder="São Paulo - SP" class="form-control">
         </div>
 
         <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🕒 Horários (Exibição)</h3>
@@ -43,23 +43,23 @@
 
         <div class="form-group">
             <label for="hours_weekdays">Horário Dias Úteis:</label>
-            <input type="text" id="hours_weekdays" name="hours_weekdays" value="{{ contact.hours_weekdays or '' }}" placeholder="Segunda a Sexta: 9h - 18h">
+            <input type="text" id="hours_weekdays" name="hours_weekdays" value="{{ contact.hours_weekdays or '' }}" placeholder="Segunda a Sexta: 9h - 18h" class="form-control">
         </div>
 
         <div class="form-group">
             <label for="hours_saturday">Horário Sábado:</label>
-            <input type="text" id="hours_saturday" name="hours_saturday" value="{{ contact.hours_saturday or '' }}" placeholder="Sábado: 9h - 18h">
+            <input type="text" id="hours_saturday" name="hours_saturday" value="{{ contact.hours_saturday or '' }}" placeholder="Sábado: 9h - 18h" class="form-control">
         </div>
 
         <div class="form-group">
             <label for="hours_sunday">Horário Domingo:</label>
-            <input type="text" id="hours_sunday" name="hours_sunday" value="{{ contact.hours_sunday or '' }}" placeholder="Domingo: somente agendado">
+            <input type="text" id="hours_sunday" name="hours_sunday" value="{{ contact.hours_sunday or '' }}" placeholder="Domingo: somente agendado" class="form-control">
         </div>
 
         <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🕒 Configuração de Horários (Status Aberto/Fechado)</h3>
         <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">Configure os horários reais de funcionamento para o sistema calcular automaticamente se está aberto ou fechado.</p>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+        <div class="items-list" style="margin-bottom: 1rem;">
             {% set days = [
                 ('monday', 'Segunda-feira'),
                 ('tuesday', 'Terça-feira'),
@@ -70,19 +70,19 @@
                 ('sunday', 'Domingo')
             ] %}
             {% for day_key, day_name in days %}
-            <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px;">
-                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                    <input type="checkbox" id="{{ day_key }}_enabled" name="{{ day_key }}_enabled" {% if business_hours[day_key].enabled %}checked{% endif %} style="margin-right: 0.5rem;" onchange="toggleDayFields('{{ day_key }}')">
-                    <label for="{{ day_key }}_enabled" style="font-weight: bold; margin: 0;">{{ day_name }}</label>
+            <div class="item-card">
+                <div class="checkbox-item" style="margin-bottom: 1rem;">
+                    <input type="checkbox" id="{{ day_key }}_enabled" name="{{ day_key }}_enabled" {% if business_hours[day_key].enabled %}checked{% endif %} onchange="toggleDayFields('{{ day_key }}')">
+                    <label for="{{ day_key }}_enabled" style="margin: 0; cursor: pointer; font-weight: bold;">{{ day_name }}</label>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>
                         <label for="{{ day_key }}_open" style="font-size: 0.85rem; color: #666;">Abertura:</label>
-                        <input type="time" id="{{ day_key }}_open" name="{{ day_key }}_open" value="{{ business_hours[day_key].open }}" style="width: 100%; padding: 0.5rem;" {% if not business_hours[day_key].enabled %}readonly style="width: 100%; padding: 0.5rem; background: #f5f5f5; cursor: not-allowed;"{% endif %}>
+                        <input type="time" id="{{ day_key }}_open" name="{{ day_key }}_open" value="{{ business_hours[day_key].open }}" class="form-control" {% if not business_hours[day_key].enabled %}readonly{% endif %}>
                     </div>
                     <div>
                         <label for="{{ day_key }}_close" style="font-size: 0.85rem; color: #666;">Fechamento:</label>
-                        <input type="time" id="{{ day_key }}_close" name="{{ day_key }}_close" value="{{ business_hours[day_key].close }}" style="width: 100%; padding: 0.5rem;" {% if not business_hours[day_key].enabled %}readonly style="width: 100%; padding: 0.5rem; background: #f5f5f5; cursor: not-allowed;"{% endif %}>
+                        <input type="time" id="{{ day_key }}_close" name="{{ day_key }}_close" value="{{ business_hours[day_key].close }}" class="form-control" {% if not business_hours[day_key].enabled %}readonly{% endif %}>
                     </div>
                 </div>
             </div>
@@ -97,26 +97,16 @@
                 
                 if (checkbox.checked) {
                     openInput.removeAttribute('readonly');
-                    openInput.style.background = '';
-                    openInput.style.cursor = '';
                     closeInput.removeAttribute('readonly');
-                    closeInput.style.background = '';
-                    closeInput.style.cursor = '';
                 } else {
                     openInput.setAttribute('readonly', 'readonly');
-                    openInput.style.background = '#f5f5f5';
-                    openInput.style.cursor = 'not-allowed';
                     closeInput.setAttribute('readonly', 'readonly');
-                    closeInput.style.background = '#f5f5f5';
-                    closeInput.style.cursor = 'not-allowed';
                 }
             }
         </script>
-        </div>
 
         <button type="submit" class="btn btn-primary">Salvar Alterações</button>
         <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancelar</a>
     </form>
 </div>
 {% endblock %}
-
