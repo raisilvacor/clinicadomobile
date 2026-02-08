@@ -40,7 +40,11 @@ from db import (
     get_repairs_by_cpf,
     get_all_budget_requests,
     save_budget_request,
+    update_budget_request_status,
     delete_budget_request,
+    get_budget_config,
+    save_budget_config,
+    transform_budget_config_to_raw,
     save_push_token,
     get_push_tokens_by_cpf,
     save_pending_notification,
@@ -102,7 +106,28 @@ def orcamento_redirect():
 
 @app.route('/orcamento/')
 def orcamento_index():
-    return send_from_directory('orcamento', 'index.html')
+    try:
+        # Ler configuração e converter para raw
+        raw_config = transform_budget_config_to_raw(get_budget_config())
+        
+        # Ler arquivo original
+        index_path = os.path.join('orcamento', 'index.html')
+        with open(index_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+        # Injetar script
+        # Colocar antes do primeiro script ou no head
+        injection = f'<script>window.BUDGET_DATA = {json.dumps(raw_config)};</script>'
+        if '<head>' in content:
+            content = content.replace('<head>', f'<head>{injection}')
+        else:
+            # Fallback
+            content = injection + content
+            
+        return content
+    except Exception as e:
+        print(f"Erro ao servir orcamento/index.html: {e}")
+        return send_from_directory('orcamento', 'index.html')
 
 @app.route('/orcamento/<path:filename>')
 def orcamento_files(filename):
@@ -609,6 +634,88 @@ def admin_delete_checklist(checklist_id):
 
 # ========== CENTRAL DE STATUS DO REPARO ==========
 
+@app.route('/admin/budget-config', methods=['GET', 'POST'])
+@login_required
+def admin_budget_config():
+    """Gerenciar configuração de orçamentos (Marcas, Modelos, Preços)"""
+    config = get_budget_config()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'add_brand':
+            brand_name = request.form.get('brand_name')
+            if brand_name:
+                # Check if brand exists
+                if not any(b['brand'] == brand_name for b in config):
+                    config.append({'brand': brand_name, 'models': []})
+                    save_budget_config(config)
+                    
+        elif action == 'delete_brand':
+            brand_name = request.form.get('brand_name')
+            config = [b for b in config if b['brand'] != brand_name]
+            save_budget_config(config)
+            
+        elif action == 'add_model':
+            brand_name = request.form.get('brand_name')
+            model_name = request.form.get('model_name')
+            if brand_name and model_name:
+                for brand in config:
+                    if brand['brand'] == brand_name:
+                        # Check if model exists
+                        if not any(m['name'] == model_name for m in brand['models']):
+                            brand['models'].append({
+                                'name': model_name,
+                                'services': []
+                            })
+                            save_budget_config(config)
+                        break
+                        
+        elif action == 'delete_model':
+            brand_name = request.form.get('brand_name')
+            model_name = request.form.get('model_name')
+            for brand in config:
+                if brand['brand'] == brand_name:
+                    brand['models'] = [m for m in brand['models'] if m['name'] != model_name]
+                    save_budget_config(config)
+                    break
+                    
+        elif action == 'update_prices':
+            brand_name = request.form.get('brand_name')
+            model_name = request.form.get('model_name')
+            
+            services_map = [
+                "Troca de Tela", "Troca de Vidro", "Troca de Bateria", 
+                "Troca de Conector", "Troca de Tampa", "Troca de Lente", 
+                "Reparo de Face ID"
+            ]
+            
+            new_services = []
+            for service in services_map:
+                price = request.form.get(f'price_{service}')
+                if price:
+                    new_services.append({'service': service, 'price': price})
+            
+            # Add "Outro Defeito"
+            new_services.append({
+                "service": "Outro Defeito",
+                "price": "Consulte",
+                "action": "instagram"
+            })
+            
+            for brand in config:
+                if brand['brand'] == brand_name:
+                    for model in brand['models']:
+                        if model['name'] == model_name:
+                            model['services'] = new_services
+                            save_budget_config(config)
+                            break
+                    break
+        
+        return redirect(url_for('admin_budget_config'))
+        
+    return render_template('admin/budget_config.html', config=config)
+
 @app.route('/admin/budget-requests', methods=['GET'])
 @login_required
 def admin_budget_requests():
@@ -973,6 +1080,23 @@ def admin_delete_budget_request(request_id):
     try:
         delete_budget_request(request_id)
         return jsonify({'success': True, 'message': 'Solicitação excluída com sucesso'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/budget-requests/<request_id>/update', methods=['POST'])
+@login_required
+def admin_update_budget_request(request_id):
+    """Atualiza o status e notas de uma solicitação de orçamento"""
+    try:
+        data = request.json
+        status = data.get('status')
+        admin_notes = data.get('admin_notes')
+        
+        if not status:
+            return jsonify({'success': False, 'error': 'Status é obrigatório'}), 400
+            
+        update_budget_request_status(request_id, status, admin_notes)
+        return jsonify({'success': True, 'message': 'Solicitação atualizada com sucesso'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

@@ -1905,39 +1905,124 @@ def get_all_budget_requests():
         config = _load_config_file()
         return config.get('budget_requests', [])
 
-def save_budget_request(request_id, request_data):
-    """Salva uma solicitação de orçamento"""
+def save_budget_request(request_id, request_data, status='pendente'):
+    """Salva ou atualiza uma solicitação de orçamento"""
     if not USE_DATABASE:
         config = _load_config_file()
         if 'budget_requests' not in config:
             config['budget_requests'] = []
-        config['budget_requests'].append({'id': request_id, **request_data})
+        
+        # Verificar se já existe e atualizar
+        existing = next((r for r in config['budget_requests'] if r['id'] == request_id), None)
+        if existing:
+            existing.update(request_data)
+            existing['status'] = status
+        else:
+            config['budget_requests'].append({'id': request_id, 'status': status, **request_data})
+            
         _save_config_file(config)
         return
     
     try:
         with get_db_connection() as conn:
             if not conn:
+                # Fallback para arquivo se conexão falhar
                 config = _load_config_file()
                 if 'budget_requests' not in config:
                     config['budget_requests'] = []
-                config['budget_requests'].append({'id': request_id, **request_data})
+                existing = next((r for r in config['budget_requests'] if r['id'] == request_id), None)
+                if existing:
+                    existing.update(request_data)
+                    existing['status'] = status
+                else:
+                    config['budget_requests'].append({'id': request_id, 'status': status, **request_data})
                 _save_config_file(config)
                 return
+
             cur = _get_cursor(conn)
             data_json = json.dumps(request_data)
+            
+            # Upsert (Insert ou Update)
             cur.execute("""
                 INSERT INTO budget_requests (id, data, status, updated_at)
-                VALUES (%s, %s::jsonb, 'pendente', CURRENT_TIMESTAMP)
-            """, (request_id, data_json))
+                VALUES (%s, %s::jsonb, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET 
+                    data = EXCLUDED.data,
+                    status = EXCLUDED.status,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (request_id, data_json, status))
             conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao salvar solicitação no banco: {e}")
+        # Fallback
         config = _load_config_file()
         if 'budget_requests' not in config:
             config['budget_requests'] = []
-        config['budget_requests'].append({'id': request_id, **request_data})
+        existing = next((r for r in config['budget_requests'] if r['id'] == request_id), None)
+        if existing:
+            existing.update(request_data)
+            existing['status'] = status
+        else:
+            config['budget_requests'].append({'id': request_id, 'status': status, **request_data})
         _save_config_file(config)
+
+def update_budget_request_status(request_id, new_status, admin_notes=None):
+    """Atualiza apenas o status e notas de uma solicitação"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'budget_requests' in config:
+            req = next((r for r in config['budget_requests'] if r['id'] == request_id), None)
+            if req:
+                req['status'] = new_status
+                if admin_notes:
+                    req['admin_notes'] = admin_notes
+                _save_config_file(config)
+        return
+
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                # Fallback
+                config = _load_config_file()
+                if 'budget_requests' in config:
+                    req = next((r for r in config['budget_requests'] if r['id'] == request_id), None)
+                    if req:
+                        req['status'] = new_status
+                        if admin_notes:
+                            req['admin_notes'] = admin_notes
+                        _save_config_file(config)
+                return
+
+            cur = _get_cursor(conn)
+            
+            # Se tiver notas, precisamos atualizar o JSON data também
+            if admin_notes:
+                cur.execute("""
+                    UPDATE budget_requests 
+                    SET status = %s, 
+                        updated_at = CURRENT_TIMESTAMP,
+                        data = jsonb_set(data, '{admin_notes}', %s::jsonb)
+                    WHERE id = %s
+                """, (new_status, json.dumps(admin_notes), request_id))
+            else:
+                cur.execute("""
+                    UPDATE budget_requests 
+                    SET status = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (new_status, request_id))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️  Erro ao atualizar status no banco: {e}")
+        # Fallback
+        config = _load_config_file()
+        if 'budget_requests' in config:
+            req = next((r for r in config['budget_requests'] if r['id'] == request_id), None)
+            if req:
+                req['status'] = new_status
+                if admin_notes:
+                    req['admin_notes'] = admin_notes
+                _save_config_file(config)
 
 def delete_budget_request(request_id):
     """Exclui uma solicitação de orçamento"""
@@ -2030,8 +2115,70 @@ def get_push_tokens_by_cpf(cpf):
         print(f"⚠️  Erro ao ler subscriptions push: {e}")
         return []
 
-# ========== FUNÇÕES DE NOTIFICAÇÕES PENDENTES ==========
 
+# ========== BUDGET CONFIG (ORÇAMENTO) ==========
+
+def get_budget_config():
+    """Lê a configuração de orçamentos (Marcas, Modelos, Preços)"""
+    try:
+        if os.path.exists('budget_config.json'):
+            with open('budget_config.json', 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Erro ao ler budget_config.json: {e}")
+    return []
+
+def save_budget_config(data):
+    """Salva a configuração de orçamentos"""
+    try:
+        with open('budget_config.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Erro ao salvar budget_config.json: {e}")
+        return False
+
+def transform_budget_config_to_raw(config):
+    """Converte o formato amigável para o formato raw usado pelo frontend"""
+    # Raw format: { "Brand": { "Model": [price_tela, price_vidro, ...] } }
+    # Map order: Tela, Vidro, Bateria, Conector, Tampa, Lente, Face ID
+    services_map = {
+        "Troca de Tela": 0,
+        "Troca de Vidro": 1,
+        "Troca de Bateria": 2,
+        "Troca de Conector": 3,
+        "Troca de Tampa": 4,
+        "Troca de Lente": 5,
+        "Reparo de Face ID": 6
+    }
+    
+    raw_data = {}
+    
+    for brand_obj in config:
+        brand_name = brand_obj['brand']
+        brand_data = {}
+        
+        for model in brand_obj.get('models', []):
+            model_name = model['name']
+            # Initialize array with 7 nulls
+            prices = [None] * 7
+            
+            for service in model.get('services', []):
+                s_name = service.get('service')
+                s_price = service.get('price')
+                
+                if s_name in services_map:
+                    idx = services_map[s_name]
+                    prices[idx] = s_price
+            
+            brand_data[model_name] = prices
+            
+        raw_data[brand_name] = brand_data
+        
+    return raw_data
+
+
+# ========== FUNÇÕES DE NOTIFICAÇÕES PENDENTES ==========
 def save_pending_notification(cpf, repair_id, notification_type, title, body, data=None):
     """Salva uma notificação pendente para ser enviada ao cliente"""
     if not USE_DATABASE:

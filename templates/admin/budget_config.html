@@ -1,0 +1,289 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Configuração de Orçamentos{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>🏷️ Gerenciar Marcas e Modelos</h2>
+        <button onclick="document.getElementById('modalAddBrand').style.display='block'" class="btn btn-primary">
+            + Nova Marca
+        </button>
+    </div>
+
+    {% for brand in config %}
+    <div class="item-card mb-3 border-warning" style="border-width: 1px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 class="text-orange" style="margin: 0;">{{ brand.brand }}</h3>
+            <div style="display: flex; gap: 0.5rem;">
+                <button onclick="openAddModelModal('{{ brand.brand }}')" class="btn btn-primary btn-sm">
+                    + Modelo
+                </button>
+                <form method="POST" onsubmit="return confirm('Tem certeza que deseja excluir esta marca e todos os seus modelos?')" style="margin: 0;">
+                    <input type="hidden" name="action" value="delete_brand">
+                    <input type="hidden" name="brand_name" value="{{ brand.brand }}">
+                    <button type="submit" class="btn btn-danger btn-sm">Excluir Marca</button>
+                </form>
+            </div>
+        </div>
+
+        {% if brand.models %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Modelo</th>
+                            <th>Serviços Cadastrados</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model in brand.models %}
+                        <tr>
+                            <td><strong>{{ model.name }}</strong></td>
+                            <td>{{ model.services|length }} serviços</td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button 
+                                        data-model='{{ model|tojson|forceescape }}' 
+                                        data-brand="{{ brand.brand }}"
+                                        onclick="openEditPricesModalFromBtn(this)" 
+                                        class="btn btn-secondary btn-sm">
+                                        💰 Preços
+                                    </button>
+                                    <form method="POST" onsubmit="return confirm('Excluir este modelo?')" style="margin: 0;">
+                                        <input type="hidden" name="action" value="delete_model">
+                                        <input type="hidden" name="brand_name" value="{{ brand.brand }}">
+                                        <input type="hidden" name="model_name" value="{{ model.name }}">
+                                        <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">Nenhum modelo cadastrado para esta marca.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if not config %}
+    <div class="text-center p-5">
+        <p class="text-muted">Nenhuma marca cadastrada.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Nova Marca -->
+<div id="modalAddBrand" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="document.getElementById('modalAddBrand').style.display='none'">&times;</span>
+        <h2>Nova Marca</h2>
+        <form method="POST">
+            <input type="hidden" name="action" value="add_brand">
+            <div class="form-group">
+                <label>Nome da Marca</label>
+                <input type="text" name="brand_name" class="form-control" required placeholder="Ex: Apple, Samsung">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalAddBrand').style.display='none'">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Novo Modelo -->
+<div id="modalAddModel" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="document.getElementById('modalAddModel').style.display='none'">&times;</span>
+        <h2>Novo Modelo</h2>
+        <form method="POST">
+            <input type="hidden" name="action" value="add_model">
+            <input type="hidden" name="brand_name" id="addModelBrandName">
+            <div class="form-group">
+                <label>Marca</label>
+                <input type="text" id="displayBrandName" class="form-control" disabled>
+            </div>
+            <div class="form-group">
+                <label>Nome do Modelo</label>
+                <input type="text" name="model_name" class="form-control" required placeholder="Ex: iPhone 13, Galaxy S22">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalAddModel').style.display='none'">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Preços -->
+<div id="modalEditPrices" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <span class="close" onclick="document.getElementById('modalEditPrices').style.display='none'">&times;</span>
+        <h2>Editar Preços - <span id="editPricesModelName"></span></h2>
+        <form method="POST">
+            <input type="hidden" name="action" value="update_prices">
+            <input type="hidden" name="brand_name" id="editPricesBrandName">
+            <input type="hidden" name="model_name" id="editPricesModelNameInput">
+            
+            <div class="details-grid">
+                <div>
+                    <label>Troca de Tela</label>
+                    <input type="text" name="price_Troca de Tela" id="price_Tela" class="form-control" placeholder="R$ 0,00">
+                </div>
+                <div>
+                    <label>Troca de Vidro</label>
+                    <input type="text" name="price_Troca de Vidro" id="price_Vidro" class="form-control" placeholder="R$ 0,00">
+                </div>
+                <div>
+                    <label>Troca de Bateria</label>
+                    <input type="text" name="price_Troca de Bateria" id="price_Bateria" class="form-control" placeholder="R$ 0,00">
+                </div>
+                <div>
+                    <label>Troca de Conector</label>
+                    <input type="text" name="price_Troca de Conector" id="price_Conector" class="form-control" placeholder="R$ 0,00">
+                </div>
+                <div>
+                    <label>Troca de Tampa</label>
+                    <input type="text" name="price_Troca de Tampa" id="price_Tampa" class="form-control" placeholder="R$ 0,00">
+                </div>
+                <div>
+                    <label>Troca de Lente</label>
+                    <input type="text" name="price_Troca de Lente" id="price_Lente" class="form-control" placeholder="R$ 0,00">
+                </div>
+                <div>
+                    <label>Reparo de Face ID</label>
+                    <input type="text" name="price_Reparo de Face ID" id="price_FaceID" class="form-control" placeholder="R$ 0,00">
+                </div>
+            </div>
+            
+            <div class="form-actions mt-3">
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalEditPrices').style.display='none'">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAddModelModal(brandName) {
+        document.getElementById('addModelBrandName').value = brandName;
+        document.getElementById('displayBrandName').value = brandName;
+        document.getElementById('modalAddModel').style.display = 'block';
+    }
+
+    function openEditPricesModalFromBtn(btn) {
+        const brandName = btn.dataset.brand;
+        const model = JSON.parse(btn.dataset.model);
+        openEditPricesModal(model, brandName);
+    }
+
+    function openEditPricesModal(model, brandName) {
+        document.getElementById('editPricesBrandName').value = brandName;
+        document.getElementById('editPricesModelName').innerText = model.name;
+        document.getElementById('editPricesModelNameInput').value = model.name;
+        
+        // Clear all inputs first
+        const inputs = document.querySelectorAll('#modalEditPrices input[type="text"]');
+        inputs.forEach(input => input.value = '');
+        
+        // Fill values
+        const servicesMap = {
+            "Troca de Tela": "price_Tela",
+            "Troca de Vidro": "price_Vidro",
+            "Troca de Bateria": "price_Bateria",
+            "Troca de Conector": "price_Conector",
+            "Troca de Tampa": "price_Tampa",
+            "Troca de Lente": "price_Lente",
+            "Reparo de Face ID": "price_FaceID"
+        };
+        
+        model.services.forEach(service => {
+            if (servicesMap[service.service]) {
+                const inputId = servicesMap[service.service];
+                document.getElementById(inputId).value = service.price;
+            }
+        });
+        
+        document.getElementById('modalEditPrices').style.display = 'block';
+    }
+
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = "none";
+        }
+    }
+</script>
+
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+        background-color: #1a1a1a;
+        margin: 10% auto;
+        padding: 2rem;
+        border: 1px solid #333;
+        width: 90%;
+        max-width: 500px;
+        border-radius: 10px;
+        color: #fff;
+    }
+    
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .close:hover {
+        color: #fff;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.5rem;
+        background: #333;
+        border: 1px solid #444;
+        color: #fff;
+        border-radius: 4px;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+</style>
+{% endblock %}

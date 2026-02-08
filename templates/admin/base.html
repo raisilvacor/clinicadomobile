@@ -730,10 +730,21 @@
         /* Utility Text Colors */
         .text-white { color: #ffffff !important; }
         .text-muted { color: #999999 !important; }
+        .text-success { color: #28a745 !important; }
+        .text-danger { color: #dc3545 !important; }
+        .text-warning { color: #ffc107 !important; }
+        .text-orange { color: #ff8c00 !important; }
         
         /* Border Utility */
         .border-success { border-color: #28a745 !important; }
         .border-danger { border-color: #dc3545 !important; }
+        .border-warning { border-color: #ffc107 !important; }
+        .border-orange { border-color: #ff8c00 !important; }
+
+        /* Risk Score Backgrounds */
+        .bg-risk-high { background: rgba(220, 53, 69, 0.2); border: 2px solid #dc3545; }
+        .bg-risk-medium { background: rgba(255, 193, 7, 0.2); border: 2px solid #ffc107; }
+        .bg-risk-low { background: rgba(40, 167, 69, 0.2); border: 2px solid #28a745; }
 
         /* Section Title */
         .section-title {
@@ -767,6 +778,7 @@
                 <li><a href="{{ url_for('admin_devices') }}" class="{% if request.endpoint == 'admin_devices' %}active{% endif %}">Dispositivos</a></li>
                 <li><a href="{{ url_for('admin_laboratory') }}" class="{% if request.endpoint == 'admin_laboratory' %}active{% endif %}">Laboratório</a></li>
                 <li><a href="{{ url_for('admin_contact') }}" class="{% if request.endpoint == 'admin_contact' %}active{% endif %}">Contato</a></li>
+                <li><a href="{{ url_for('admin_budget_requests') }}" class="{% if request.endpoint == 'admin_budget_requests' %}active{% endif %}">Orçamentos</a></li>
                 <li><a href="{{ url_for('admin_repairs') }}" class="{% if request.endpoint in ['admin_repairs', 'admin_new_repair', 'admin_edit_repair'] %}active{% endif %}">Reparos</a></li>
                 <li><a href="{{ url_for('admin_checklist') }}" class="{% if request.endpoint == 'admin_checklist' %}active{% endif %}">Checklist</a></li>
                 <li><a href="{{ url_for('admin_password') }}">Senha</a></li>

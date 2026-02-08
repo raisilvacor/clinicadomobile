@@ -7,7 +7,7 @@
 		<meta name="generator" content="Hostinger Horizons" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Hostinger Horizons</title>
-		<script type="module" crossorigin src="assets/index-914650a4.js"></script>
+		<script type="module" crossorigin src="assets/index-new.js?v=3"></script>
 		<link rel="stylesheet" href="assets/index-911a79ae.css">
 		<script type="module">
 window.onerror = (message, source, lineno, colno, errorObj) => {
@@ -768,243 +768,6 @@ if (window.navigation && window.self !== window.top) {
 			});
 		}
 
-		// Add missing brands (Lenovo, TCL)
-		function addMissingBrands() {
-			try {
-				// Strategy: Find a known brand button to locate the grid container
-				// This is more robust than traversing from the header
-				const knownBrands = ['Samsung', 'Apple', 'Motorola', 'Xiaomi'];
-				let templateBtn = null;
-				let brandContainer = null;
-				
-				const allButtons = Array.from(document.querySelectorAll('button'));
-				for (const btn of allButtons) {
-					// Check if button has brand text and an image (logo)
-					const text = btn.textContent.trim();
-					const hasImg = btn.querySelector('img');
-					
-					// We verify it's a brand button if it matches a known brand
-					if (hasImg && knownBrands.some(brand => text.includes(brand))) {
-						templateBtn = btn;
-						brandContainer = btn.parentElement;
-						break;
-					}
-				}
-				
-				if (brandContainer && templateBtn) {
-					// Check if Lenovo/TCL already exist in this container
-					// We check the text content of the container to be sure
-					const containerText = brandContainer.textContent;
-					const hasLenovo = containerText.includes('Lenovo');
-					const hasTCL = containerText.includes('TCL');
-					
-					if (!hasLenovo || !hasTCL) {
-						// Helper to create and append brand
-						const addBrand = (name, imgUrl) => {
-							try {
-								const newBtn = templateBtn.cloneNode(true);
-								
-								// Update Image
-								const img = newBtn.querySelector('img');
-								if (img) {
-									img.src = imgUrl;
-									img.alt = name;
-									img.removeAttribute('srcset'); // Prevent loading old image
-								}
-								
-								// Update Text
-								// Find the text node that contains the brand name
-								let textFound = false;
-								const walk = (node) => {
-									if (textFound) return;
-									if (node.nodeType === Node.TEXT_NODE) {
-										const txt = node.textContent.trim();
-										if (txt && txt.length > 1) { 
-											node.textContent = name;
-											textFound = true;
-										}
-									} else {
-										node.childNodes.forEach(walk);
-									}
-								};
-								walk(newBtn);
-								
-								// Styling fixes
-								newBtn.classList.remove('bg-brand-red'); // Remove active state
-								newBtn.style.setProperty('color', '#ffffff', 'important'); // Force white text
-								newBtn.style.removeProperty('background-color'); // Remove orange bg
-								
-								// Ensure image is visible and correct
-								if (img) {
-									// Local assets
-									if (name === 'Lenovo') {
-										img.src = 'assets/lenovo.png';
-									} else if (name === 'TCL') {
-										img.src = 'assets/tcl.png';
-									}
-									img.style.display = 'block';
-									img.style.opacity = '1';
-									img.style.visibility = 'visible';
-									// Ensure it fits
-									img.style.maxWidth = '100%';
-									img.style.height = 'auto';
-								}
-
-								// Add click handler for models
-								newBtn.onclick = function(e) {
-									e.preventDefault();
-									e.stopPropagation();
-									// Handle visual selection
-									Array.from(brandContainer.querySelectorAll('button')).forEach(b => {
-										b.classList.remove('bg-brand-red');
-										b.style.removeProperty('background-color');
-									});
-									newBtn.classList.add('bg-brand-red');
-									newBtn.style.setProperty('background-color', '#ff8c00', 'important');
-									
-									// Show models
-									showModelsForBrand(name);
-								};
-
-								// Append to the container
-								brandContainer.appendChild(newBtn);
-							} catch (err) {
-								console.error('Error creating brand button for ' + name, err);
-							}
-						};
-						
-						if (!hasLenovo) {
-							addBrand('Lenovo', 'assets/lenovo.png');
-						}
-						if (!hasTCL) {
-							addBrand('TCL', 'assets/tcl.png');
-						}
-					}
-				}
-			} catch (e) {
-				console.error('Error in addMissingBrands:', e);
-			}
-		}
-
-		// Show models for specific brand
-		function showModelsForBrand(brandName) {
-			try {
-				// Find model container
-				// Strategy: Look for "Escolha o modelo" text, then find the grid container near it
-				let modelHeader = null;
-				const headerXpath = "//*[contains(text(), 'Escolha o modelo')]";
-				const result = document.evaluate(headerXpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-				
-				if (result.snapshotLength > 0) {
-					modelHeader = result.snapshotItem(0);
-				}
-
-				let modelContainer = null;
-				
-				if (modelHeader) {
-					// Traverse up to find the section container, then look down for the grid
-					let container = modelHeader.parentElement;
-					let attempts = 0;
-					
-					// Try to find a container that has 'grid' class or contains buttons
-					while (container && attempts < 5) {
-						// Look for the grid container inside this parent
-						const grids = container.querySelectorAll('.grid');
-						if (grids.length > 0) {
-							// Usually the model list is in a grid
-							modelContainer = grids[0];
-							break;
-						}
-						// Or look for a flex container with buttons
-						const flexes = container.querySelectorAll('.flex');
-						for (const flex of flexes) {
-							if (flex.querySelectorAll('button').length > 0) {
-								modelContainer = flex;
-								break;
-							}
-						}
-						if (modelContainer) break;
-
-						container = container.parentElement;
-						attempts++;
-					}
-				}
-				
-				if (!modelContainer) {
-					console.error('Model container not found');
-					return;
-				}
-
-				// Clear existing models
-				modelContainer.innerHTML = '';
-				
-				// Define models
-				let models = [];
-				if (brandName === 'Lenovo') {
-					models = [
-						// Modelos Lenovo (Placeholder - aguardando lista real)
-						"Lenovo K14 Plus", "Lenovo K12 Prime", "Lenovo K12 Note", 
-						"Lenovo Legion Phone Duel", "Lenovo K10 Note", "Lenovo K13 Note",
-                        "Lenovo K5 Pro", "Lenovo Z6 Pro", "Lenovo A6 Note"
-					];
-				} else if (brandName === 'TCL') {
-					models = [
-						// Modelos TCL (Placeholder - aguardando lista real)
-						"TCL 20 SE", "TCL 20 Pro 5G", "TCL 10 SE", "TCL L10 Pro",
-						"TCL 30 SE", "TCL 305", "TCL 20Y", "TCL 20B", "TCL 10 Plus"
-					];
-				}
-				
-				// Create buttons
-				models.forEach(model => {
-					const btn = document.createElement('button');
-					// Style to match existing buttons (inspected from source or inferred)
-					// Based on previous code: p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-left group bg-brand-gray/20
-					btn.className = "p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-left group bg-brand-gray/20 flex items-center justify-between w-full"; 
-					
-					const span = document.createElement('span');
-					span.textContent = model;
-					span.style.color = '#ffffff';
-					span.className = "text-lg font-medium";
-					
-					// Add arrow icon if typical
-					const icon = document.createElement('span');
-					icon.innerHTML = '&#8594;'; // Right arrow
-					icon.style.color = '#ff8c00'; // Brand orange
-					icon.className = "opacity-0 group-hover:opacity-100 transition-opacity";
-
-					btn.appendChild(span);
-					btn.appendChild(icon);
-					
-					btn.onclick = function(e) {
-						e.preventDefault();
-						// Handle model selection - normally this would trigger next step
-						// Since we don't have the full app logic, we alert or try to find a 'next' handler
-						console.log('Modelo selecionado: ' + model);
-						
-						// Highlight selection
-						Array.from(modelContainer.querySelectorAll('button')).forEach(b => {
-							b.classList.remove('border-brand-red');
-							b.style.removeProperty('border-color');
-						});
-						btn.classList.add('border-brand-red');
-						btn.style.borderColor = '#ff8c00';
-						
-						// Try to trigger app state update if possible, or just visual feedback
-						// Assuming there's a global function or event for this
-					};
-					
-					modelContainer.appendChild(btn);
-				});
-				
-				// Scroll to models
-				modelHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-			} catch (e) {
-				console.error('Error showing models:', e);
-			}
-		}
-
 		// Fix "Outro Defeito Consulte" section
 		function fixOutroDefeitoSection() {
 			try {
@@ -1105,7 +868,6 @@ if (window.navigation && window.self !== window.top) {
 			fixTrocarMarcaButton();
 			fixSpecificWhiteTexts();
 			fixBrandNames();
-			addMissingBrands(); // Run this to add Lenovo/TCL
 			removeProcedurePopup();
 			replaceInstagramText();
 			replaceInstagramProof();
@@ -1207,6 +969,64 @@ if (window.navigation && window.self !== window.top) {
 			subtree: true, 
 			attributeFilter: ['class']
 		});
+
+		// --- EMERGENCY FIX: FORCE TEXT UPDATE & SERVICE WORKER KILL ---
+		(function() {
+			// 1. Unregister any Service Workers to kill aggressive caching
+			if ('serviceWorker' in navigator) {
+				navigator.serviceWorker.getRegistrations().then(function(registrations) {
+					for(let registration of registrations) {
+						registration.unregister();
+						console.log('Service Worker Unregistered');
+					}
+				});
+			}
+
+			// 2. DOM Observer to replace the text dynamically if it appears
+			const targetTextOld = "O tempo do reparo vai depender da demanda da data enviada";
+			const replacementText = "O tempo do reparo vai depender da demanda da data enviada, mas geralmente para peças que já temos em estoque o reparo é feito no mesmo dia depois da chegada do aparelho e abertura da ordem de serviço que iremos te enviar no número que nos enviar dentro da caixa do aparelho!";
+
+			function fixRepairText() {
+				// Use XPath to find any text node containing the start of the old text
+				// Note: The text might be split across spans, so we look for the main container or specific parts
+				
+				// Search for the container paragraph usually
+				const xpath = "//*[contains(text(), 'O tempo do reparo vai depender')]";
+				const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+				
+				for (let i = 0; i < result.snapshotLength; i++) {
+					let element = result.snapshotItem(i);
+					
+					// Check if it's the target paragraph
+					// The structure in JS is: p > [text, span, text]
+					// We might need to replace the whole innerHTML of the paragraph
+					
+					if (element.textContent.includes("7 a 10 dias") || element.textContent.includes("O tempo do reparo")) {
+						// Found it! Force update.
+						// We replace the entire text content with the new text.
+						// Since the new text doesn't need the bold span for "7 a 10 dias" anymore (it's gone), we can just set textContent.
+						// Or if we want to keep some formatting, we set innerHTML.
+						
+						// User's new text doesn't seem to have bold parts explicitly requested, 
+						// but let's keep it clean.
+						
+						// Check if we already fixed it to avoid loops
+						if (!element.textContent.includes("dentro da caixa do aparelho")) {
+							element.innerText = replacementText;
+							element.style.color = '#ffffff'; // Ensure visibility
+						}
+					}
+				}
+			}
+
+			// Run periodically
+			setInterval(fixRepairText, 500);
+			
+			// Run on load
+			window.addEventListener('load', fixRepairText);
+			document.addEventListener('DOMContentLoaded', fixRepairText);
+		})();
+		// -----------------------------------------------------------
 
 	</script>
 	<body>
