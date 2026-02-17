@@ -755,22 +755,101 @@
             border-bottom: 1px solid #333;
             padding-bottom: 0.5rem;
         }
+        
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+            background: #0d0d0d;
+        }
+        
+        .admin-sidebar {
+            width: 260px;
+            background: #111;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+        
+        .admin-sidebar .admin-logo {
+            display: block;
+            padding: 1rem;
+            border-bottom: 1px solid #333;
+            text-align: center;
+        }
+        
+        .admin-sidebar .admin-logo {
+            overflow: hidden;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+        }
+        .admin-sidebar .admin-logo img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            max-height: 96px;
+            margin: 0 auto;
+            object-fit: contain;
+        }
+        
+        .admin-menu {
+            list-style: none;
+            margin: 0;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            overflow-y: auto;
+        }
+        
+        .admin-menu li a {
+            display: block;
+            padding: 0.65rem 0.9rem;
+            border-radius: 8px;
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+        
+        .admin-menu li a:hover {
+            background: #1a1a1a;
+            border-color: #333;
+        }
+        
+        .admin-menu li a.active {
+            background: rgba(255, 140, 0, 0.12);
+            border-color: #ff8c00;
+            color: #ff8c00;
+        }
+        
+        .admin-container {
+            flex: 1;
+            padding: 2rem;
+        }
+        
+        @media (max-width: 900px) {
+            .admin-sidebar {
+                width: 220px;
+            }
+            .admin-container {
+                padding: 1rem;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <header class="admin-header">
-        <nav class="admin-nav">
-            <a href="{{ url_for('admin_dashboard') }}" class="admin-logo" style="text-decoration: none;">
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <a href="{{ url_for('admin_dashboard') }}" class="admin-logo">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Clínica CELL">
             </a>
-            <button class="admin-menu-toggle" aria-label="Menu" onclick="toggleAdminMenu()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <div class="admin-menu-overlay" onclick="toggleAdminMenu()"></div>
-            <ul class="admin-nav-links">
+            <ul class="admin-menu">
                 <li><a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">Dashboard</a></li>
                 <li><a href="{{ url_for('admin_hero') }}" class="{% if request.endpoint == 'admin_hero' %}active{% endif %}">Hero</a></li>
                 <li><a href="{{ url_for('admin_services') }}" class="{% if request.endpoint == 'admin_services' %}active{% endif %}">Serviços</a></li>
@@ -784,33 +863,14 @@
                 <li><a href="{{ url_for('admin_password') }}">Senha</a></li>
                 <li><a href="{{ url_for('admin_logout') }}">Sair</a></li>
             </ul>
-        </nav>
-    </header>
-
-    <div class="admin-container">
-        {% block content %}{% endblock %}
+        </aside>
+        <div class="admin-container">
+            {% block content %}{% endblock %}
+        </div>
     </div>
 
     {% block extra_js %}{% endblock %}
-    <script>
-        function toggleAdminMenu() {
-            const menu = document.querySelector('.admin-nav-links');
-            const toggle = document.querySelector('.admin-menu-toggle');
-            const overlay = document.querySelector('.admin-menu-overlay');
-            
-            menu.classList.toggle('active');
-            toggle.classList.toggle('active');
-            overlay.classList.toggle('active');
-            document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
-        }
-
-        // Fechar menu ao clicar em um link
-        document.querySelectorAll('.admin-nav-links a').forEach(link => {
-            link.addEventListener('click', () => {
-                toggleAdminMenu();
-            });
-        });
-    </script>
+    <script></script>
 </body>
 </html>
 

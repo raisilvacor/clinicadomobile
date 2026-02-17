@@ -26,14 +26,14 @@
     {% if available_repairs %}
     <div class="item-card" style="border: 2px solid #28a745; margin-bottom: 2rem;">
         <h3 style="color: #28a745; margin-bottom: 1rem;">✅ Reparos Prontos para Emitir OR</h3>
-        <p style="color: #999; margin-bottom: 1rem;">Estes reparos estão concluídos, têm checklist de conclusão realizado e todas as assinaturas dos checklists foram feitas pelo cliente:</p>
+        <p style="color: #999; margin-bottom: 1rem;">Estes reparos estão concluídos e aptos para emissão da Ordem de Retirada:</p>
         
         <div class="items-list">
             {% for item in available_repairs %}
             <div class="item-card" style="border: 1px solid #333;">
                 <div style="margin-bottom: 1rem;">
                     <p><strong>ID:</strong> {{ item.repair.id }} | <strong>Dispositivo:</strong> {{ item.repair.device_name or 'N/A' }} | <strong>Cliente:</strong> {{ item.repair.customer_name or 'N/A' }}</p>
-                    <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">Checklist de Conclusão: {{ item.conclusion_checklist.id }} - {{ item.conclusion_checklist.timestamp[:10] if item.conclusion_checklist.timestamp else 'N/A' }}</p>
+                    <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">Status: concluído</p>
                 </div>
                 <a href="{{ url_for('admin_emit_or', repair_id=item.repair.id) }}" class="btn btn-primary" style="background: #17a2b8; width: 100%;">📋 Emitir OR</a>
             </div>

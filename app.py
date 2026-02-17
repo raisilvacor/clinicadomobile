@@ -62,7 +62,7 @@ from db import (
     get_all_technician_quality_scores,
     get_business_hours,
     save_business_hours,
-    is_business_open as db_is_business_open
+    is_business_open as db_is_business_open,
 )
 
 app = Flask(__name__)
@@ -468,6 +468,7 @@ def admin_password():
     
     return render_template('admin/password.html')
 
+
 @app.route('/admin/checklist', methods=['GET', 'POST'])
 @login_required
 def admin_checklist():
@@ -521,22 +522,11 @@ def admin_checklist():
                     # Também salvar pelo filename para compatibilidade
                     checklist_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
         
-        # Salvar testes - para conclusão, só test_after
-        if checklist_type == 'conclusao':
-            test_fields = [
-                'test_after_screen', 'test_after_touch', 'test_after_camera',
-                'test_after_battery', 'test_after_audio', 'test_after_buttons'
-            ]
-        else:
-            test_fields = [
-                'test_before_screen', 'test_before_touch', 'test_before_camera',
-                'test_before_battery', 'test_before_audio', 'test_before_buttons',
-                'test_after_screen', 'test_after_touch', 'test_after_camera',
-                'test_after_battery', 'test_after_audio', 'test_after_buttons'
-            ]
-        
-        for field in test_fields:
-            checklist_data['tests'][field] = field in request.form
+        tests = {}
+        for key, value in request.form.items():
+            if key.startswith('test_before_') or key.startswith('test_after_'):
+                tests[key] = value or 'nao_testeado'
+        checklist_data['tests'] = tests
         
         # Assinatura será feita pelo cliente no link de acompanhamento, não no admin
         
@@ -1172,64 +1162,7 @@ def admin_new_repair():
                 'status': 'orcamento'
             })
         
-        # ========== Processar Checklist Inicial (Integrado) ==========
-        import os
-        import base64
         
-        # Verificar se foram enviados dados do checklist (pelo menos uma foto ou teste)
-        # Assumimos que se o form tem campos de teste, vamos criar o checklist
-        checklist_id = str(uuid.uuid4())[:8]
-        checklist_data = {
-            'id': checklist_id,
-            'type': 'inicial',
-            'repair_id': repair_id,
-            'timestamp': datetime.now().isoformat(),
-            'photos': {},
-            'tests': {},
-            'signature': None # Assinatura física será usada
-        }
-        
-        # Criar pasta para fotos se não existir
-        photos_dir = os.path.join('static', 'checklist_photos')
-        if not os.path.exists(photos_dir):
-            os.makedirs(photos_dir)
-        
-        # Salvar fotos
-        photo_fields = ['imei_photo', 'placa_photo', 'conectores_photo']
-        if '_photo_data' not in checklist_data:
-            checklist_data['_photo_data'] = {}
-            
-        for field in photo_fields:
-            if field in request.files:
-                file = request.files[field]
-                if file and file.filename:
-                    filename = f"{field}_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-                    filepath = os.path.join(photos_dir, filename)
-                    file.save(filepath)
-                    checklist_data['photos'][field] = f"/static/checklist_photos/{filename}"
-                    
-                    # Salvar também como base64
-                    file.seek(0)
-                    file_data = file.read()
-                    checklist_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
-        
-        # Salvar testes
-        test_fields = [
-            'test_before_power', 'test_before_volume', 'test_before_screen',
-            'test_before_camera', 'test_before_audio', 'test_before_charging',
-            'test_before_biometry', 'test_before_wifi'
-        ]
-        for field in test_fields:
-            checklist_data['tests'][field] = field in request.form
-        
-        # Salvar checklist
-        save_checklist(checklist_id, checklist_data)
-        
-        # Associar ao reparo
-        if 'checklists' not in repair:
-            repair['checklists'] = []
-        repair['checklists'].append(checklist_id)
-        repair['initial_checklist_id'] = checklist_id
         
         # Salvar diretamente no banco de dados
         save_repair(repair_id, repair)
@@ -2665,40 +2598,6 @@ def admin_emit_or(repair_id):
     repair_checklists = get_checklists_by_repair(repair_id)
     
     if request.method == 'POST':
-        # ========== Processar Checklist Conclusão (Integrado) ==========
-        import os
-        import base64
-        
-        checklist_id = str(uuid.uuid4())[:8]
-        checklist_data = {
-            'id': checklist_id,
-            'type': 'conclusao',
-            'repair_id': repair_id,
-            'timestamp': datetime.now().isoformat(),
-            'photos': {},
-            'tests': {},
-            'signature': None
-        }
-        
-        # Salvar testes
-        test_fields = [
-            'test_after_power', 'test_after_volume', 'test_after_screen',
-            'test_after_camera', 'test_after_audio', 'test_after_charging',
-            'test_after_biometry', 'test_after_wifi'
-        ]
-        for field in test_fields:
-            checklist_data['tests'][field] = field in request.form
-            
-        save_checklist(checklist_id, checklist_data)
-        
-        # Associar ao reparo
-        if 'checklists' not in repair:
-            repair['checklists'] = []
-        repair['checklists'].append(checklist_id)
-        repair['conclusion_checklist_id'] = checklist_id
-        
-        save_repair(repair_id, repair)
-        
         # Criar Ordem de Retirada
         order_id = str(uuid.uuid4())[:8]
         or_data = {
@@ -2979,123 +2878,7 @@ def admin_or_pdf_internal(repair_id):
         story.append(Paragraph(order.get('observations'), obs_style))
         story.append(Spacer(1, 0.2*cm))
     
-    # Checklists Antifraude (Apenas Conclusão)
-    repair_checklists = get_checklists_by_repair(repair_id)
-    conclusion_checklists = [c for c in repair_checklists if c.get('type') == 'conclusao']
     
-    if conclusion_checklists:
-        story.append(Spacer(1, 0.4*cm))
-        story.append(Paragraph("CHECKLIST ANTIFRAUDE DE CONCLUSÃO", heading_style))
-        
-        for checklist in conclusion_checklists:
-            story.append(Paragraph(f"<b>Checklist Antifraude de Conclusão - ID: {checklist.get('id', 'N/A')}</b>", info_value_style))
-            
-            checklist_date = checklist.get('timestamp', '')[:16] if checklist.get('timestamp') else 'N/A'
-            story.append(Paragraph(f"<b>Data:</b> {checklist_date}", info_value_style))
-            story.append(Spacer(1, 0.2*cm))
-            
-            # Fotos do Checklist
-            if checklist.get('photos'):
-                photos = checklist.get('photos', {})
-                story.append(Paragraph("<b>📸 Fotos:</b>", info_value_style))
-                
-                if photos.get('imei_photo'):
-                    photo_path = photos['imei_photo']
-                    if photo_path.startswith('/static/'): photo_path = photo_path[1:]
-                    elif not photo_path.startswith('static/'): photo_path = 'static/' + photo_path.lstrip('/')
-                    if os.path.exists(photo_path):
-                        try:
-                            from PIL import Image as PILImage
-                            pil_photo = PILImage.open(photo_path)
-                            photo_width, photo_height = pil_photo.size
-                            photo_aspect = photo_width / photo_height
-                            max_width = 6*cm
-                            photo_height_calc = max_width / photo_aspect
-                            if photo_height_calc > 4*cm:
-                                photo_height_calc = 4*cm
-                                max_width = photo_height_calc * photo_aspect
-                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
-                            story.append(Paragraph("<b>Foto do IMEI:</b>", info_value_style))
-                            story.append(photo_img)
-                            story.append(Spacer(1, 0.2*cm))
-                        except: pass
-
-                if photos.get('placa_photo'):
-                    photo_path = photos['placa_photo']
-                    if photo_path.startswith('/static/'): photo_path = photo_path[1:]
-                    elif not photo_path.startswith('static/'): photo_path = 'static/' + photo_path.lstrip('/')
-                    if os.path.exists(photo_path):
-                        try:
-                            from PIL import Image as PILImage
-                            pil_photo = PILImage.open(photo_path)
-                            photo_width, photo_height = pil_photo.size
-                            photo_aspect = photo_width / photo_height
-                            max_width = 6*cm
-                            photo_height_calc = max_width / photo_aspect
-                            if photo_height_calc > 4*cm:
-                                photo_height_calc = 4*cm
-                                max_width = photo_height_calc * photo_aspect
-                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
-                            story.append(Paragraph("<b>Foto da Placa:</b>", info_value_style))
-                            story.append(photo_img)
-                            story.append(Spacer(1, 0.2*cm))
-                        except: pass
-
-                if photos.get('conectores_photo'):
-                    photo_path = photos['conectores_photo']
-                    if photo_path.startswith('/static/'): photo_path = photo_path[1:]
-                    elif not photo_path.startswith('static/'): photo_path = 'static/' + photo_path.lstrip('/')
-                    if os.path.exists(photo_path):
-                        try:
-                            from PIL import Image as PILImage
-                            pil_photo = PILImage.open(photo_path)
-                            photo_width, photo_height = pil_photo.size
-                            photo_aspect = photo_width / photo_height
-                            max_width = 6*cm
-                            photo_height_calc = max_width / photo_aspect
-                            if photo_height_calc > 4*cm:
-                                photo_height_calc = 4*cm
-                                max_width = photo_height_calc * photo_aspect
-                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
-                            story.append(Paragraph("<b>Foto dos Conectores:</b>", info_value_style))
-                            story.append(photo_img)
-                            story.append(Spacer(1, 0.2*cm))
-                        except: pass
-            
-            # Testes do Checklist
-            if checklist.get('tests'):
-                tests = checklist.get('tests', {})
-                story.append(Paragraph("<b>🧪 Testes Realizados:</b>", info_value_style))
-                
-                test_labels = {
-                    'test_after_power': 'Botão Power', 'test_after_volume': 'Botões de Volume',
-                    'test_after_silent': 'Botão Silenciar', 'test_after_home': 'Botão Home',
-                    'test_after_other_buttons': 'Outros Botões', 'test_after_display_touch': 'Display e Touch',
-                    'test_after_signal': 'Sinal da Operadora', 'test_after_proximity': 'Sensor de Proximidade',
-                    'test_after_speaker': 'Auto-Falante', 'test_after_earpiece': 'Auricular',
-                    'test_after_microphone': 'Microfone', 'test_after_touch_id': 'Touch ID',
-                    'test_after_vibration': 'Vibra', 'test_after_front_camera': 'Câmera Frontal',
-                    'test_after_back_camera': 'Câmera Traseira',
-                    'test_after_face_id': 'Face ID', 'test_after_wifi': 'Wi-FI',
-                    'test_after_bluetooth': 'Bluetooth', 'test_after_charging': 'Carregamento',
-                    'test_after_headphone': 'Fone de Ouvido', 'test_after_biometric': 'Sensor Biométrico',
-                    'test_after_nfc': 'NFC', 'test_after_wireless_charging': 'Carga por Indução'
-                }
-                
-                test_list = []
-                for test_key, test_label in test_labels.items():
-                    if test_key.startswith('test_after_') and tests.get(test_key):
-                        test_list.append(f"✅ {test_label} (Depois)")
-                
-                if test_list:
-                    for test_item in test_list:
-                        story.append(Paragraph(test_item, styles['Normal']))
-                else:
-                    story.append(Paragraph("Nenhum teste registrado", styles['Normal']))
-                
-                story.append(Spacer(1, 0.2*cm))
-            
-            story.append(Spacer(1, 0.4*cm))
 
     # Assinaturas - Organizadas em tabela lado a lado
     story.append(Spacer(1, 0.2*cm))
@@ -3520,179 +3303,7 @@ def admin_repair_pdf(repair_id):
             story.append(Paragraph(msg_text, styles['Normal']))
             story.append(Spacer(1, 0.3*cm))
     
-    # Checklists Antifraude (Apenas Inicial)
-    repair_checklists = get_checklists_by_repair(repair_id)
-    initial_checklists = [c for c in repair_checklists if c.get('type') == 'inicial']
     
-    if initial_checklists:
-        story.append(Spacer(1, 0.4*cm))
-        story.append(Paragraph("CHECKLIST ANTIFRAUDE INICIAL", heading_style))
-        
-        for checklist in initial_checklists:
-            story.append(Paragraph(f"<b>Checklist Antifraude Inicial - ID: {checklist.get('id', 'N/A')}</b>", info_value_style))
-            
-            checklist_date = checklist.get('timestamp', '')[:16] if checklist.get('timestamp') else 'N/A'
-            story.append(Paragraph(f"<b>Data:</b> {checklist_date}", info_value_style))
-            story.append(Spacer(1, 0.2*cm))
-            
-            # Fotos do Checklist
-            if checklist.get('photos'):
-                photos = checklist.get('photos', {})
-                story.append(Paragraph("<b>📸 Fotos:</b>", info_value_style))
-                
-                photo_items = []
-                if photos.get('imei_photo'):
-                    photo_path = photos['imei_photo']
-                    if photo_path.startswith('/static/'):
-                        photo_path = photo_path[1:]
-                    elif not photo_path.startswith('static/'):
-                        photo_path = 'static/' + photo_path.lstrip('/')
-                    
-                    if os.path.exists(photo_path):
-                        try:
-                            from PIL import Image as PILImage
-                            pil_photo = PILImage.open(photo_path)
-                            photo_width, photo_height = pil_photo.size
-                            photo_aspect = photo_width / photo_height
-                            max_width = 6*cm
-                            photo_height_calc = max_width / photo_aspect
-                            if photo_height_calc > 4*cm:
-                                photo_height_calc = 4*cm
-                                max_width = photo_height_calc * photo_aspect
-                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
-                            story.append(Paragraph("<b>Foto do IMEI:</b>", info_value_style))
-                            story.append(photo_img)
-                            story.append(Spacer(1, 0.2*cm))
-                        except:
-                            pass
-                
-                if photos.get('placa_photo'):
-                    photo_path = photos['placa_photo']
-                    if photo_path.startswith('/static/'):
-                        photo_path = photo_path[1:]
-                    elif not photo_path.startswith('static/'):
-                        photo_path = 'static/' + photo_path.lstrip('/')
-                    
-                    if os.path.exists(photo_path):
-                        try:
-                            from PIL import Image as PILImage
-                            pil_photo = PILImage.open(photo_path)
-                            photo_width, photo_height = pil_photo.size
-                            photo_aspect = photo_width / photo_height
-                            max_width = 6*cm
-                            photo_height_calc = max_width / photo_aspect
-                            if photo_height_calc > 4*cm:
-                                photo_height_calc = 4*cm
-                                max_width = photo_height_calc * photo_aspect
-                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
-                            story.append(Paragraph("<b>Foto da Placa:</b>", info_value_style))
-                            story.append(photo_img)
-                            story.append(Spacer(1, 0.2*cm))
-                        except:
-                            pass
-                
-                if photos.get('conectores_photo'):
-                    photo_path = photos['conectores_photo']
-                    if photo_path.startswith('/static/'):
-                        photo_path = photo_path[1:]
-                    elif not photo_path.startswith('static/'):
-                        photo_path = 'static/' + photo_path.lstrip('/')
-                    
-                    if os.path.exists(photo_path):
-                        try:
-                            from PIL import Image as PILImage
-                            pil_photo = PILImage.open(photo_path)
-                            photo_width, photo_height = pil_photo.size
-                            photo_aspect = photo_width / photo_height
-                            max_width = 6*cm
-                            photo_height_calc = max_width / photo_aspect
-                            if photo_height_calc > 4*cm:
-                                photo_height_calc = 4*cm
-                                max_width = photo_height_calc * photo_aspect
-                            photo_img = Image(photo_path, width=max_width, height=photo_height_calc)
-                            story.append(Paragraph("<b>Foto dos Conectores:</b>", info_value_style))
-                            story.append(photo_img)
-                            story.append(Spacer(1, 0.2*cm))
-                        except:
-                            pass
-            
-            # Testes do Checklist
-            if checklist.get('tests'):
-                tests = checklist.get('tests', {})
-                story.append(Paragraph("<b>🧪 Testes Realizados:</b>", info_value_style))
-                
-                # Mapeamento dos testes
-                test_labels = {
-                    'test_before_power': 'Botão Power',
-                    'test_before_volume': 'Botões de Volume',
-                    'test_before_silent': 'Botão Silenciar',
-                    'test_before_home': 'Botão Home',
-                    'test_before_other_buttons': 'Outros Botões',
-                    'test_before_display_touch': 'Display e Touch',
-                    'test_before_signal': 'Sinal da Operadora',
-                    'test_before_proximity': 'Sensor de Proximidade',
-                    'test_before_speaker': 'Auto-Falante',
-                    'test_before_earpiece': 'Auricular',
-                    'test_before_microphone': 'Microfone',
-                    'test_before_touch_id': 'Touch ID',
-                    'test_before_vibration': 'Vibra',
-                    'test_before_front_camera': 'Câmera Frontal',
-                    'test_before_back_camera': 'Câmera Traseira',
-                    'test_before_face_id': 'Face ID',
-                    'test_before_wifi': 'Wi-FI',
-                    'test_before_bluetooth': 'Bluetooth',
-                    'test_before_charging': 'Carregamento',
-                    'test_before_headphone': 'Fone de Ouvido',
-                    'test_before_biometric': 'Sensor Biométrico',
-                    'test_before_nfc': 'NFC',
-                    'test_before_wireless_charging': 'Carga por Indução',
-                    'test_after_power': 'Botão Power',
-                    'test_after_volume': 'Botões de Volume',
-                    'test_after_silent': 'Botão Silenciar',
-                    'test_after_home': 'Botão Home',
-                    'test_after_other_buttons': 'Outros Botões',
-                    'test_after_display_touch': 'Display e Touch',
-                    'test_after_signal': 'Sinal da Operadora',
-                    'test_after_proximity': 'Sensor de Proximidade',
-                    'test_after_speaker': 'Auto-Falante',
-                    'test_after_earpiece': 'Auricular',
-                    'test_after_microphone': 'Microfone',
-                    'test_after_touch_id': 'Touch ID',
-                    'test_after_vibration': 'Vibra',
-                    'test_after_front_camera': 'Câmera Frontal',
-                    'test_after_back_camera': 'Câmera Traseira',
-                    'test_after_face_id': 'Face ID',
-                    'test_after_wifi': 'Wi-FI',
-                    'test_after_bluetooth': 'Bluetooth',
-                    'test_after_charging': 'Carregamento',
-                    'test_after_headphone': 'Fone de Ouvido',
-                    'test_after_biometric': 'Sensor Biométrico',
-                    'test_after_nfc': 'NFC',
-                    'test_after_wireless_charging': 'Carga por Indução'
-                }
-                
-                test_list = []
-                if checklist.get('type') == 'inicial':
-                    # Testes ANTES
-                    for test_key, test_label in test_labels.items():
-                        if test_key.startswith('test_before_') and tests.get(test_key):
-                            test_list.append(f"✅ {test_label} (Antes)")
-                
-                # Testes DEPOIS (para ambos os tipos)
-                for test_key, test_label in test_labels.items():
-                    if test_key.startswith('test_after_') and tests.get(test_key):
-                        test_list.append(f"✅ {test_label} (Depois)")
-                
-                if test_list:
-                    # Dividir em linhas para melhor visualização no PDF
-                    for test_item in test_list:
-                        story.append(Paragraph(test_item, styles['Normal']))
-                else:
-                    story.append(Paragraph("Nenhum teste registrado", styles['Normal']))
-                
-                story.append(Spacer(1, 0.2*cm))
-            
-            story.append(Spacer(1, 0.4*cm))
 
     # Assinaturas Físicas
     story.append(Spacer(1, 0.5*cm))
@@ -4412,7 +4023,10 @@ def api_register_push_token():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+
 # API: Buscar notificações pendentes (polling do service worker)
+@app.route('/api/notifications/pending', methods=['POST'])
 @app.route('/api/notifications/pending', methods=['POST'])
 def api_get_pending_notifications():
     """Retorna notificações pendentes para o cliente (usado pelo service worker)"""

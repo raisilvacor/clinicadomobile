@@ -1159,20 +1159,14 @@
             }
         }
         
-        // Verificar se está logado ao carregar
         window.addEventListener('load', async () => {
             if (localStorage.getItem('userToken') && localStorage.getItem('userCpf')) {
                 loadRepairs();
-                
-                // Registrar notificações push
                 await registerPushNotifications();
-                
-                // Solicitar verificação imediata
                 triggerNotificationCheck();
             }
         });
         
-        // Quando fizer login, registrar notificações
         async function handleLoginSuccess(cpf) {
             await registerPushNotifications();
             triggerNotificationCheck();
@@ -1184,6 +1178,8 @@
                 e.target.value = e.target.value.replace(/\D/g, '');
             });
         });
+        
+ 
         
         // Verificar hash na URL para mostrar tela específica
         window.addEventListener('load', () => {
@@ -1213,6 +1209,8 @@
             }
         });
     </script>
+    
+    
 </body>
 </html>
 

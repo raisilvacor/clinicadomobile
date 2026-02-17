@@ -47,7 +47,7 @@
         gap: 1rem;
     }
 
-    .test-item input[type="checkbox"] {
+    .test-item input[type="radio"] {
         width: 20px;
         height: 20px;
         cursor: pointer;
@@ -57,6 +57,12 @@
         color: #ffffff;
         cursor: pointer;
         flex: 1;
+    }
+
+    .test-options {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
     }
 
     .photo-upload-area {
@@ -93,101 +99,192 @@
         <input type="hidden" name="checklist_type" value="conclusao">
         <input type="hidden" name="repair_id" value="{{ repair.id }}">
 
-        <!-- Testes Finais -->
         <div class="checklist-section">
             <h3>🧪 Testes Finais (Obrigatórios)</h3>
             
             <div class="test-item">
-                <input type="checkbox" id="test_after_power" name="test_after_power">
-                <label for="test_after_power">Botão Power</label>
+                <span style="color: #ffffff; flex: 1;">Botão Power</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_power" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_power" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_power" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_volume" name="test_after_volume">
-                <label for="test_after_volume">Botões de Volume</label>
+                <span style="color: #ffffff; flex: 1;">Botões de Volume</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_volume" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_volume" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_volume" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_silent" name="test_after_silent">
-                <label for="test_after_silent">Botão Silenciar</label>
+                <span style="color: #ffffff; flex: 1;">Botão Silenciar</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_silent" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_silent" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_silent" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_home" name="test_after_home">
-                <label for="test_after_home">Botão Home</label>
+                <span style="color: #ffffff; flex: 1;">Botão Home</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_home" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_home" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_home" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_other_buttons" name="test_after_other_buttons">
-                <label for="test_after_other_buttons">Outros Botões</label>
+                <span style="color: #ffffff; flex: 1;">Outros Botões</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_other_buttons" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_other_buttons" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_other_buttons" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_display_touch" name="test_after_display_touch">
-                <label for="test_after_display_touch">Display e Touch</label>
+                <span style="color: #ffffff; flex: 1;">Display e Touch</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_display_touch" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_display_touch" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_display_touch" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_signal" name="test_after_signal">
-                <label for="test_after_signal">Sinal da Operadora</label>
+                <span style="color: #ffffff; flex: 1;">Sinal da Operadora</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_signal" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_signal" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_signal" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_proximity" name="test_after_proximity">
-                <label for="test_after_proximity">Sensor de Proximidade</label>
+                <span style="color: #ffffff; flex: 1;">Sensor de Proximidade</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_proximity" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_proximity" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_proximity" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_speaker" name="test_after_speaker">
-                <label for="test_after_speaker">Auto-Falante</label>
+                <span style="color: #ffffff; flex: 1;">Auto-Falante</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_speaker" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_speaker" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_speaker" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_earpiece" name="test_after_earpiece">
-                <label for="test_after_earpiece">Auricular</label>
+                <span style="color: #ffffff; flex: 1;">Auricular</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_earpiece" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_earpiece" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_earpiece" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_microphone" name="test_after_microphone">
-                <label for="test_after_microphone">Microfone</label>
+                <span style="color: #ffffff; flex: 1;">Microfone</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_microphone" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_microphone" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_microphone" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_touch_id" name="test_after_touch_id">
-                <label for="test_after_touch_id">Touch ID</label>
+                <span style="color: #ffffff; flex: 1;">Touch ID</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_touch_id" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_touch_id" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_touch_id" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_vibration" name="test_after_vibration">
-                <label for="test_after_vibration">Vibra</label>
+                <span style="color: #ffffff; flex: 1;">Vibra</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_vibration" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_vibration" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_vibration" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_front_camera" name="test_after_front_camera">
-                <label for="test_after_front_camera">Câmera Frontal</label>
+                <span style="color: #ffffff; flex: 1;">Câmera Frontal</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_front_camera" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_front_camera" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_front_camera" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_back_camera" name="test_after_back_camera">
-                <label for="test_after_back_camera">Câmera Traseira</label>
+                <span style="color: #ffffff; flex: 1;">Câmera Traseira</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_back_camera" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_back_camera" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_back_camera" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_face_id" name="test_after_face_id">
-                <label for="test_after_face_id">Face ID</label>
+                <span style="color: #ffffff; flex: 1;">Face ID</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_face_id" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_face_id" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_face_id" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_wifi" name="test_after_wifi">
-                <label for="test_after_wifi">Wi-FI</label>
+                <span style="color: #ffffff; flex: 1;">Wi-FI</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_wifi" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_wifi" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_wifi" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_bluetooth" name="test_after_bluetooth">
-                <label for="test_after_bluetooth">Bluetooth</label>
+                <span style="color: #ffffff; flex: 1;">Bluetooth</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_bluetooth" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_bluetooth" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_bluetooth" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_charging" name="test_after_charging">
-                <label for="test_after_charging">Carregamento</label>
+                <span style="color: #ffffff; flex: 1;">Carregamento</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_charging" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_charging" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_charging" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_headphone" name="test_after_headphone">
-                <label for="test_after_headphone">Fone de Ouvido</label>
+                <span style="color: #ffffff; flex: 1;">Fone de Ouvido</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_headphone" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_headphone" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_headphone" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_biometric" name="test_after_biometric">
-                <label for="test_after_biometric">Sensor Biométrico</label>
+                <span style="color: #ffffff; flex: 1;">Sensor Biométrico</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_biometric" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_biometric" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_biometric" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_nfc" name="test_after_nfc">
-                <label for="test_after_nfc">NFC</label>
+                <span style="color: #ffffff; flex: 1;">NFC</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_nfc" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_nfc" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_nfc" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
             <div class="test-item">
-                <input type="checkbox" id="test_after_wireless_charging" name="test_after_wireless_charging">
-                <label for="test_after_wireless_charging">Carga por Indução</label>
+                <span style="color: #ffffff; flex: 1;">Carga por Indução</span>
+                <div class="test-options">
+                    <label><input type="radio" name="test_after_wireless_charging" value="funciona">Funciona</label>
+                    <label><input type="radio" name="test_after_wireless_charging" value="nao_funciona">Nao Funciona</label>
+                    <label><input type="radio" name="test_after_wireless_charging" value="nao_testeado" checked>Nao Testeado</label>
+                </div>
             </div>
         </div>
 

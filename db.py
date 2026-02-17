@@ -387,7 +387,6 @@ def create_tables():
             )
         """)
         
-        # Tabela para senhas de clientes (associadas ao CPF)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS customer_passwords (
                 cpf VARCHAR(11) PRIMARY KEY,
@@ -397,7 +396,6 @@ def create_tables():
             )
         """)
         
-        # Tabela para solicitações de orçamento
         cur.execute("""
             CREATE TABLE IF NOT EXISTS budget_requests (
                 id VARCHAR(50) PRIMARY KEY,
@@ -408,7 +406,6 @@ def create_tables():
             )
         """)
         
-        # Tabela para tokens de notificação push (FCM)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS push_tokens (
                 id SERIAL PRIMARY KEY,
@@ -421,7 +418,7 @@ def create_tables():
             )
         """)
         
-        # Índices para melhor performance
+        
         cur.execute("CREATE INDEX IF NOT EXISTS idx_repairs_repair_id ON repairs(id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_checklists_id ON checklists(id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_repair_id ON orders(repair_id)")
@@ -430,6 +427,7 @@ def create_tables():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_customer_passwords_cpf ON customer_passwords(cpf)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_cpf ON push_tokens(cpf)")
+        
             
         # Tabela para usuários do admin
         try:
@@ -2115,6 +2113,8 @@ def get_push_tokens_by_cpf(cpf):
         print(f"⚠️  Erro ao ler subscriptions push: {e}")
         return []
 
+ 
+
 
 # ========== BUDGET CONFIG (ORÇAMENTO) ==========
 
@@ -3634,4 +3634,3 @@ def get_financial_summary(start_date=None, end_date=None):
     })
     
     return result
-
