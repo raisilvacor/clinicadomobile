@@ -168,8 +168,23 @@ def admin_dashboard():
     
     # Calcular alertas de aparelhos abandonados para mostrar no dashboard
     repairs = get_all_repairs()
+    orders = get_all_orders()
     abandoned_count = 0
     critical_count = 0
+    
+    # Estatísticas de Ordens de Serviço
+    total_os = len(repairs)
+    os_abertas = 0
+    os_finalizadas = 0
+    
+    for repair in repairs:
+        status = (repair.get('status') or '').lower()
+        if status in ['concluido', 'concluida', 'finalizado', 'finalizada']:
+            os_finalizadas += 1
+        elif status not in ['cancelado', 'cancelada']:
+            os_abertas += 1
+    
+    os_retiradas = len([o for o in orders if o.get('customer_received')])
     
     now = datetime.now()
     for repair in repairs:
@@ -194,10 +209,18 @@ def admin_dashboard():
     budget_requests = get_all_budget_requests()
     pending_budget_count = len([r for r in budget_requests if r.get('status') == 'pendente'])
     
-    return render_template('admin/dashboard.html', 
-                         abandoned_count=abandoned_count, 
+    os_stats = {
+        'total': total_os,
+        'abertas': os_abertas,
+        'finalizadas': os_finalizadas,
+        'retiradas': os_retiradas
+    }
+    
+    return render_template('admin/dashboard.html',
+                         abandoned_count=abandoned_count,
                          critical_count=critical_count,
-                         pending_budget_count=pending_budget_count)
+                         pending_budget_count=pending_budget_count,
+                         os_stats=os_stats)
 
 @app.route('/admin/search', methods=['GET'])
 @login_required

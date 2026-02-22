@@ -149,6 +149,33 @@
     </div>
     {% endif %}
 
+    {% if os_stats %}
+    <div class="admin-card">
+        <h3 style="color: #ff8c00; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            📋 Estatísticas de Ordens de Serviço
+        </h3>
+        
+        <div class="details-grid" style="margin-bottom: 1rem;">
+            <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Total de Ordens de Serviço</span>
+                <strong style="color: #fff; font-size: 1.6rem;">{{ os_stats.total }}</strong>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #ffc107;">
+                <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Ordens em Aberto</span>
+                <strong style="color: #ffc107; font-size: 1.6rem;">{{ os_stats.abertas }}</strong>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #17a2b8;">
+                <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Ordens Finalizadas</span>
+                <strong style="color: #17a2b8; font-size: 1.6rem;">{{ os_stats.finalizadas }}</strong>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #28a745;">
+                <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Ordens Retiradas</span>
+                <strong style="color: #28a745; font-size: 1.6rem;">{{ os_stats.retiradas }}</strong>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Calculadora de Lucro -->
     <div class="admin-card">
         <h3 style="color: #ff8c00; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
