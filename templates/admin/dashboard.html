@@ -24,31 +24,6 @@
     </div>
     {% endif %}
 
-    <!-- Alertas de Aparelhos Abandonados -->
-    {% if abandoned_count and abandoned_count > 0 %}
-    <div class="alert-card {{ 'critical' if critical_count > 0 else 'warning' }}" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <h3 class="{{ 'text-critical' if critical_count > 0 else 'text-warning' }}" style="margin-bottom: 0.5rem; font-size: 1.2rem;">
-                {% if critical_count > 0 %}
-                    🚨 ALERTA CRÍTICO: {{ critical_count }} aparelho(s) abandonado(s) há 60+ dias
-                {% else %}
-                    ⚠️ AVISO: {{ abandoned_count }} aparelho(s) próximo(s) de completar 60 dias
-                {% endif %}
-            </h3>
-            <p style="margin: 0;">
-                {% if critical_count > 0 %}
-                    Há {{ critical_count }} reparo(s) concluído(s) há mais de 60 dias sem Ordem de Retirada emitida.
-                {% else %}
-                    Há {{ abandoned_count }} reparo(s) concluído(s) há mais de 55 dias sem Ordem de Retirada emitida.
-                {% endif %}
-            </p>
-        </div>
-        <a href="{{ url_for('admin_abandoned_alerts') }}" class="btn btn-primary {{ 'btn-danger' if critical_count > 0 else 'btn-primary' }}">
-            Ver Detalhes
-        </a>
-    </div>
-    {% endif %}
-    
     <!-- Barra de Pesquisa -->
     <div class="admin-card" style="margin-bottom: 2rem;">
         <h3 style="color: #ff8c00; margin-bottom: 1rem;">🔍 Buscar por CPF do Cliente</h3>
@@ -92,58 +67,9 @@
         </div>
         {% endif %}
         
-        {% if search_results.orders %}
-        <div class="admin-card">
-            <h3>📋 Ordens de Retirada - OR ({{ search_results.orders|length }})</h3>
-            <div class="items-list">
-                {% for order in search_results.orders %}
-                <div class="item-card">
-                    <h3>OR #: {{ order.id }}</h3>
-                    <p><strong>Reparo ID:</strong> {{ order.repair_id }}</p>
-                    <p><strong>Emitido por:</strong> {{ order.emitted_by or 'N/A' }}</p>
-                    <p><strong>Data de Emissão:</strong> {{ order.emitted_at[:10] if order.emitted_at else 'N/A' }}</p>
-                    <div class="item-actions">
-                        <a href="{{ url_for('admin_view_or', repair_id=order.repair_id) }}" class="btn btn-primary">Ver OR</a>
-                        <a href="{{ url_for('admin_or_pdf', repair_id=order.repair_id) }}" target="_blank" class="btn btn-secondary">📥 PDF</a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        
-        {% if search_results.checklists %}
-        <div class="admin-card">
-            <h3>🛡️ Checklists Antifraude ({{ search_results.checklists|length }})</h3>
-            <div class="items-list">
-                {% for checklist in search_results.checklists %}
-                <div class="item-card">
-                    <h3>ID: {{ checklist.id }}</h3>
-                    <p>
-                        <strong>Tipo:</strong> 
-                        {% if checklist.type == 'inicial' %}
-                            <span class="status-badge info">📥 Inicial</span>
-                        {% else %}
-                            <span class="status-badge active">✅ Conclusão</span>
-                        {% endif %}
-                    </p>
-                    <p><strong>Reparo ID:</strong> {{ checklist.repair_id or 'N/A' }}</p>
-                    <p><strong>Data:</strong> {{ checklist.timestamp[:10] if checklist.timestamp else 'N/A' }}</p>
-                    <p><strong>Assinado:</strong> {% if checklist.signature %}<span class="text-success">✅ Sim</span>{% else %}<span class="text-danger">❌ Não</span>{% endif %}</p>
-                    <div class="item-actions">
-                        {% if checklist.repair_id %}
-                        <a href="{{ url_for('admin_repairs') }}#repair-{{ checklist.repair_id }}" class="btn btn-primary">Ver Reparo</a>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        
-        {% if not search_results.repairs and not search_results.orders and not search_results.checklists %}
+        {% if not search_results.repairs %}
         <div class="admin-card" style="text-align: center; padding: 2rem;">
-            <p style="color: #999;">Nenhum resultado encontrado para este CPF.</p>
+            <p style="color: #999;">Nenhum reparo encontrado para este CPF.</p>
         </div>
         {% endif %}
     </div>
@@ -167,10 +93,6 @@
             <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #17a2b8;">
                 <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Ordens Finalizadas</span>
                 <strong style="color: #17a2b8; font-size: 1.6rem;">{{ os_stats.finalizadas }}</strong>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #28a745;">
-                <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Ordens Retiradas</span>
-                <strong style="color: #28a745; font-size: 1.6rem;">{{ os_stats.retiradas }}</strong>
             </div>
         </div>
     </div>
@@ -282,12 +204,6 @@
             <h3>🏢 Fornecedores</h3>
             <p>Gerencie fornecedores e parceiros da assistência técnica</p>
             <a href="{{ url_for('admin_suppliers') }}" class="btn btn-primary">Acessar</a>
-        </div>
-
-        <div class="stat-card">
-            <h3>⚠️ Alerta de Aparelho Abandonado</h3>
-            <p>Sistema automático de alerta para reparos sem retirada há mais de 55 dias</p>
-            <a href="{{ url_for('admin_abandoned_alerts') }}" class="btn btn-primary">Ver Alertas</a>
         </div>
 
         <div class="stat-card">
