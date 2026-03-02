@@ -1120,6 +1120,54 @@ def admin_edit_repair(repair_id):
 
 
 
+@app.route('/admin/repairs/<repair_id>/status', methods=['POST'])
+@login_required
+def admin_update_repair_status(repair_id):
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
+    
+    data = request.get_json()
+    new_status = data.get('status')
+    
+    if new_status:
+        old_status = repair.get('status', 'N/A')
+        repair['status'] = new_status
+        repair['updated_at'] = datetime.now().isoformat()
+        
+        repair['history'].append({
+            'timestamp': datetime.now().isoformat(),
+            'action': f'Status alterado de {old_status} para {new_status}',
+            'status': new_status
+        })
+        
+        save_repair(repair_id, repair)
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'error': 'Status inválido'})
+
+@app.route('/admin/repairs/<repair_id>/observation', methods=['POST'])
+@login_required
+def admin_add_repair_observation(repair_id):
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
+    
+    data = request.get_json()
+    observation = data.get('observation')
+    
+    if observation:
+        repair['history'].append({
+            'timestamp': datetime.now().isoformat(),
+            'action': f'OBSERVAÇÃO: {observation}',
+            'status': repair.get('status', 'em_reparo')
+        })
+        
+        save_repair(repair_id, repair)
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'error': 'Observação vazia'})
+
 @app.route('/admin/repairs/<repair_id>/complete', methods=['POST'])
 @login_required
 def admin_complete_repair(repair_id):
