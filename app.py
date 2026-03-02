@@ -1135,9 +1135,35 @@ def quality_test(token):
         exp = None
     if exp and datetime.now() > exp:
         return f"<html><head><meta name='viewport' content='width=device-width,initial-scale=1' /></head><body style='font-family: system-ui; margin: 0; padding: 2rem;'><h2>QR Code expirado</h2><p>Peça ao técnico para gerar novamente.</p></body></html>"
-    title = "Checklist de Qualidade"
-    os_id = found['repair'].get('id')
-    return f"<html><head><meta name='viewport' content='width=device-width,initial-scale=1' /></head><body style='font-family: system-ui; margin: 0; padding: 2rem; text-align:center;'><h2>{title}</h2><p>OS {os_id}</p><p>Inicie os testes no aparelho.</p></body></html>"
+    return render_template('tests/quality_test.html', token=token, repair_id=found['repair'].get('id'))
+
+@app.route('/tests/<token>/result', methods=['POST'])
+def quality_test_result(token):
+    from datetime import datetime
+    data = request.get_json() or {}
+    repairs = get_all_repairs()
+    target = None
+    for r in repairs:
+        for t in r.get('qr_tests', []):
+            if t.get('token') == token:
+                target = r
+                break
+        if target:
+            break
+    if not target:
+        return jsonify({'success': False})
+    if 'quality_results' not in target:
+        target['quality_results'] = {}
+    test_id = data.get('test')
+    if test_id:
+        target['quality_results'][test_id] = {
+            'ok': bool(data.get('ok')),
+            'payload': data,
+            'timestamp': datetime.now().isoformat()
+        }
+    target['updated_at'] = datetime.now().isoformat()
+    save_repair(target.get('id'), target)
+    return jsonify({'success': True})
 
 
 

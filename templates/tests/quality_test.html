@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Diagnóstico de Qualidade</title>
+<style>
+    :root {
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --primary: #3b82f6;
+        --success: #22c55e;
+        --danger: #ef4444;
+        --border: #e2e8f0;
+    }
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+    }
+    .container {
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    .header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        margin: 0.25rem 0 0.75rem;
+    }
+    .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        padding: 1rem;
+    }
+    .title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        text-align: center;
+        margin: 0.5rem 0 0.25rem;
+    }
+    .subtitle {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.95rem;
+    }
+    .perm-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-top: 0.75rem;
+    }
+    .perm-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .perm-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 18px;
+    }
+    .perm-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .perm-title {
+        font-weight: 700;
+    }
+    .perm-sub {
+        font-size: 0.8rem;
+        color: var(--muted);
+    }
+    .perm-status {
+        width: 26px;
+        height: 26px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    .ok { background: #dcfce7; color: #16a34a; }
+    .fail { background: #fee2e2; color: #dc2626; }
+    .warn { background: #fde68a; color: #a16207; }
+    .hint {
+        color: #f59e0b;
+        font-size: 0.85rem;
+        text-align: center;
+        margin: 0.75rem 0 1rem;
+    }
+    .btn {
+        width: 100%;
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: 0.9rem;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+    .progress {
+        height: 6px;
+        border-radius: 6px;
+        background: #e2e8f0;
+        margin: 0.75rem 0 1rem;
+        overflow: hidden;
+    }
+    .progress > div {
+        height: 100%;
+        width: 9%;
+        background: var(--primary);
+    }
+    .test-title {
+        text-align: center;
+        font-weight: 800;
+        font-size: 1.2rem;
+        margin-top: 0.25rem;
+    }
+    .test-sub {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    .colors {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .color {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        border: 2px solid #cbd5e1;
+    }
+    .color.done {
+        border-color: #22c55e;
+        box-shadow: 0 0 0 2px rgba(34,197,94,0.2);
+    }
+    .tested-count {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+    .choice-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    .btn-outline {
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: var(--text);
+        border-radius: 12px;
+        padding: 0.9rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+    .btn-primary {
+        width: 100%;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        border-radius: 12px;
+        padding: 0.9rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+    .overlay {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+    }
+    .overlay-label {
+        position: fixed;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15,23,42,0.9);
+        color: #fff;
+        border-radius: 20px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">Diagnóstico de Qualidade</div>
+    <div id="screen-permissions" class="card">
+        <div class="title">Preparando Diagnóstico</div>
+        <div class="subtitle">Para garantir o funcionamento dos testes, precisamos solicitar algumas permissões.</div>
+        <div class="perm-item">
+            <div class="perm-left">
+                <div class="perm-icon">📷</div>
+                <div class="perm-text">
+                    <div class="perm-title">Câmera</div>
+                    <div class="perm-sub">Para testar câmeras frontal/traseira</div>
+                </div>
+            </div>
+            <div id="perm-camera" class="perm-status warn">!</div>
+        </div>
+        <div class="perm-item">
+            <div class="perm-left">
+                <div class="perm-icon">🎤</div>
+                <div class="perm-text">
+                    <div class="perm-title">Microfone</div>
+                    <div class="perm-sub">Para testar captação de áudio</div>
+                </div>
+            </div>
+            <div id="perm-mic" class="perm-status warn">!</div>
+        </div>
+        <div class="perm-item">
+            <div class="perm-left">
+                <div class="perm-icon">🧭</div>
+                <div class="perm-text">
+                    <div class="perm-title">Sensores</div>
+                    <div class="perm-sub">Para testar giroscópio e acelerômetro</div>
+                </div>
+            </div>
+            <div id="perm-sensors" class="perm-status warn">!</div>
+        </div>
+        <div class="hint">Algumas permissões podem ser negadas. Os testes relacionados serão marcados como pulados.</div>
+        <button id="btn-continue" class="btn">Continuar Mesmo Assim</button>
+    </div>
+
+    <div id="screen-test1" class="card" style="display:none;">
+        <div class="progress"><div></div></div>
+        <div class="test-title">Teste de Tela</div>
+        <div class="test-sub">Toque em cada cor para exibir em tela cheia. Verifique se há pixels mortos.</div>
+        <div class="colors">
+            <div class="color" data-name="Vermelho" style="background:#ef4444"></div>
+            <div class="color" data-name="Verde" style="background:#22c55e"></div>
+            <div class="color" data-name="Azul" style="background:#3b82f6"></div>
+            <div class="color" data-name="Cinza" style="background:#9ca3af"></div>
+            <div class="color" data-name="Preto" style="background:#000000"></div>
+        </div>
+        <div id="tested-count" class="tested-count">0/5 cores testadas</div>
+        <div style="text-align:center; font-weight:700; margin-bottom:0.5rem;">Viu algum defeito na tela?</div>
+        <div class="choice-row">
+            <button id="btn-bad" class="btn-outline">Sim, Com Defeito</button>
+            <button id="btn-ok" class="btn-primary">Não, Tela OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="overlay" class="overlay"><div class="overlay-label" id="overlay-label"></div></div>
+
+<script>
+    const token = "{{ token }}";
+    function setStatus(el, status) {
+        el.className = "perm-status " + (status === "ok" ? "ok" : status === "fail" ? "fail" : "warn");
+        el.textContent = status === "ok" ? "✓" : status === "fail" ? "!" : "!";
+    }
+    async function askCamera() {
+        const el = document.getElementById("perm-camera");
+        try {
+            const s = await navigator.mediaDevices.getUserMedia({ video: true });
+            s.getTracks().forEach(t => t.stop());
+            setStatus(el, "ok");
+        } catch {
+            setStatus(el, "fail");
+        }
+    }
+    async function askMic() {
+        const el = document.getElementById("perm-mic");
+        try {
+            const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+            s.getTracks().forEach(t => t.stop());
+            setStatus(el, "ok");
+        } catch {
+            setStatus(el, "fail");
+        }
+    }
+    async function askSensors() {
+        const el = document.getElementById("perm-sensors");
+        try {
+            if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+                const res = await DeviceMotionEvent.requestPermission();
+                setStatus(el, res === "granted" ? "ok" : "fail");
+            } else {
+                window.addEventListener("devicemotion", function once(e) {
+                    setStatus(el, e ? "ok" : "warn");
+                    window.removeEventListener("devicemotion", once);
+                });
+                setTimeout(() => setStatus(el, "warn"), 600);
+            }
+        } catch {
+            setStatus(el, "fail");
+        }
+    }
+    document.getElementById("btn-continue").addEventListener("click", () => {
+        document.getElementById("screen-permissions").style.display = "none";
+        document.getElementById("screen-test1").style.display = "block";
+    });
+    askCamera();
+    askMic();
+    askSensors();
+
+    const overlay = document.getElementById("overlay");
+    const label = document.getElementById("overlay-label");
+    overlay.addEventListener("click", () => {
+        overlay.style.display = "none";
+    });
+    const colors = Array.from(document.querySelectorAll(".color"));
+    const tested = new Set();
+    function updateCount() {
+        document.getElementById("tested-count").textContent = tested.size + "/5 cores testadas";
+    }
+    colors.forEach(c => {
+        c.addEventListener("click", () => {
+            const name = c.getAttribute("data-name");
+            overlay.style.display = "flex";
+            overlay.style.background = c.style.background;
+            label.textContent = "Toque para sair • " + name;
+            tested.add(name);
+            c.classList.add("done");
+            updateCount();
+        });
+    });
+    async function submitResult(ok) {
+        const payload = {
+            test: "display",
+            ok: !!ok,
+            colors: Array.from(tested),
+        };
+        try {
+            await fetch(`/tests/${token}/result`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        } catch {}
+        alert(ok ? "Tela OK registrada" : "Tela com defeito registrada");
+    }
+    document.getElementById("btn-ok").addEventListener("click", () => submitResult(true));
+    document.getElementById("btn-bad").addEventListener("click", () => submitResult(false));
+</script>
+</body>
+</html>
