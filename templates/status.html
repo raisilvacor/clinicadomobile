@@ -1001,6 +1001,10 @@
         {% endif %}
     </div>
 
+    <script id="checklists-data" type="application/json">
+        {{ all_repair_checklists|tojson|safe if all_repair_checklists else '[]' }}
+    </script>
+
     <script>
         function approveBudget(repairId) {
             if (confirm('Confirmar aprovação do orçamento?')) {
@@ -1037,17 +1041,9 @@
         }
 
         // Assinaturas de Checklists
-        {% if all_repair_checklists %}
-        const checklists = [
-            {% for checklist in all_repair_checklists %}
-            {
-                id: '{{ checklist.id }}',
-                signature: '{{ checklist.signature or "" }}'
-            },
-            {% endfor %}
-        ];
+        const checklistsData = JSON.parse(document.getElementById('checklists-data').textContent);
 
-        checklists.forEach(function(checklist) {
+        checklistsData.forEach(function(checklist) {
             if (!checklist.signature) {
                 const checklistId = checklist.id;
                 const canvasId = 'checklist-signature-canvas-' + checklistId;
@@ -1112,7 +1108,6 @@
                 }
             }
         });
-        {% endif %}
         
         function clearChecklistSignature(checklistId) {
             const clearFunc = window['clearChecklistSignature_' + checklistId];
