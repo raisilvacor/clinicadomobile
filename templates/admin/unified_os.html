@@ -19,9 +19,9 @@
         <div class="item-card">
             <h3 style="color: #ff8c00; margin-bottom: 1rem;">Status da OS</h3>
             <p><strong>Status Geral:</strong> <span class="status-badge {{ repair.status }}">{{ repair.status }}</span></p>
-            <p><strong>Checklist Inicial:</strong> <span class="status-badge {{ initial_checklist.signature if initial_checklist.signature else initial_checklist_status_class }}">{{ repair.initial_checklist_status }}</span></p>
-            <p><strong>Checklist Conclusão:</strong> <span class="status-badge {{ conclusion_checklist.signature if conclusion_checklist.signature else conclusion_checklist_status_class }}">{{ repair.conclusion_checklist_status }}</span></p>
-            <p><strong>Ordem de Retirada:</strong> <span class="status-badge {{ order.customer_received if order.customer_received else or_status_class }}">{{ repair.or_status }}</span></p>
+            <p><strong>Checklist Inicial:</strong> <span class="status-badge">{{ repair.initial_checklist_status }}</span></p>
+            <p><strong>Checklist Conclusão:</strong> <span class="status-badge">{{ repair.conclusion_checklist_status }}</span></p>
+            <p><strong>Ordem de Retirada:</strong> <span class="status-badge">{{ repair.or_status }}</span></p>
         </div>
         <div class="item-card">
             <h3 style="color: #ff8c00; margin-bottom: 1rem;">Informações do Cliente</h3>
