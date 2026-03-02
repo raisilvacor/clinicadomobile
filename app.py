@@ -1113,7 +1113,7 @@ def admin_generate_qr(repair_id):
     })
     save_repair(repair_id, repair)
     url = url_for('quality_test', token=token, _external=True)
-    return jsonify({'success': True, 'url': url, 'expires_in': 180, 'expires_at': expires_at.isoformat()})
+    return jsonify({'success': True, 'url': url, 'token': token, 'expires_in': 180, 'expires_at': expires_at.isoformat()})
 
 @app.route('/tests/<token>')
 def quality_test(token):
@@ -1164,6 +1164,80 @@ def quality_test_result(token):
     target['updated_at'] = datetime.now().isoformat()
     save_repair(target.get('id'), target)
     return jsonify({'success': True})
+
+@app.route('/tests/<token>/results', methods=['GET'])
+def quality_test_results(token):
+    repairs = get_all_repairs()
+    target = None
+    for r in repairs:
+        for t in r.get('qr_tests', []):
+            if t.get('token') == token:
+                target = r
+                break
+        if target:
+            break
+    if not target:
+        return jsonify({'success': False, 'error': 'Token inválido'})
+    results = target.get('quality_results', {})
+    return jsonify({'success': True, 'results': results})
+
+@app.route('/tests/<token>/complete', methods=['POST'])
+def quality_test_complete(token):
+    from datetime import datetime
+    repairs = get_all_repairs()
+    target = None
+    for r in repairs:
+        for t in r.get('qr_tests', []):
+            if t.get('token') == token:
+                target = r
+                break
+        if target:
+            break
+    if not target:
+        return jsonify({'success': False, 'error': 'Token inválido'})
+    required = [
+        'display','touch','speaker','microphone','vibration',
+        'camera_rear','camera_front','charging','gps','sensors','buttons'
+    ]
+    results = target.get('quality_results', {})
+    approved = 0
+    reproved = 0
+    skipped = 0
+    details = {}
+    for k in required:
+        r = results.get(k)
+        if r is None:
+            skipped += 1
+            details[k] = 'skipped'
+        elif r.get('ok'):
+            approved += 1
+            details[k] = 'approved'
+        else:
+            reproved += 1
+            details[k] = 'reproved'
+    all_ok = reproved == 0 and skipped == 0 and approved == len(required)
+    target['quality_summary'] = {
+        'approved_count': approved,
+        'reproved_count': reproved,
+        'skipped_count': skipped,
+        'approved': all_ok,
+        'details': details,
+        'completed_at': datetime.now().isoformat()
+    }
+    target['updated_at'] = datetime.now().isoformat()
+    save_repair(target.get('id'), target)
+    return jsonify({'success': True, 'summary': target['quality_summary']})
+
+@app.route('/admin/repairs/<repair_id>/quality_summary', methods=['GET'])
+@login_required
+def admin_quality_summary(repair_id):
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
+    summary = repair.get('quality_summary')
+    if not summary:
+        return jsonify({'success': True, 'summary': None})
+    return jsonify({'success': True, 'summary': summary})
 
 
 

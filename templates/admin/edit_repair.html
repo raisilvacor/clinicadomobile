@@ -777,13 +777,48 @@
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;
+                window.currentQualityToken = data.token;
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.url)}`;
                 document.getElementById('quality-qr-img').src = qrUrl;
                 document.getElementById('quality-initial').style.display = 'none';
                 document.getElementById('quality-qr').style.display = 'block';
                 startQualityCountdown(data.expires_in || 180);
+                startQualityPolling();
             })
             .catch(() => {});
+    }
+
+    function renderQualitySummary(summary) {
+        if (!summary) return;
+        const statusBadge = document.querySelector('.finalize-header .qc-status-pill');
+        if (statusBadge) {
+            statusBadge.textContent = summary.approved ? 'QC Aprovado' : 'QC com Pendências';
+            statusBadge.style.backgroundColor = summary.approved ? '#dcfce7' : '#fee2e2';
+            statusBadge.style.color = summary.approved ? '#16a34a' : '#b91c1c';
+        }
+        const qrBox = document.querySelector('#quality-modal .qc-body');
+        if (qrBox && summary.approved !== undefined) {
+            qrBox.innerHTML = `<div style="margin:1.5rem 0;"><div style="width:90px;height:90px;border-radius:45px;background:${summary.approved ? '#ecfdf5' : '#fef2f2'};margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;color:${summary.approved ? '#15803d' : '#b91c1c'};font-size:36px;">${summary.approved ? '✓' : '!'}</div><div style="font-weight:800;font-size:1.1rem;margin-bottom:0.25rem;">${summary.approved ? 'Checklist Aprovado!' : 'Checklist Concluído'}</div><div style="color:#64748b;font-size:0.9rem;">${summary.approved ? 'Todos os testes foram concluídos com sucesso.' : 'Alguns testes não foram aprovados. Verifique o resumo no aparelho.'}</div></div>`;
+        }
+    }
+
+    let qualityPollInterval = null;
+    function startQualityPolling() {
+        if (qualityPollInterval) clearInterval(qualityPollInterval);
+        function check() {
+            fetch(`/admin/repairs/${'{{ repair.id }}'}/quality_summary`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success && data.summary) {
+                        clearInterval(qualityPollInterval);
+                        qualityPollInterval = null;
+                        renderQualitySummary(data.summary);
+                    }
+                })
+                .catch(() => {});
+        }
+        qualityPollInterval = setInterval(check, 5000);
+        check();
     }
 
     function hideQRCode() {
