@@ -1143,58 +1143,61 @@ def admin_new_repair():
     if request.method == 'POST':
         repair_id = str(uuid.uuid4())[:8]
         
-        repair_type = request.form.get('repair_type', 'novo')  # 'novo' ou 'retorno'
-        technician_id = request.form.get('technician_id', '')
+        # Dados do Wizard
+        device_brand = request.form.get('device_brand', '')
+        device_model = request.form.get('device_model', '')
+        device_type = request.form.get('device_type', 'Celular')
+        
+        labor_value = float(request.form.get('labor_value') or 0)
+        parts_value = float(request.form.get('parts_value') or 0)
+        discount_value = float(request.form.get('discount_value') or 0)
+        total_budget = (labor_value + parts_value) - discount_value
         
         repair = {
             'id': repair_id,
-            'repair_type': repair_type,  # 'novo' ou 'retorno'
-            'device_name': request.form.get('device_name', ''),
-            'device_model': request.form.get('device_model', ''),
-            'device_imei': request.form.get('device_imei', ''),
+            'repair_type': 'novo',
+            'device_name': f"{device_brand} {device_model}",
+            'device_brand': device_brand,
+            'device_model': device_model,
+            'device_type': device_type,
+            'device_imei': request.form.get('imei_serial', ''),
+            'imei_serial': request.form.get('imei_serial', ''),
             'problem_description': request.form.get('problem_description', ''),
+            'accessories': request.form.get('accessories', ''),
             'customer_name': request.form.get('customer_name', ''),
             'customer_phone': request.form.get('customer_phone', ''),
             'customer_cpf': request.form.get('customer_cpf', ''),
-            'customer_address': request.form.get('customer_address', ''),
-            'customer_email': request.form.get('customer_email', ''),
-            'technician_id': technician_id,
-            'status': 'aguardando',
+            'service_type': request.form.get('service_type', 'analise'),
+            'delivery_forecast': request.form.get('delivery_forecast', ''),
+            'status': 'orcamento' if total_budget > 0 else 'aguardando',
+            'initial_checklist_status': 'pendente',
+            'conclusion_checklist_status': 'pendente',
+            'or_status': 'nao_emitida',
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat(),
-            'budget': None,
+            'budget': {
+                'labor': labor_value,
+                'parts': parts_value,
+                'discount': discount_value,
+                'total': total_budget,
+                'status': 'pending'
+            } if total_budget > 0 else None,
             'messages': [],
             'history': [{
                 'timestamp': datetime.now().isoformat(),
-                'action': f'Reparo {"novo" if repair_type == "novo" else "de retorno"} criado',
+                'action': 'Ordem de Serviço criada via Wizard',
                 'status': 'aguardando'
             }]
         }
         
-        # Adicionar orçamento se fornecido
-        budget_amount = request.form.get('budget_amount', '')
-        if budget_amount:
-            repair['budget'] = {
-                'amount': float(budget_amount),
-                'description': request.form.get('budget_description', ''),
-                'status': 'pending'
-            }
-            repair['status'] = 'orcamento'
-            repair['history'].append({
-                'timestamp': datetime.now().isoformat(),
-                'action': f'Orçamento criado: R$ {budget_amount}',
-                'status': 'orcamento'
-            })
-        
-        
-        
         # Salvar diretamente no banco de dados
         save_repair(repair_id, repair)
         
-        return redirect(url_for('admin_repairs'))
+        # Redirecionar para a visualização unificada da nova OS
+        return redirect(url_for('admin_view_unified_os', repair_id=repair_id))
     
     technicians = get_all_technicians()
-    return render_template('admin/new_repair.html', technicians=technicians)
+    return render_template('admin/new_os_wizard.html', technicians=technicians)
 
 @app.route('/admin/repairs/<repair_id>/status', methods=['POST'])
 @login_required
