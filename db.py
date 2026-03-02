@@ -977,6 +977,14 @@ def get_repair(repair_id):
 
 def save_repair(repair_id, repair_data):
     """Salva ou atualiza um reparo"""
+    # Inicializar novos campos de status se não existirem
+    if 'initial_checklist_status' not in repair_data:
+        repair_data['initial_checklist_status'] = 'pendente'
+    if 'conclusion_checklist_status' not in repair_data:
+        repair_data['conclusion_checklist_status'] = 'pendente'
+    if 'or_status' not in repair_data:
+        repair_data['or_status'] = 'nao_emitida'
+
     if not USE_DATABASE:
         config = _load_config_file()
         if 'repairs' not in config:
@@ -1135,7 +1143,11 @@ def get_checklists_by_repair(repair_id):
         return [c for c in checklists if c.get('repair_id') == repair_id]
 
 def save_checklist(checklist_id, checklist_data):
-    """Salva ou atualiza um checklist"""
+    """Salva ou atualiza um checklist e atualiza o status no reparo associado"""
+    repair_id = checklist_data.get('repair_id')
+    checklist_type = checklist_data.get('type')
+    has_signature = bool(checklist_data.get('signature'))
+
     if not USE_DATABASE:
         config = _load_config_file()
         if 'checklists' not in config:
@@ -1152,6 +1164,16 @@ def save_checklist(checklist_id, checklist_data):
             checklists.append(checklist_data)
         config['checklists'] = checklists
         _save_config_file(config)
+
+        # Atualizar status no reparo
+        if repair_id:
+            repair = get_repair(repair_id)
+            if repair:
+                if checklist_type == 'inicial':
+                    repair['initial_checklist_status'] = 'assinado' if has_signature else 'preenchido'
+                elif checklist_type == 'conclusao':
+                    repair['conclusion_checklist_status'] = 'assinado' if has_signature else 'preenchido'
+                save_repair(repair_id, repair)
         return
     
     try:
@@ -1171,6 +1193,16 @@ def save_checklist(checklist_id, checklist_data):
                     checklists.append(checklist_data)
                 config['checklists'] = checklists
                 _save_config_file(config)
+
+                # Atualizar status no reparo (fallback)
+                if repair_id:
+                    repair = get_repair(repair_id)
+                    if repair:
+                        if checklist_type == 'inicial':
+                            repair['initial_checklist_status'] = 'assinado' if has_signature else 'preenchido'
+                        elif checklist_type == 'conclusao':
+                            repair['conclusion_checklist_status'] = 'assinado' if has_signature else 'preenchido'
+                        save_repair(repair_id, repair)
                 return
             cur = _get_cursor(conn)
             data_json = json.dumps(checklist_data)
@@ -1180,6 +1212,17 @@ def save_checklist(checklist_id, checklist_data):
                 ON CONFLICT (id) 
                 DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
             """, (checklist_id, data_json, data_json))
+            
+            # Atualizar status no reparo (banco de dados)
+            if repair_id:
+                repair = get_repair(repair_id)
+                if repair:
+                    if checklist_type == 'inicial':
+                        repair['initial_checklist_status'] = 'assinado' if has_signature else 'preenchido'
+                    elif checklist_type == 'conclusao':
+                        repair['conclusion_checklist_status'] = 'assinado' if has_signature else 'preenchido'
+                    save_repair(repair_id, repair)
+
     except Exception as e:
         print(f"⚠️  Erro ao salvar no banco, usando config.json: {e}")
         config = _load_config_file()
@@ -1196,6 +1239,16 @@ def save_checklist(checklist_id, checklist_data):
             checklists.append(checklist_data)
         config['checklists'] = checklists
         _save_config_file(config)
+
+        # Atualizar status no reparo (fallback)
+        if repair_id:
+            repair = get_repair(repair_id)
+            if repair:
+                if checklist_type == 'inicial':
+                    repair['initial_checklist_status'] = 'assinado' if has_signature else 'preenchido'
+                elif checklist_type == 'conclusao':
+                    repair['conclusion_checklist_status'] = 'assinado' if has_signature else 'preenchido'
+                save_repair(repair_id, repair)
 
 def delete_checklist(checklist_id):
     """Deleta um checklist"""
@@ -1303,7 +1356,7 @@ def get_order_by_repair(repair_id):
         return None
 
 def save_order(order_id, repair_id, order_data):
-    """Salva ou atualiza uma ordem de retirada"""
+    """Salva ou atualiza uma ordem de retirada e atualiza o status no reparo associado"""
     if not USE_DATABASE:
         config = _load_config_file()
         if 'orders' not in config:
@@ -1320,6 +1373,16 @@ def save_order(order_id, repair_id, order_data):
             orders.append(order_data)
         config['orders'] = orders
         _save_config_file(config)
+
+        # Atualizar status no reparo
+        if repair_id:
+            repair = get_repair(repair_id)
+            if repair:
+                if order_data.get('customer_received'):
+                    repair['or_status'] = 'retirado'
+                else:
+                    repair['or_status'] = 'emitida'
+                save_repair(repair_id, repair)
         return
     
     try:
@@ -1339,6 +1402,16 @@ def save_order(order_id, repair_id, order_data):
                     orders.append(order_data)
                 config['orders'] = orders
                 _save_config_file(config)
+
+                # Atualizar status no reparo (fallback)
+                if repair_id:
+                    repair = get_repair(repair_id)
+                    if repair:
+                        if order_data.get('customer_received'):
+                            repair['or_status'] = 'retirado'
+                        else:
+                            repair['or_status'] = 'emitida'
+                        save_repair(repair_id, repair)
                 return
             cur = _get_cursor(conn)
             data_json = json.dumps(order_data)
@@ -1348,6 +1421,17 @@ def save_order(order_id, repair_id, order_data):
                 ON CONFLICT (id) 
                 DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
             """, (order_id, repair_id, data_json, data_json))
+            
+            # Atualizar status no reparo (banco de dados)
+            if repair_id:
+                repair = get_repair(repair_id)
+                if repair:
+                    if order_data.get('customer_received'):
+                        repair['or_status'] = 'retirado'
+                    else:
+                        repair['or_status'] = 'emitida'
+                    save_repair(repair_id, repair)
+
     except Exception as e:
         print(f"⚠️  Erro ao salvar no banco, usando config.json: {e}")
         config = _load_config_file()
@@ -1364,6 +1448,16 @@ def save_order(order_id, repair_id, order_data):
             orders.append(order_data)
         config['orders'] = orders
         _save_config_file(config)
+
+        # Atualizar status no reparo (fallback)
+        if repair_id:
+            repair = get_repair(repair_id)
+            if repair:
+                if order_data.get('customer_received'):
+                    repair['or_status'] = 'retirado'
+                else:
+                    repair['or_status'] = 'emitida'
+                save_repair(repair_id, repair)
 
 def delete_order(order_id):
     """Deleta uma ordem de retirada"""
@@ -1383,6 +1477,24 @@ def delete_order(order_id):
             conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao deletar do banco: {e}")
+
+def get_full_repair_details(repair_id):
+    """
+    Obtém todos os detalhes de um reparo, incluindo seus checklists e ordem de retirada.
+    Retorna um dicionário com o reparo e listas de checklists e OR.
+    """
+    repair = get_repair(repair_id)
+    if not repair:
+        return None
+
+    checklists = get_checklists_by_repair(repair_id)
+    order = get_order_by_repair(repair_id)
+
+    return {
+        'repair': repair,
+        'checklists': checklists,
+        'order': order
+    }
 
 # ========== FUNÇÕES DE FORNECEDORES ==========
 

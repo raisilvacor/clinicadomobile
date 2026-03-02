@@ -2676,6 +2676,62 @@ def admin_view_or(repair_id):
     
     return render_template('admin/view_or.html', repair=repair, order=order)
 
+@app.route('/admin/repairs/<repair_id>/unified_os', methods=['GET'])
+@login_required
+def admin_view_unified_os(repair_id):
+    """
+    Visualiza a Ordem de Serviço unificada para um reparo,
+    incluindo todos os detalhes do reparo, checklists e OR.
+    """
+    full_details = get_full_repair_details(repair_id)
+    if not full_details:
+        return "Reparo não encontrado", 404
+    
+    repair = full_details['repair']
+    checklists = full_details['checklists']
+    order = full_details['order']
+
+    # Separar checklists em inicial e conclusão
+    initial_checklist = next((c for c in checklists if c.get('type') == 'inicial'), None)
+    conclusion_checklist = next((c for c in checklists if c.get('type') == 'conclusao'), None)
+    
+    return render_template('admin/unified_os.html', 
+                           repair=repair, 
+                           initial_checklist=initial_checklist,
+                           conclusion_checklist=conclusion_checklist,
+                           order=order)
+
+@app.route('/generate_qr_code/<repair_id>', methods=['GET'])
+def generate_qr_code(repair_id):
+    """Gera um QR code para o link público de status do reparo."""
+    import qrcode
+    from io import BytesIO
+    from flask import send_file
+
+    # URL para o status público do reparo
+    # Certifique-se de que a URL_BASE esteja configurada corretamente no seu ambiente
+    # ou construa a URL dinamicamente se o app estiver em um domínio fixo.
+    # Por simplicidade, vamos usar url_for e assumir que o Flask pode gerar a URL externa.
+    # Em produção, você pode precisar de uma variável de ambiente para a URL base.
+    public_status_url = url_for('public_repair_status', repair_id=repair_id, _external=True)
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(public_status_url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    
+    return send_file(buffer, mimetype="image/png")
+
 @app.route('/status/<repair_id>/or/pdf', methods=['GET'])
 def public_or_pdf(repair_id):
     """Gera PDF da OR para cliente (público)"""

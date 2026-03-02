@@ -360,20 +360,9 @@
 
                 <!-- Ações -->
                 <div class="repair-actions" style="margin-top: 1.5rem;">
-                    <a href="{{ url_for('admin_edit_repair', repair_id=repair.id) }}" class="btn btn-primary">✏️ Editar</a>
-                    <button class="btn btn-secondary" onclick="sendMessage('{{ repair.id }}')">📨 Enviar Mensagem</button>
-                    <button class="btn btn-secondary" onclick="updateStatus('{{ repair.id }}')">🔄 Atualizar Status</button>
-                    <a href="{{ url_for('admin_repair_pdf', repair_id=repair.id) }}" target="_blank" class="btn btn-secondary" style="background: #dc3545; color: #fff;">📄 Gerar PDF</a>
+                    <a href="{{ url_for('admin_view_unified_os', repair_id=repair.id) }}" class="btn btn-primary">📋 Ver OS Unificada</a>
+                    <a href="{{ url_for('admin_edit_repair', repair_id=repair.id) }}" class="btn btn-secondary">✏️ Editar</a>
                     <button class="btn btn-danger" onclick="deleteRepair('{{ repair.id }}')">🗑️ Excluir</button>
-                    {% if repair.status != 'concluido' %}
-                    <button class="btn btn-primary" onclick="completeRepair('{{ repair.id }}')" style="background: #28a745;">✅ Concluir Reparo</button>
-                    {% else %}
-                        {% if repair.order_id %}
-                        <a href="{{ url_for('admin_view_or', repair_id=repair.id) }}" class="btn btn-secondary" style="background: #17a2b8; border-color: #17a2b8;">📋 Ver OR</a>
-                        {% else %}
-                        <a href="{{ url_for('admin_emit_or', repair_id=repair.id) }}" class="btn btn-primary" style="background: #ff8c00; border-color: #ff8c00;">📄 Emitir OR</a>
-                        {% endif %}
-                    {% endif %}
                 </div>
                 </div>
             </div>
