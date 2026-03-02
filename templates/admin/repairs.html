@@ -1,536 +1,371 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Central de Status do Reparo{% endblock %}
+{% block title %}Painel Técnico (Admin){% endblock %}
 
 {% block extra_css %}
 <style>
-    .repair-card {
-        cursor: pointer;
+    :root {
+        --bg-light: #f8fafc;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --primary-blue: #3b82f6;
+        --status-open: #3b82f6;
+        --status-approved: #a855f7;
+        --status-budget: #f97316;
+        --status-repair: #eab308;
     }
 
-    .repair-card.expanded {
-        grid-column: 1 / -1;
+    .admin-container {
+        background-color: var(--bg-light);
+        min-height: 100vh;
+        color: var(--text-main);
+        padding: 1.5rem;
     }
 
-    .repair-card-summary {
+    .panel-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        margin-bottom: 2rem;
     }
 
-    .repair-card-details {
-        display: none;
-        margin-top: 1.5rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid #333333;
-        cursor: default;
+    .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
 
-    .repair-card.expanded .repair-card-details {
+    .panel-title h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .panel-title p {
+        color: var(--text-muted);
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .search-bar {
+        position: relative;
+        width: 350px;
+    }
+
+    .search-bar i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+    }
+
+    .search-bar input {
+        width: 100%;
+        padding: 0.6rem 1rem 0.6rem 2.8rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: #fff;
+        font-size: 0.9rem;
+    }
+
+    .filter-btn {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        color: var(--text-main);
+    }
+
+    /* Kanban Layout */
+    .kanban-board {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .kanban-column {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .column-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .column-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+
+    .column-count {
+        background: #e2e8f0;
+        padding: 0.1rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .column-content {
+        min-height: 100px;
+        background: rgba(226, 232, 240, 0.3);
+        border: 2px dashed var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .empty-state {
+        width: 100%;
+        text-align: center;
+        color: var(--text-muted);
+        padding: 2rem;
+        font-size: 0.9rem;
+    }
+
+    /* OS Card */
+    .os-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        width: 280px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .os-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .os-number {
+        font-weight: 800;
+        color: var(--primary-blue);
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
         display: block;
     }
 
-    .expand-toggle {
-        color: #ff8c00;
-        font-size: 1.5rem;
-        cursor: pointer;
-        transition: transform 0.3s ease;
-    }
-
-    .repair-card.expanded .expand-toggle {
-        transform: rotate(180deg);
-    }
-
-    .repair-header {
+    .os-device {
         display: flex;
-        justify-content: space-between;
+        gap: 0.75rem;
         align-items: flex-start;
-        margin-bottom: 1.5rem;
-        flex-wrap: wrap;
-        gap: 1rem;
+        margin-bottom: 0.75rem;
     }
 
-    .repair-info h3 {
-        color: #ff8c00;
-        margin-bottom: 0.5rem;
-        font-size: 1.5rem;
+    .os-device i {
+        margin-top: 0.2rem;
+        color: var(--text-muted);
     }
 
-    .repair-id {
-        color: #999;
-        font-size: 0.9rem;
-        font-family: monospace;
+    .device-info .name {
+        font-weight: 700;
+        font-size: 0.95rem;
+        display: block;
     }
 
-    .detail-item {
-        background: #0d0d0d;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #333333;
+    .device-info .type {
+        font-size: 0.8rem;
+        color: var(--text-muted);
     }
 
-    .detail-label {
-        color: #999;
-        font-size: 0.85rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .detail-value {
-        color: #ffffff;
-        font-weight: 500;
-    }
-
-    .repair-actions {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .link-box {
-        background: #0d0d0d;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #333333;
-        margin-top: 1rem;
+    .os-customer {
         display: flex;
         align-items: center;
-        gap: 1rem;
-    }
-
-    .link-box input {
-        flex: 1;
-        background: #000000;
-        border: 1px solid #333333;
-        color: #ffffff;
-        padding: 0.5rem;
-        border-radius: 5px;
-        font-family: monospace;
-        font-size: 0.9rem;
-    }
-
-    .messages-section {
-        background: #0d0d0d;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-top: 1rem;
-        border: 1px solid #333333;
-    }
-
-    .message-item {
-        background: #1a1a1a;
-        padding: 1rem;
-        border-radius: 8px;
+        gap: 0.75rem;
         margin-bottom: 1rem;
-        border-left: 3px solid #ff8c00;
+        font-size: 0.9rem;
+        color: var(--text-main);
     }
 
-    .message-header {
+    .os-customer i {
+        color: var(--text-muted);
+    }
+
+    .os-problem {
+        background: #f1f5f9;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .os-dates {
+        border-top: 1px solid var(--border-color);
+        padding-top: 0.75rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
         display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
+        flex-direction: column;
+        gap: 0.25rem;
     }
 
-    .message-type {
-        font-size: 0.85rem;
-        color: #ff8c00;
-        font-weight: bold;
-    }
-
-    .message-time {
-        font-size: 0.85rem;
-        color: #999;
-    }
-
-    .message-content {
-        color: #cccccc;
-        line-height: 1.6;
-    }
-
-    .budget-section {
-        background: rgba(255, 140, 0, 0.1);
-        border: 2px solid #ff8c00;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-top: 1rem;
-    }
-
-    .budget-amount {
-        font-size: 2rem;
-        color: #ff8c00;
-        font-weight: bold;
-        margin: 1rem 0;
-    }
-
-    .history-section {
-        background: #0d0d0d;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-top: 1rem;
-        border: 1px solid #333333;
-    }
-
-    .history-item {
+    .os-dates div {
         display: flex;
-        gap: 1rem;
-        padding: 1rem 0;
-        border-bottom: 1px solid #333333;
+        align-items: center;
+        gap: 0.5rem;
     }
 
-    .history-item:last-child {
-        border-bottom: none;
-    }
+    /* Cores das colunas */
+    .dot-open { background: var(--status-open); }
+    .dot-approved { background: var(--status-approved); }
+    .dot-budget { background: var(--status-budget); }
+    .dot-repair { background: var(--status-repair); }
 
-    .history-time {
-        color: #999;
-        font-size: 0.85rem;
-        min-width: 150px;
-    }
-
-    .history-action {
-        color: #ffffff;
-        flex: 1;
-    }
-
-    @media (max-width: 768px) {
-        .repair-header {
-            flex-direction: column;
-        }
-
-        .repair-actions {
-            flex-direction: column;
-        }
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="admin-card">
-    <h2>🔧 Central de Status do Reparo</h2>
-    <p>Gerencie todos os reparos e permita que clientes acompanhem o status em tempo real.</p>
+<div class="panel-header">
+    <div class="panel-title">
+        <div style="background: #fff; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <i class="fa-solid fa-screwdriver-wrench" style="color: var(--primary-blue); font-size: 1.2rem;"></i>
+        </div>
+        <div>
+            <h2>Painel Técnico (Admin)</h2>
+            <p>Visualizando todas as ordens de serviço</p>
+        </div>
+    </div>
+    <div class="header-actions">
+        <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Buscar OS, cliente, marca, modelo...">
+        </div>
+        <button class="filter-btn"><i class="fa-solid fa-sliders"></i> Filtros</button>
+        <a href="{{ url_for('admin_new_repair') }}" class="btn btn-primary" style="background: var(--primary-blue); border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600;">➕ Nova OS</a>
+    </div>
+</div>
 
-    <div style="margin: 2rem 0;">
-        <a href="{{ url_for('admin_new_repair') }}" class="btn btn-primary">➕ Novo Reparo</a>
+<div class="kanban-board">
+    <!-- OS em Aberto -->
+    <div class="kanban-column">
+        <div class="column-header">
+            <div class="column-dot dot-open"></div>
+            <span>OS em Aberto</span>
+            <span class="column-count">{{ repairs|selectattr('status', 'equalto', 'aguardando')|list|length }}</span>
+        </div>
+        <div class="column-content">
+            {% set open_repairs = repairs|selectattr('status', 'equalto', 'aguardando')|list %}
+            {% if open_repairs %}
+                {% for repair in open_repairs %}
+                    {{ render_os_card(repair) }}
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">Nenhuma OS</div>
+            {% endif %}
+        </div>
     </div>
 
-        <div class="items-list">
-        {% if repairs %}
-            {% for repair in repairs %}
-            <div class="item-card repair-card" id="repair-{{ repair.id }}">
-                <div class="repair-card-summary" onclick="toggleRepairDetails('{{ repair.id }}')">
-                    <div class="repair-info">
-                        <h3 style="margin: 0; color: #ff8c00;">{{ repair.device_name or 'Dispositivo não informado' }}</h3>
-                        <div class="repair-id" style="margin-top: 0.25rem;">
-                            ID: {{ repair.id }} | 
-                            {% if repair.get('repair_type') == 'retorno' %}
-                                <span style="color: #ff8c00; font-weight: bold;">🔄 RETORNO</span> | 
-                            {% else %}
-                                <span style="color: #28a745; font-weight: bold;">🆕 NOVO</span> | 
-                            {% endif %}
-                            Cliente: {{ repair.customer_name or 'N/A' }} | {{ repair.created_at[:10] if repair.created_at else 'N/A' }}
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        {% set status_class = 'pending' if repair.status == 'aguardando' else 'primary' if repair.status == 'em_analise' else 'orange' if repair.status == 'orcamento' else 'teal' if repair.status == 'em_reparo' else 'active' %}
-                        <span class="status-badge {{ status_class }}">{{ repair.status|replace('_', ' ')|title }}</span>
-                        <span class="expand-toggle">▼</span>
-                    </div>
-                </div>
+    <!-- Pré-aprovado -->
+    <div class="kanban-column">
+        <div class="column-header">
+            <div class="column-dot dot-approved"></div>
+            <span>Pré-aprovado</span>
+            <span class="column-count">{{ repairs|selectattr('status', 'equalto', 'aprovado')|list|length }}</span>
+        </div>
+        <div class="column-content">
+            {% set approved_repairs = repairs|selectattr('status', 'equalto', 'aprovado')|list %}
+            {% if approved_repairs %}
+                {% for repair in approved_repairs %}
+                    {{ render_os_card(repair) }}
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">Nenhuma OS</div>
+            {% endif %}
+        </div>
+    </div>
 
-                <div class="repair-card-details">
-                <div class="repair-header" style="margin-top: 0;">
-                    <div class="repair-info">
-                        <h3>{{ repair.device_name or 'Dispositivo não informado' }}</h3>
-                        <div class="repair-id">
-                            ID: {{ repair.id }} | 
-                            {% if repair.get('repair_type') == 'retorno' %}
-                                <span style="color: #ff8c00; font-weight: bold; padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); border-radius: 15px; border: 1px solid #ff8c00;">🔄 RETORNO</span>
-                            {% else %}
-                                <span style="color: #28a745; font-weight: bold; padding: 0.25rem 0.75rem; background: rgba(40, 167, 69, 0.2); border-radius: 15px; border: 1px solid #28a745;">🆕 NOVO</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% set status_class = 'pending' if repair.status == 'aguardando' else 'primary' if repair.status == 'em_analise' else 'orange' if repair.status == 'orcamento' else 'teal' if repair.status == 'em_reparo' else 'active' %}
-                    <span class="status-badge {{ status_class }}">{{ repair.status|replace('_', ' ')|title }}</span>
-                </div>
+    <!-- Orçada -->
+    <div class="kanban-column">
+        <div class="column-header">
+            <div class="column-dot dot-budget"></div>
+            <span>Orçada</span>
+            <span class="column-count">{{ repairs|selectattr('status', 'equalto', 'orcamento')|list|length }}</span>
+        </div>
+        <div class="column-content">
+            {% set budget_repairs = repairs|selectattr('status', 'equalto', 'orcamento')|list %}
+            {% if budget_repairs %}
+                {% for repair in budget_repairs %}
+                    {{ render_os_card(repair) }}
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">Nenhuma OS</div>
+            {% endif %}
+        </div>
+    </div>
 
-                <!-- Tipo de Reparo -->
-                <div style="background: #0d0d0d; padding: 1rem; border-radius: 10px; margin-bottom: 1rem; border: 1px solid #333333;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <strong style="color: #ff8c00;">Tipo de Reparo:</strong>
-                        {% if repair.get('repair_type') == 'retorno' %}
-                            <span style="color: #ff8c00; font-weight: bold; padding: 0.25rem 0.75rem; background: rgba(255, 140, 0, 0.2); border-radius: 15px; border: 1px solid #ff8c00;">🔄 RETORNO</span>
-                            <span style="color: #999; font-size: 0.9rem; margin-left: 0.5rem;">(Aparelho retornando para reparo novamente)</span>
-                        {% else %}
-                            <span style="color: #28a745; font-weight: bold; padding: 0.25rem 0.75rem; background: rgba(40, 167, 69, 0.2); border-radius: 15px; border: 1px solid #28a745;">🆕 NOVO</span>
-                            <span style="color: #999; font-size: 0.9rem; margin-left: 0.5rem;">(Primeiro reparo do aparelho)</span>
-                        {% endif %}
-                    </div>
-                </div>
+    <!-- Em Manutenção -->
+    <div class="kanban-column">
+        <div class="column-header">
+            <div class="column-dot dot-repair"></div>
+            <span>Em Manutenção</span>
+            <span class="column-count">{{ repairs|selectattr('status', 'equalto', 'em_reparo')|list|length }}</span>
+        </div>
+        <div class="column-content">
+            {% set in_repair = repairs|selectattr('status', 'equalto', 'em_reparo')|list %}
+            {% if in_repair %}
+                {% for repair in in_repair %}
+                    {{ render_os_card(repair) }}
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">Nenhuma OS</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-                <div class="details-grid">
-                    <div class="detail-item">
-                        <div class="detail-label">Cliente</div>
-                        <div class="detail-value">{{ repair.customer_name or 'Não informado' }}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Telefone</div>
-                        <div class="detail-value">{{ repair.customer_phone or 'Não informado' }}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Data de Entrada</div>
-                        <div class="detail-value">{{ repair.created_at[:10] if repair.created_at else 'N/A' }}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Última Atualização</div>
-                        <div class="detail-value">{{ repair.updated_at[:10] if repair.updated_at else 'N/A' }}</div>
-                    </div>
-                </div>
-
-                <!-- Link de Acompanhamento -->
-                <div class="link-box">
-                    <input type="text" id="link-{{ repair.id }}" value="{{ request.url_root }}status/{{ repair.id }}" readonly>
-                    <button class="btn btn-secondary" onclick="copyLink('{{ repair.id }}')">📋 Copiar Link</button>
-                </div>
-
-                <!-- Orçamento -->
-                {% if repair.budget %}
-                <div class="budget-section">
-                    <h4 style="color: #ff8c00; margin-bottom: 0.5rem;">💰 Orçamento</h4>
-                    <div class="budget-amount">R$ {{ "%.2f"|format(repair.budget.amount|float) }}</div>
-                    <div>
-                        {% set budget_class = 'pending' if repair.budget.status == 'pending' else 'active' if repair.budget.status == 'approved' else 'inactive' %}
-                        <span class="status-badge {{ budget_class }}">
-                            {% if repair.budget.status == 'pending' %}
-                                ⏳ Aguardando Aprovação
-                            {% elif repair.budget.status == 'approved' %}
-                                ✅ Aprovado
-                            {% elif repair.budget.status == 'rejected' %}
-                                ❌ Rejeitado
-                            {% endif %}
-                        </span>
-                    </div>
-                    {% if repair.budget.status == 'pending' %}
-                    <div style="margin-top: 1rem;">
-                        <button class="btn btn-primary" onclick="approveBudget('{{ repair.id }}')">✅ Aprovar</button>
-                        <button class="btn btn-danger" onclick="rejectBudget('{{ repair.id }}')">❌ Rejeitar</button>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-
-                <!-- Mensagens -->
-                {% if repair.messages %}
-                <div class="messages-section">
-                    <h4 style="color: #ff8c00; margin-bottom: 1rem;">💬 Mensagens Automáticas</h4>
-                    {% for message in repair.messages %}
-                    <div class="message-item">
-                        <div class="message-header">
-                            <span class="message-type">{{ message.type|title }}</span>
-                            <span class="message-time">{{ message.sent_at[:16] if message.sent_at else 'N/A' }}</span>
-                        </div>
-                        <div class="message-content">{{ message.content }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- Histórico -->
-                {% if repair.history %}
-                <div class="history-section">
-                    <h4 style="color: #ff8c00; margin-bottom: 1rem;">📋 Histórico</h4>
-                    {% for item in repair.history %}
-                    <div class="history-item">
-                        <div class="history-time">{{ item.timestamp[:16] if item.timestamp else 'N/A' }}</div>
-                        <div class="history-action">{{ item.action }}</div>
-                        {% set history_class = 'pending' if item.status == 'aguardando' else 'primary' if item.status == 'em_analise' else 'orange' if item.status == 'orcamento' else 'teal' if item.status == 'em_reparo' else 'active' %}
-                        <span class="status-badge {{ history_class }}">{{ item.status|replace('_', ' ')|title }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- Garantia -->
-                {% if repair.warranty %}
-                <div class="budget-section" style="background: rgba(40, 167, 69, 0.1); border-color: #28a745;">
-                    <h4 style="color: #28a745; margin-bottom: 0.5rem;">🛡️ Garantia Ativa</h4>
-                    <p style="color: #cccccc;">Período: {{ repair.warranty.period }}</p>
-                    <p style="color: #cccccc;">Válida até: {{ repair.warranty.valid_until[:10] if repair.warranty.valid_until else 'N/A' }}</p>
-                </div>
-                {% endif %}
-
-                <!-- Ações -->
-                <div class="repair-actions" style="margin-top: 1.5rem;">
-                    <a href="{{ url_for('admin_view_unified_os', repair_id=repair.id) }}" class="btn btn-primary">📋 Ver OS Unificada</a>
-                    <a href="{{ url_for('admin_edit_repair', repair_id=repair.id) }}" class="btn btn-secondary">✏️ Editar</a>
-                    <button class="btn btn-danger" onclick="deleteRepair('{{ repair.id }}')">🗑️ Excluir</button>
-                </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="admin-card" style="text-align: center; padding: 3rem;">
-                <p style="color: #999; font-size: 1.2rem;">Nenhum reparo cadastrado ainda.</p>
-                <a href="{{ url_for('admin_new_repair') }}" class="btn btn-primary" style="margin-top: 1rem;">Criar Primeiro Reparo</a>
-            </div>
+{% macro render_os_card(repair) %}
+<div class="os-card" onclick="window.location.href='{{ url_for('admin_edit_repair', repair_id=repair.id) }}'">
+    <span class="os-number">#{{ repair.id }}</span>
+    <div class="os-device">
+        <i class="fa-solid fa-mobile-screen"></i>
+        <div class="device-info">
+            <span class="name">{{ repair.device_name or 'N/A' }}</span>
+            <span class="type">{{ repair.device_type or 'celular' }}</span>
+        </div>
+    </div>
+    <div class="os-customer">
+        <i class="fa-solid fa-user"></i>
+        <span>{{ repair.customer_name or 'N/A' }}</span>
+    </div>
+    <div class="os-problem">
+        {{ repair.problem_description or 'Sem descrição' }}
+    </div>
+    <div class="os-dates">
+        <div><i class="fa-regular fa-calendar"></i> Entrada: {{ repair.created_at[:10] if repair.created_at else 'N/A' }}</div>
+        {% if repair.delivery_forecast %}
+        <div><i class="fa-regular fa-clock"></i> Previsão: {{ repair.delivery_forecast }}</div>
         {% endif %}
     </div>
 </div>
+{% endmacro %}
+
 {% endblock %}
 
-{% block extra_js %}
-<script>
-    function toggleRepairDetails(repairId) {
-        const card = document.getElementById('repair-' + repairId);
-        card.classList.toggle('expanded');
-    }
-
-    function copyLink(repairId) {
-        const input = document.getElementById('link-' + repairId);
-        input.select();
-        document.execCommand('copy');
-        alert('Link copiado! Envie este link para o cliente acompanhar o status.');
-    }
-
-    function approveBudget(repairId) {
-        if (confirm('Confirmar aprovação do orçamento?')) {
-            fetch(`/admin/repairs/${repairId}/budget/approve`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Erro ao aprovar orçamento');
-                }
-            });
-        }
-    }
-
-    function rejectBudget(repairId) {
-        if (confirm('Confirmar rejeição do orçamento?')) {
-            fetch(`/admin/repairs/${repairId}/budget/reject`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Erro ao rejeitar orçamento');
-                }
-            });
-        }
-    }
-
-    function sendMessage(repairId) {
-        const message = prompt('Digite a mensagem para o cliente:');
-        if (message) {
-            fetch(`/admin/repairs/${repairId}/message`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: message })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Mensagem enviada com sucesso!');
-                    location.reload();
-                } else {
-                    alert('Erro ao enviar mensagem');
-                }
-            });
-        }
-    }
-
-    function updateStatus(repairId) {
-        const statuses = [
-            'aguardando',
-            'em_analise',
-            'orcamento',
-            'aprovado',
-            'em_reparo',
-            'concluido'
-        ];
-        
-        const statusNames = {
-            'aguardando': 'Aguardando',
-            'em_analise': 'Em Análise',
-            'orcamento': 'Orçamento',
-            'aprovado': 'Aprovado',
-            'em_reparo': 'Em Reparo',
-            'concluido': 'Concluído'
-        };
-
-        let options = '';
-        statuses.forEach(status => {
-            options += `<option value="${status}">${statusNames[status]}</option>`;
-        });
-
-        const newStatus = prompt(`Selecione o novo status:\n${statuses.map((s, i) => `${i+1}. ${statusNames[s]}`).join('\n')}`);
-        
-        if (newStatus && statuses.includes(newStatus.toLowerCase())) {
-            fetch(`/admin/repairs/${repairId}/status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: newStatus.toLowerCase() })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Status atualizado com sucesso!');
-                    location.reload();
-                } else {
-                    alert('Erro ao atualizar status');
-                }
-            });
-        }
-    }
-    
-    function deleteRepair(repairId) {
-        if (confirm('Tem certeza que deseja excluir este reparo? Esta ação não pode ser desfeita.')) {
-            fetch(`/admin/repairs/${repairId}`, {
-                method: 'DELETE',
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Erro ao excluir reparo');
-                }
-            });
-        }
-    }
-    
-    function completeRepair(repairId) {
-        if (confirm('Deseja realmente concluir este reparo? O status será alterado para Concluído.')) {
-            fetch(`/admin/repairs/${repairId}/status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: 'concluido' })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Erro ao concluir reparo');
-                }
-            });
-        }
-    }
-</script>
-{% endblock %}

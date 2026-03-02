@@ -1120,19 +1120,7 @@ def admin_repairs():
     repairs = get_all_repairs()
     # Ordenar por data mais recente
     repairs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-    
-    # Adicionar score de risco para cada reparo
-    from db import calculate_customer_risk_score
-    repairs_with_score = []
-    for repair in repairs:
-        repair_copy = repair.copy()
-        cpf = repair.get('customer_cpf', '')
-        if cpf:
-            risk_score = calculate_customer_risk_score(cpf)
-            repair_copy['risk_score'] = risk_score
-        repairs_with_score.append(repair_copy)
-    
-    return render_template('admin/repairs.html', repairs=repairs_with_score)
+    return render_template('admin/repairs.html', repairs=repairs)
 
 @app.route('/admin/repairs/new', methods=['GET', 'POST'])
 @login_required
@@ -1169,10 +1157,7 @@ def admin_new_repair():
             'customer_cpf': request.form.get('customer_cpf', ''),
             'service_type': request.form.get('service_type', 'analise'),
             'delivery_forecast': request.form.get('delivery_forecast', ''),
-            'status': 'orcamento' if total_budget > 0 else 'aguardando',
-            'initial_checklist_status': 'pendente',
-            'conclusion_checklist_status': 'pendente',
-            'or_status': 'nao_emitida',
+            'status': 'aguardando', # Iniciar sempre como aguardando para o Kanban
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat(),
             'budget': {
@@ -1193,10 +1178,11 @@ def admin_new_repair():
         # Salvar diretamente no banco de dados
         save_repair(repair_id, repair)
         
-        # Redirecionar para a visualização unificada da nova OS
-        return redirect(url_for('admin_view_unified_os', repair_id=repair_id))
+        # Redirecionar para a lista de reparos
+        return redirect(url_for('admin_repairs'))
     
     technicians = get_all_technicians()
+    return render_template('admin/new_os_wizard.html', technicians=technicians)
     return render_template('admin/new_os_wizard.html', technicians=technicians)
 
 @app.route('/admin/repairs/<repair_id>/status', methods=['POST'])
