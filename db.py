@@ -1780,6 +1780,35 @@ def save_budget_request(request_id, data, status='pendente'):
         print(f"⚠️  Erro ao salvar solicitação de orçamento: {e}")
         return False
 
+def update_budget_request_status(request_id, status, admin_notes=None):
+    """Atualiza o status e notas de uma solicitação de orçamento"""
+    if not USE_DATABASE:
+        return False
+    try:
+        with get_db_connection() as conn:
+            if not conn: return False
+            cur = _get_cursor(conn, dict_cursor=True)
+            # Obter dados atuais para atualizar as notas dentro do JSON data
+            cur.execute("SELECT data FROM budget_requests WHERE id = %s", (request_id,))
+            row = cur.fetchone()
+            if not row:
+                return False
+            
+            data = row['data']
+            if admin_notes is not None:
+                data['admin_notes'] = admin_notes
+            
+            data_json = json.dumps(data)
+            cur.execute("""
+                UPDATE budget_requests 
+                SET status = %s, data = %s::jsonb, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = %s
+            """, (status, data_json, request_id))
+            return True
+    except Exception as e:
+        print(f"⚠️  Erro ao atualizar status da solicitação de orçamento: {e}")
+        return False
+
 def delete_budget_request(request_id):
     """Deleta uma solicitação de orçamento"""
     if not USE_DATABASE:
@@ -1793,5 +1822,125 @@ def delete_budget_request(request_id):
     except Exception as e:
         print(f"⚠️  Erro ao deletar solicitação de orçamento: {e}")
         return False
+
+# ========== FUNÇÕES DE CONFIGURAÇÃO DE ORÇAMENTO ==========
+
+def get_budget_config():
+    """Obtém a configuração do formulário de orçamento"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('budget_config', {})
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('budget_config', {})
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT value FROM admin_settings WHERE key = 'budget_config'")
+            row = cur.fetchone()
+            if row:
+                return json.loads(row['value'])
+            return {}
+    except Exception as e:
+        print(f"⚠️  Erro ao ler configuração de orçamento: {e}")
+        return {}
+
+def save_budget_config(config_data):
+    """Salva a configuração do formulário de orçamento"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        config['budget_config'] = config_data
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                config['budget_config'] = config_data
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            config_json = json.dumps(config_data)
+            cur.execute("""
+                INSERT INTO admin_settings (key, value, updated_at)
+                VALUES ('budget_config', %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (key) 
+                DO UPDATE SET value = %s, updated_at = CURRENT_TIMESTAMP
+            """, (config_json, config_json))
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar configuração de orçamento: {e}")
+
+def transform_budget_config_to_raw(config):
+    """Transforma a configuração estruturada em um formato simples para o orçamentador"""
+    raw = {}
+    if not config:
+        return raw
+        
+    # Extrair marcas e modelos
+    brands_data = config.get('brands', [])
+    for brand in brands_data:
+        brand_name = brand.get('name')
+        if brand_name:
+            raw[brand_name] = [m.get('name') for m in brand.get('models', [])]
+            
+    # Extrair defeitos
+    raw['defeitos'] = [d.get('name') for d in config.get('defects', [])]
+    
+    return raw
+
+# ========== FUNÇÕES DE QUALIDADE DE TÉCNICOS ==========
+
+def calculate_technician_quality_score(tech_id):
+    """Calcula o score de qualidade de um técnico baseado em seus reparos"""
+    repairs = get_all_repairs()
+    tech_repairs = [r for r in repairs if r.get('technician_id') == tech_id]
+    
+    if not tech_repairs:
+        return {
+            'score': 0,
+            'total_repairs': 0,
+            'completed_repairs': 0,
+            'return_rate': 0,
+            'level': 'Iniciante'
+        }
+    
+    total = len(tech_repairs)
+    completed = len([r for r in tech_repairs if r.get('status') == 'concluido'])
+    returns = len([r for r in tech_repairs if r.get('repair_type') == 'retorno'])
+    
+    # Cálculo simples de score (0-100)
+    # 70% peso para conclusão, 30% peso inverso para retornos
+    completion_rate = (completed / total) * 100 if total > 0 else 0
+    return_rate = (returns / total) * 100 if total > 0 else 0
+    
+    score = (completion_rate * 0.7) + ((100 - return_rate) * 0.3)
+    
+    level = 'Iniciante'
+    if score >= 90: level = 'Mestre'
+    elif score >= 75: level = 'Avançado'
+    elif score >= 50: level = 'Intermediário'
+    
+    return {
+        'score': round(score, 1),
+        'total_repairs': total,
+        'completed_repairs': completed,
+        'return_rate': round(return_rate, 1),
+        'level': level
+    }
+
+def get_all_technician_quality_scores():
+    """Obtém os scores de qualidade de todos os técnicos ativos"""
+    techs = get_all_technicians()
+    scores = []
+    for tech in techs:
+        if tech.get('is_active'):
+            quality = calculate_technician_quality_score(tech.get('id'))
+            scores.append({
+                'technician': tech,
+                'quality_score': quality
+            })
+    return scores
 
 # ========== FIM DO ARQUIVO ==========
