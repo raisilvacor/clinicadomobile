@@ -215,6 +215,7 @@
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        line-clamp: 2; /* Propriedade padrão */
     }
 
     .os-dates {
@@ -342,7 +343,7 @@
 </div>
 
 {% macro render_os_card(repair) %}
-<div class="os-card" onclick="window.location.href='{{ url_for('admin_edit_repair', repair_id=repair.id) }}'">
+<div class="os-card" onclick="goToRepairDetails('{{ repair.id }}')">
     <span class="os-number">#{{ repair.id }}</span>
     <div class="os-device">
         <i class="fa-solid fa-mobile-screen"></i>
@@ -367,5 +368,13 @@
 </div>
 {% endmacro %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function goToRepairDetails(repairId) {
+        window.location.href = `{{ url_for('admin_edit_repair', repair_id='') }}${repairId}`;
+    }
+</script>
 {% endblock %}
 

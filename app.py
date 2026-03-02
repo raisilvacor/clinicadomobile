@@ -15,14 +15,7 @@ from db import (
     save_repair,
     delete_repair as db_delete_repair,
     get_full_repair_details,
-    get_all_checklists,
-    get_checklist as db_get_checklist,
-    get_checklists_by_repair,
-    save_checklist,
-    delete_checklist as db_delete_checklist,
-    get_all_orders,
-    get_order as db_get_order,
-    get_order_by_repair,
+    get_all_technicians,
     save_order,
     get_all_suppliers,
     get_supplier as db_get_supplier,
@@ -169,7 +162,6 @@ def admin_dashboard():
     
     # Calcular alertas de aparelhos abandonados para mostrar no dashboard
     repairs = get_all_repairs()
-    orders = get_all_orders()
     abandoned_count = 0
     critical_count = 0
     
@@ -184,8 +176,6 @@ def admin_dashboard():
             os_finalizadas += 1
         elif status not in ['cancelado', 'cancelada']:
             os_abertas += 1
-    
-    os_retiradas = len([o for o in orders if o.get('customer_received')])
     
     now = datetime.now()
     for repair in repairs:
@@ -213,8 +203,7 @@ def admin_dashboard():
     os_stats = {
         'total': total_os,
         'abertas': os_abertas,
-        'finalizadas': os_finalizadas,
-        'retiradas': os_retiradas
+        'finalizadas': os_finalizadas
     }
     
     return render_template('admin/dashboard.html',
@@ -242,8 +231,6 @@ def admin_search():
             formatted_cpf = f"{cpf_clean[:3]}.{cpf_clean[3:6]}.{cpf_clean[6:9]}-{cpf_clean[9:]}"
             
             repairs = get_all_repairs()
-            orders = get_all_orders()
-            checklists = get_all_checklists()
             
             # Buscar reparos pelo CPF
             matching_repairs = []
@@ -252,30 +239,8 @@ def admin_search():
                 if repair_cpf == cpf_clean:
                     matching_repairs.append(repair)
             
-            # Buscar ORs relacionadas aos reparos encontrados
-            matching_orders = []
-            repair_ids = [r.get('id') for r in matching_repairs]
-            for order in orders:
-                if order.get('repair_id') in repair_ids:
-                    matching_orders.append(order)
-            
-            # Buscar checklists relacionados aos reparos encontrados
-            matching_checklists = []
-            for checklist in checklists:
-                checklist_repair_id = checklist.get('repair_id')
-                if checklist_repair_id in repair_ids:
-                    matching_checklists.append(checklist)
-                # Também verificar se está na lista de checklists do reparo
-                for repair in matching_repairs:
-                    repair_checklist_ids = repair.get('checklists', [])
-                    if checklist.get('id') in repair_checklist_ids:
-                        if checklist not in matching_checklists:
-                            matching_checklists.append(checklist)
-            
             search_results = {
-                'repairs': matching_repairs,
-                'orders': matching_orders,
-                'checklists': matching_checklists
+                'repairs': matching_repairs
             }
     
     return render_template('admin/dashboard.html', 
@@ -493,158 +458,7 @@ def admin_password():
     return render_template('admin/password.html')
 
 
-@app.route('/admin/checklist', methods=['GET', 'POST'])
-@login_required
-def admin_checklist():
-    import base64
-    import os
-    import uuid
-    from datetime import datetime
-    
-    if request.method == 'POST':
-        checklist_type = request.form.get('checklist_type', 'inicial')  # inicial ou conclusao
-        repair_id = request.form.get('repair_id', '').strip()
-        
-        # Validar se o reparo foi informado (obrigatório)
-        if not repair_id:
-            return "É obrigatório associar o checklist a um reparo para poder emitir a Ordem de Retirada (OR).", 400
-        
-        # Criar pasta para fotos se não existir
-        photos_dir = os.path.join('static', 'checklist_photos')
-        if not os.path.exists(photos_dir):
-            os.makedirs(photos_dir)
-        
-        checklist_id = str(uuid.uuid4())[:8]
-        checklist_data = {
-            'id': checklist_id,
-            'type': checklist_type,
-            'repair_id': repair_id,
-            'timestamp': datetime.now().isoformat(),
-            'photos': {},
-            'tests': {},
-            'signature': None
-        }
-        
-        # Salvar fotos
-        photo_fields = ['imei_photo', 'placa_photo', 'conectores_photo']
-        if '_photo_data' not in checklist_data:
-            checklist_data['_photo_data'] = {}
-        for field in photo_fields:
-            if field in request.files:
-                file = request.files[field]
-                if file and file.filename:
-                    filename = f"{field}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-                    filepath = os.path.join(photos_dir, filename)
-                    file.save(filepath)
-                    checklist_data['photos'][field] = f"/static/checklist_photos/{filename}"
-                    # Salvar também como base64 no banco (para persistência no Render)
-                    # Usar o campo como chave para garantir que cada foto seja única
-                    file.seek(0)  # Resetar posição do arquivo
-                    file_data = file.read()
-                    # Salvar usando o campo como chave para garantir unicidade
-                    checklist_data['_photo_data'][field] = base64.b64encode(file_data).decode('utf-8')
-                    # Também salvar pelo filename para compatibilidade
-                    checklist_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
-        
-        tests = {}
-        for key, value in request.form.items():
-            if key.startswith('test_before_') or key.startswith('test_after_'):
-                tests[key] = value or 'nao_testeado'
-        checklist_data['tests'] = tests
-        
-        # Assinatura será feita pelo cliente no link de acompanhamento, não no admin
-        
-        # Salvar checklist diretamente no banco de dados
-        save_checklist(checklist_id, checklist_data)
-        
-        # Associar checklist ao reparo
-        repair = db_get_repair(repair_id)
-        if repair:
-            if 'checklists' not in repair:
-                repair['checklists'] = []
-            if checklist_id not in repair['checklists']:
-                repair['checklists'].append(checklist_id)
-            
-            # Se for checklist de conclusão, marcar como conclusão
-            if checklist_type == 'conclusao':
-                repair['conclusion_checklist_id'] = checklist_id
-            # Se for checklist inicial, marcar como inicial
-            elif checklist_type == 'inicial':
-                repair['initial_checklist_id'] = checklist_id
-            
-            save_repair(repair_id, repair)
-        
-        if repair_id:
-            return redirect(url_for('admin_repairs'))
-        else:
-            return redirect(url_for('admin_checklist'))
-    
-    # GET - mostrar checklist
-    checklists = get_all_checklists()
-    repairs = get_all_repairs()
-    
-    return render_template('admin/checklist.html', checklists=checklists, repairs=repairs)
 
-@app.route('/admin/checklist/<checklist_id>/delete', methods=['POST'])
-@login_required
-def admin_delete_checklist(checklist_id):
-    import json
-    import os
-    
-    checklist_to_delete = db_get_checklist(checklist_id)
-    
-    if not checklist_to_delete:
-        return jsonify({'success': False, 'error': 'Checklist não encontrado'})
-    
-    # Remover fotos do checklist
-    if checklist_to_delete.get('photos'):
-        photos = checklist_to_delete.get('photos', {})
-        for photo_field, photo_path in photos.items():
-            if photo_path:
-                photo_file = photo_path.replace('/static/', '')
-                if not photo_file.startswith('static/'):
-                    photo_file = 'static/' + photo_file.lstrip('/')
-                if os.path.exists(photo_file):
-                    try:
-                        os.remove(photo_file)
-                    except:
-                        pass
-    
-    # Remover assinatura do checklist
-    if checklist_to_delete.get('signature'):
-        signature_path = checklist_to_delete['signature']
-        if signature_path.startswith('/static/'):
-            signature_path = signature_path[1:]
-        elif not signature_path.startswith('static/'):
-            signature_path = 'static/' + signature_path.lstrip('/')
-        if os.path.exists(signature_path):
-            try:
-                os.remove(signature_path)
-            except:
-                pass
-    
-    # Remover referência do checklist no reparo
-    repair_id = checklist_to_delete.get('repair_id')
-    if repair_id:
-        repair = db_get_repair(repair_id)
-        if repair:
-            # Remover ID do checklist da lista do reparo
-            if 'checklists' in repair:
-                if checklist_id in repair['checklists']:
-                    repair['checklists'].remove(checklist_id)
-            
-            # Remover referências específicas
-            if repair.get('conclusion_checklist_id') == checklist_id:
-                repair.pop('conclusion_checklist_id', None)
-            if repair.get('initial_checklist_id') == checklist_id:
-                repair.pop('initial_checklist_id', None)
-            
-            save_repair(repair_id, repair)
-    
-    # Remover checklist do banco
-    db_delete_checklist(checklist_id)
-    
-    return jsonify({'success': True})
 
 # ========== CENTRAL DE STATUS DO REPARO ==========
 
@@ -1405,608 +1219,31 @@ def admin_edit_repair(repair_id):
     technicians = get_all_technicians()
     return render_template('admin/edit_repair.html', repair=repair, technicians=technicians)
 
-# Rota pública para cliente ver status
-@app.route('/status/<repair_id>', methods=['GET'])
-def public_repair_status(repair_id):
-    repair = db_get_repair(repair_id)
-    
-    # Buscar TODOS os checklists associados a este reparo (com e sem assinatura)
-    all_repair_checklists = get_checklists_by_repair(repair_id)
-    
-    # Checklists que precisam de assinatura (sem assinatura)
-    repair_checklists = [cl for cl in all_repair_checklists if not cl.get('signature')]
-    
-    return render_template('status.html', repair=repair, repair_checklists=repair_checklists, all_repair_checklists=all_repair_checklists)
 
-@app.route('/status/<repair_id>/budget/approve', methods=['POST'])
-def public_approve_budget(repair_id):
-    from datetime import datetime
-    import json
-    
-    repair = db_get_repair(repair_id)
-    if not repair or not repair.get('budget'):
-        return jsonify({'success': False})
-    
-    repair['budget']['status'] = 'approved'
-    repair['status'] = 'aprovado'
-    repair['updated_at'] = datetime.now().isoformat()
-    repair['history'].append({
-        'timestamp': datetime.now().isoformat(),
-        'action': 'Orçamento aprovado pelo cliente',
-        'status': 'aprovado'
-    })
-    budget_amount = repair['budget'].get('amount') if isinstance(repair['budget'], dict) else repair['budget']
-    repair['messages'].append({
-        'type': 'budget_approved',
-        'content': f'Você aprovou o orçamento de R$ {budget_amount:.2f if isinstance(budget_amount, (int, float)) else budget_amount}. O reparo será iniciado em breve.',
-        'sent_at': datetime.now().isoformat()
-    })
-    save_repair(repair_id, repair)
-    return jsonify({'success': True})
 
-# API: Aprovar orçamento (para app mobile)
-@app.route('/api/repair/<repair_id>/budget/approve', methods=['POST'])
-def api_approve_budget(repair_id):
-    """Aprova orçamento via API (app mobile)"""
-    from datetime import datetime
-    
-    try:
-        data = request.get_json()
-        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
-        
-        if not cpf or len(cpf) != 11:
-            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
-        
-        repair = db_get_repair(repair_id)
-        if not repair:
-            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
-        
-        # Verificar se o reparo pertence ao CPF
-        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
-        if repair_cpf != cpf:
-            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-        
-        if not repair.get('budget'):
-            return jsonify({'success': False, 'error': 'Orçamento não encontrado'}), 400
-        
-        repair['budget']['status'] = 'approved'
-        repair['status'] = 'aprovado'
-        repair['updated_at'] = datetime.now().isoformat()
-        repair['history'].append({
-            'timestamp': datetime.now().isoformat(),
-            'action': 'Orçamento aprovado pelo cliente',
-            'status': 'aprovado'
-        })
-        budget_amount = repair['budget'].get('amount') if isinstance(repair['budget'], dict) else repair['budget']
-        repair['messages'].append({
-            'type': 'budget_approved',
-            'content': f'Você aprovou o orçamento de R$ {budget_amount:.2f if isinstance(budget_amount, (int, float)) else budget_amount}. O reparo será iniciado em breve.',
-            'sent_at': datetime.now().isoformat()
-        })
-        save_repair(repair_id, repair)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
-# API: Rejeitar orçamento (para app mobile)
-@app.route('/api/repair/<repair_id>/budget/reject', methods=['POST'])
-def api_reject_budget(repair_id):
-    """Rejeita orçamento via API (app mobile)"""
-    from datetime import datetime
-    
-    try:
-        data = request.get_json()
-        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
-        
-        if not cpf or len(cpf) != 11:
-            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
-        
-        repair = db_get_repair(repair_id)
-        if not repair:
-            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
-        
-        # Verificar se o reparo pertence ao CPF
-        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
-        if repair_cpf != cpf:
-            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-        
-        if not repair.get('budget'):
-            return jsonify({'success': False, 'error': 'Orçamento não encontrado'}), 400
-        
-        repair['budget']['status'] = 'rejected'
-        repair['status'] = 'aguardando'
-        repair['updated_at'] = datetime.now().isoformat()
-        repair['history'].append({
-            'timestamp': datetime.now().isoformat(),
-            'action': 'Orçamento rejeitado pelo cliente',
-            'status': 'aguardando'
-        })
-        repair['messages'].append({
-            'type': 'budget_rejected',
-            'content': 'Você rejeitou o orçamento. Entre em contato conosco para mais informações.',
-            'sent_at': datetime.now().isoformat()
-        })
-        save_repair(repair_id, repair)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
-# API: Enviar mensagem (para app mobile)
-@app.route('/api/repair/<repair_id>/message', methods=['POST'])
-def api_send_message(repair_id):
-    """Envia mensagem do cliente via API (app mobile)"""
-    from datetime import datetime
-    
-    try:
-        data = request.get_json()
-        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
-        message = data.get('message', '').strip()
-        
-        if not cpf or len(cpf) != 11:
-            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
-        
-        if not message:
-            return jsonify({'success': False, 'error': 'Mensagem não pode estar vazia'}), 400
-        
-        repair = db_get_repair(repair_id)
-        if not repair:
-            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
-        
-        # Verificar se o reparo pertence ao CPF
-        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
-        if repair_cpf != cpf:
-            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-        
-        if 'messages' not in repair:
-            repair['messages'] = []
-        
-        repair['messages'].append({
-            'type': 'customer',
-            'content': message,
-            'sent_at': datetime.now().isoformat()
-        })
-        repair['updated_at'] = datetime.now().isoformat()
-        save_repair(repair_id, repair)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
-# API: Assinar checklist (para app mobile)
-@app.route('/api/repair/<repair_id>/checklist/<checklist_id>/signature', methods=['POST'])
-def api_checklist_signature(repair_id, checklist_id):
-    """Salva assinatura do checklist via API (app mobile)"""
-    from datetime import datetime
-    import base64
-    import os
-    
-    try:
-        data = request.get_json()
-        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
-        signature_data = data.get('signature', '')
-        
-        if not cpf or len(cpf) != 11:
-            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
-        
-        if not signature_data:
-            return jsonify({'success': False, 'error': 'Assinatura não fornecida'}), 400
-        
-        repair = db_get_repair(repair_id)
-        if not repair:
-            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
-        
-        # Verificar se o reparo pertence ao CPF
-        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
-        if repair_cpf != cpf:
-            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-        
-        checklist = db_get_checklist(checklist_id)
-        if not checklist:
-            return jsonify({'success': False, 'error': 'Checklist não encontrado'}), 404
-        
-        if checklist.get('repair_id') != repair_id:
-            return jsonify({'success': False, 'error': 'Checklist não pertence a este reparo'}), 400
-        
-        # Salvar assinatura
-        if ',' in signature_data:
-            signature_data_clean = signature_data.split(',')[1]
-        else:
-            signature_data_clean = signature_data
-        
-        signatures_dir = os.path.join('static', 'signatures')
-        if not os.path.exists(signatures_dir):
-            os.makedirs(signatures_dir)
-        
-        signature_filename = f"checklist_signature_{checklist_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        signature_path = os.path.join(signatures_dir, signature_filename)
-        
-        signature_bytes = base64.b64decode(signature_data_clean)
-        with open(signature_path, 'wb') as f:
-            f.write(signature_bytes)
-        
-        checklist['signature'] = f"/static/signatures/{signature_filename}"
-        checklist['signature_signed_at'] = datetime.now().isoformat()
-        checklist['_signature_data'] = signature_data_clean
-        checklist['updated_at'] = datetime.now().isoformat()
-        
-        save_checklist(checklist_id, checklist)
-        
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
-# API: Assinar orçamento (para app mobile)
-@app.route('/api/repair/<repair_id>/signature', methods=['POST'])
-def api_repair_signature(repair_id):
-    """Salva assinatura do orçamento via API (app mobile)"""
-    from datetime import datetime
-    import base64
-    import os
-    
-    try:
-        data = request.get_json()
-        cpf = data.get('cpf', '').strip().replace('.', '').replace('-', '').replace(' ', '')
-        signature_data = data.get('signature', '')
-        
-        if not cpf or len(cpf) != 11:
-            return jsonify({'success': False, 'error': 'CPF inválido'}), 400
-        
-        if not signature_data:
-            return jsonify({'success': False, 'error': 'Assinatura não fornecida'}), 400
-        
-        repair = db_get_repair(repair_id)
-        if not repair:
-            return jsonify({'success': False, 'error': 'Reparo não encontrado'}), 404
-        
-        # Verificar se o reparo pertence ao CPF
-        repair_cpf = repair.get('customer_cpf', '').replace('.', '').replace('-', '').replace(' ', '')
-        if repair_cpf != cpf:
-            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-        
-        # Salvar assinatura
-        if ',' in signature_data:
-            signature_data_clean = signature_data.split(',')[1]
-        else:
-            signature_data_clean = signature_data
-        
-        signatures_dir = os.path.join('static', 'signatures')
-        if not os.path.exists(signatures_dir):
-            os.makedirs(signatures_dir)
-        
-        signature_filename = f"signature_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        signature_path = os.path.join(signatures_dir, signature_filename)
-        
-        signature_bytes = base64.b64decode(signature_data_clean)
-        with open(signature_path, 'wb') as f:
-            f.write(signature_bytes)
-        
-        repair['signature'] = {
-            'image': f"/static/signatures/{signature_filename}",
-            'signed_at': datetime.now().isoformat()
-        }
-        repair['_signature_data'] = signature_data_clean
-        repair['updated_at'] = datetime.now().isoformat()
-        repair['history'].append({
-            'timestamp': datetime.now().isoformat(),
-            'action': 'Assinatura digital confirmada pelo cliente',
-            'status': repair.get('status', 'aprovado')
-        })
-        repair['messages'].append({
-            'type': 'signature',
-            'content': 'Assinatura digital confirmada.',
-            'sent_at': datetime.now().isoformat()
-        })
-        save_repair(repair_id, repair)
-        
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
-# API: Download PDF (para app mobile - redireciona para rota pública)
-@app.route('/api/repair/<repair_id>/pdf', methods=['GET'])
-def api_download_repair_pdf(repair_id):
-    """Redireciona para download do PDF do reparo"""
-    return redirect(url_for('public_repair_pdf', repair_id=repair_id))
 
-@app.route('/status/<repair_id>/pdf', methods=['GET'])
-def public_repair_pdf(repair_id):
-    """Gera PDF do reparo para cliente (público)"""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
-    from reportlab.lib.units import cm
-    from io import BytesIO
-    import os
-    from datetime import datetime
-    
-    repair = db_get_repair(repair_id)
-    if not repair:
-        return "Reparo não encontrado", 404
-    
-    # Criar PDF em memória
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
-    story = []
-    
-    # Estilos
-    styles = getSampleStyleSheet()
-    
-    # Cabeçalho com logo
-    logo_path = os.path.join('static', 'images', 'logopdf.png')
-    logo_img = None
-    if os.path.exists(logo_path):
-        try:
-            from PIL import Image as PILImage
-            pil_img = PILImage.open(logo_path)
-            img_width, img_height = pil_img.size
-            aspect_ratio = img_width / img_height
-            max_height = 2.5*cm
-            logo_width = max_height * aspect_ratio
-            if logo_width > 4.5*cm:
-                logo_width = 4.5*cm
-                max_height = logo_width / aspect_ratio
-            logo_img = Image(logo_path, width=logo_width, height=max_height)
-        except Exception as e:
-            logo_img = None
-    
-    company_style = ParagraphStyle(
-        'CompanyInfo',
-        parent=styles['Normal'],
-        fontSize=12,
-        alignment=1,
-        spaceAfter=6
-    )
-    
-    company_info = Paragraph(
-        f"<b>Clínica CELL</b><br/>"
-        f"CNPJ: 62.891.287/0001-44<br/>"
-        f"www.clinicacel.com.br",
-        company_style
-    )
-    
-    if logo_img:
-        header_data = [[logo_img, company_info]]
-        header_table = Table(header_data, colWidths=[5*cm, 11*cm])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-        ]))
-        story.append(header_table)
-    else:
-        story.append(company_info)
-    
-    story.append(Spacer(1, 0.8*cm))
-    
-    # Título
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=18,
-        textColor=colors.HexColor('#FF8C00'),
-        spaceAfter=12,
-        alignment=1
-    )
-    story.append(Paragraph("COMPROVANTE DE REPARO", title_style))
-    story.append(Spacer(1, 0.3*cm))
-    
-    # Informações do reparo
-    info_value_style = ParagraphStyle(
-        'InfoValue',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=colors.black,
-        spaceAfter=6
-    )
-    
-    story.append(Paragraph(f"<b>ID do Reparo:</b> {repair.get('id', 'N/A')}", info_value_style))
-    story.append(Paragraph(f"<b>Dispositivo:</b> {repair.get('device_name', 'N/A')}", info_value_style))
-    story.append(Paragraph(f"<b>Modelo:</b> {repair.get('device_model', 'N/A')}", info_value_style))
-    story.append(Paragraph(f"<b>Status:</b> {repair.get('status', 'N/A')}", info_value_style))
-    if repair.get('problem_description'):
-        story.append(Paragraph(f"<b>Problema:</b> {repair.get('problem_description', '')}", info_value_style))
-    
-    story.append(Spacer(1, 0.5*cm))
-    
-    # Informações do cliente
-    story.append(Paragraph("<b>Informações do Cliente:</b>", info_value_style))
-    story.append(Paragraph(f"Nome: {repair.get('customer_name', 'N/A')}", styles['Normal']))
-    story.append(Paragraph(f"Telefone: {repair.get('customer_phone', 'N/A')}", styles['Normal']))
-    if repair.get('customer_cpf'):
-        cpf = repair.get('customer_cpf', '')
-        if len(cpf) == 11:
-            formatted_cpf = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
-        else:
-            formatted_cpf = cpf
-        story.append(Paragraph(f"CPF: {formatted_cpf}", styles['Normal']))
-    
-    story.append(Spacer(1, 0.5*cm))
-    
-    # Orçamento
-    if repair.get('budget'):
-        budget_amount = repair['budget'].get('amount') if isinstance(repair['budget'], dict) else repair['budget']
-        story.append(Paragraph(f"<b>Orçamento:</b> R$ {budget_amount:.2f if isinstance(budget_amount, (int, float)) else budget_amount}", info_value_style))
-    
-    # Construir PDF
-    doc.build(story)
-    buffer.seek(0)
-    
-    from flask import Response
-    return Response(buffer, mimetype='application/pdf', headers={
-        'Content-Disposition': f'inline; filename=reparo_{repair_id}.pdf'
-    })
 
-@app.route('/repairs', methods=['GET'])
-def public_list_repairs():
-    """Lista reparos do cliente por telefone ou email"""
-    search_query = request.args.get('search', '').strip()
-    
-    if not search_query:
-        return render_template('repairs_list.html', repairs=None, search_query=None)
-    
-    repairs = get_all_repairs()
-    
-    # Filtrar reparos por telefone ou email
-    client_repairs = []
-    for repair in repairs:
-        customer_phone = repair.get('customer_phone', '').strip()
-        customer_email = repair.get('customer_email', '').strip()
-        
-        # Normalizar busca (remover espaços, caracteres especiais)
-        search_normalized = search_query.replace(' ', '').replace('-', '').replace('(', '').replace(')', '').lower()
-        phone_normalized = customer_phone.replace(' ', '').replace('-', '').replace('(', '').replace(')', '').lower()
-        email_normalized = customer_email.lower()
-        
-        if search_normalized in phone_normalized or search_normalized in email_normalized:
-            client_repairs.append(repair)
-    
-    # Ordenar por data mais recente
-    client_repairs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-    
-    return render_template('repairs_list.html', repairs=client_repairs, search_query=search_query)
 
-@app.route('/status/<repair_id>/budget/reject', methods=['POST'])
-def public_reject_budget(repair_id):
-    from datetime import datetime
-    import json
-    
-    repair = db_get_repair(repair_id)
-    if not repair or not repair.get('budget'):
-        return jsonify({'success': False})
-    
-    repair['budget']['status'] = 'rejected'
-    repair['status'] = 'aguardando'
-    repair['updated_at'] = datetime.now().isoformat()
-    repair['history'].append({
-        'timestamp': datetime.now().isoformat(),
-        'action': 'Orçamento rejeitado pelo cliente',
-        'status': 'aguardando'
-    })
-    repair['messages'].append({
-        'type': 'budget_rejected',
-        'content': 'Você rejeitou o orçamento. Entre em contato conosco para mais informações.',
-        'sent_at': datetime.now().isoformat()
-    })
-    save_repair(repair_id, repair)
-    return jsonify({'success': True})
 
-@app.route('/status/<repair_id>/checklist/<checklist_id>/signature', methods=['POST'])
-def public_save_checklist_signature(repair_id, checklist_id):
-    import base64
-    import os
-    from datetime import datetime
-    import json
-    
-    repair = db_get_repair(repair_id)
-    if not repair:
-        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
-    
-    checklist = db_get_checklist(checklist_id)
-    if not checklist or checklist.get('repair_id') != repair_id:
-        return jsonify({'success': False, 'error': 'Checklist não encontrado'})
-    
-    data = request.get_json()
-    signature_data = data.get('signature', '')
-    
-    if signature_data:
-        # Criar pasta para assinaturas se não existir
-        signatures_dir = os.path.join('static', 'checklist_photos')
-        if not os.path.exists(signatures_dir):
-            os.makedirs(signatures_dir)
-        
-        if ',' in signature_data:
-            signature_data = signature_data.split(',')[1]
-        
-        signature_filename = f"checklist_signature_{checklist_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        signature_path = os.path.join(signatures_dir, signature_filename)
-        
-        signature_bytes = base64.b64decode(signature_data)
-        with open(signature_path, 'wb') as f:
-            f.write(signature_bytes)
-        
-        checklist['signature'] = f"/static/checklist_photos/{signature_filename}"
-        checklist['signature_signed_at'] = datetime.now().isoformat()
-        # Salvar também como base64 no banco (para persistência no Render)
-        checklist['_signature_data'] = signature_data
-        
-        # Salvar checklist atualizado
-        save_checklist(checklist_id, checklist)
-        
-        # Atualizar histórico do reparo
-        repair['updated_at'] = datetime.now().isoformat()
-        repair['history'].append({
-            'timestamp': datetime.now().isoformat(),
-            'action': f'Assinatura digital do checklist {checklist_id} confirmada pelo cliente',
-            'status': repair.get('status', 'aprovado')
-        })
-        
-        repair['messages'].append({
-            'type': 'checklist_signature',
-            'content': f'Assinatura digital do checklist confirmada. Obrigado pela confiança!',
-            'sent_at': datetime.now().isoformat()
-        })
-        
-        save_repair(repair_id, repair)
-        return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'error': 'Assinatura não fornecida'})
 
-@app.route('/status/<repair_id>/signature', methods=['POST'])
-def public_save_signature(repair_id):
-    from datetime import datetime
-    import json
-    import base64
-    import os
-    
-    data = request.get_json()
-    signature_data = data.get('signature', '')
-    
-    repair = db_get_repair(repair_id)
-    if not repair:
-        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
-    
-    # Criar pasta para assinaturas se não existir
-    signatures_dir = os.path.join('static', 'signatures')
-    if not os.path.exists(signatures_dir):
-        os.makedirs(signatures_dir)
-    
-    # Salvar imagem da assinatura
-    if signature_data:
-        if ',' in signature_data:
-            signature_data_clean = signature_data.split(',')[1]
-        else:
-            signature_data_clean = signature_data
-        
-        signature_filename = f"signature_{repair_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        signature_path = os.path.join(signatures_dir, signature_filename)
-        
-        signature_bytes = base64.b64decode(signature_data_clean)
-        with open(signature_path, 'wb') as f:
-            f.write(signature_bytes)
-        
-        repair['signature'] = {
-            'image': f"/static/signatures/{signature_filename}",
-            'signed_at': datetime.now().isoformat()
-        }
-        # Salvar também como base64 no banco (para persistência no Render)
-        repair['_signature_data'] = signature_data_clean
-        
-        repair['updated_at'] = datetime.now().isoformat()
-        repair['history'].append({
-            'timestamp': datetime.now().isoformat(),
-            'action': 'Assinatura digital confirmada pelo cliente',
-            'status': repair.get('status', 'aprovado')
-        })
-        repair['messages'].append({
-            'type': 'signature',
-            'content': 'Assinatura digital confirmada. O reparo será iniciado em breve.',
-            'sent_at': datetime.now().isoformat()
-        })
-        
-        save_repair(repair_id, repair)
-        return jsonify({'success': True})
-    
-    return jsonify({'success': False, 'error': 'Assinatura não fornecida'})
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @app.route('/admin/repairs/<repair_id>/complete', methods=['POST'])
 @login_required
@@ -2044,44 +1281,7 @@ def admin_complete_repair(repair_id):
     save_repair(repair_id, repair)
     return jsonify({'success': True})
 
-@app.route('/admin/orders', methods=['GET'])
-@login_required
-def admin_orders():
-    """Página principal para gerenciar Ordens de Retirada"""
-    orders = get_all_orders()
-    repairs = get_all_repairs()
-    checklists = get_all_checklists()
-    
-    # Enriquecer orders com dados dos reparos e checklists
-    enriched_orders = []
-    for order in orders:
-        repair_id = order.get('repair_id')
-        repair = next((r for r in repairs if r.get('id') == repair_id), None)
-        
-        if repair:
-            conclusion_checklist_id = repair.get('conclusion_checklist_id')
-            conclusion_checklist = None
-            if conclusion_checklist_id:
-                conclusion_checklist = next((c for c in checklists if c.get('id') == conclusion_checklist_id), None)
-            
-            enriched_order = order.copy()
-            enriched_order['repair'] = repair
-            enriched_order['conclusion_checklist'] = conclusion_checklist
-            enriched_orders.append(enriched_order)
-    
-    # Ordenar por data mais recente
-    enriched_orders.sort(key=lambda x: x.get('emitted_at', ''), reverse=True)
-    
-    # Reparos concluídos que podem ter OR emitida
-    completed_repairs = [r for r in repairs if r.get('status') == 'concluido' and not r.get('order_id')]
-    available_repairs = []
-    for repair in completed_repairs:
-        available_repairs.append({
-            'repair': repair,
-            'conclusion_checklist': None  # Será criado na emissão
-        })
-    
-    return render_template('admin/orders.html', orders=enriched_orders, available_repairs=available_repairs)
+
 
 @app.route('/admin/suppliers', methods=['GET'])
 @login_required
@@ -2514,224 +1714,19 @@ def public_product(product_id):
     
     return render_template('product.html', product=product, whatsapp=whatsapp)
 
-@app.route('/admin/repairs/<repair_id>/checklist/conclusao', methods=['GET', 'POST'])
-@login_required
-def admin_checklist_conclusao(repair_id):
-    import base64
-    import os
-    import uuid
-    from datetime import datetime
-    
-    repair = db_get_repair(repair_id)
-    if not repair:
-        return "Reparo não encontrado", 404
-    
-    # Verificar se o reparo está concluído
-    if repair.get('status') != 'concluido':
-        return "O reparo precisa estar concluído para realizar o checklist de conclusão", 400
-    
-    if request.method == 'POST':
-        # Criar pasta para fotos se não existir
-        photos_dir = os.path.join('static', 'checklist_photos')
-        if not os.path.exists(photos_dir):
-            os.makedirs(photos_dir)
-        
-        checklist_id = str(uuid.uuid4())[:8]
-        checklist_data = {
-            'id': checklist_id,
-            'type': 'conclusao',
-            'repair_id': repair_id,
-            'timestamp': datetime.now().isoformat(),
-            'photos': {},
-            'tests': {},
-            'signature': None
-        }
-        
-        # Salvar fotos (opcional na conclusão)
-        photo_fields = ['imei_photo', 'placa_photo', 'conectores_photo']
-        if '_photo_data' not in checklist_data:
-            checklist_data['_photo_data'] = {}
-        for field in photo_fields:
-            if field in request.files:
-                file = request.files[field]
-                if file and file.filename:
-                    filename = f"{field}_conclusao_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-                    filepath = os.path.join(photos_dir, filename)
-                    file.save(filepath)
-                    checklist_data['photos'][field] = f"/static/checklist_photos/{filename}"
-                    # Salvar também como base64 no banco (para persistência no Render)
-                    file.seek(0)  # Resetar posição do arquivo
-                    file_data = file.read()
-                    checklist_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
-        
-        # Salvar testes - apenas test_after na conclusão
-        test_fields = [
-            'test_after_screen', 'test_after_touch', 'test_after_camera',
-            'test_after_battery', 'test_after_audio', 'test_after_buttons'
-        ]
-        for field in test_fields:
-            checklist_data['tests'][field] = field in request.form
-        
-        # Assinatura será feita pelo cliente no link de acompanhamento, não no admin
-        
-        # Salvar checklist diretamente no banco de dados
-        save_checklist(checklist_id, checklist_data)
-        
-        # Associar ao reparo
-        if 'checklists' not in repair:
-            repair['checklists'] = []
-        if checklist_id not in repair['checklists']:
-            repair['checklists'].append(checklist_id)
-        repair['conclusion_checklist_id'] = checklist_id
-        
-        save_repair(repair_id, repair)
-        
-        return redirect(url_for('admin_repairs'))
-    
-    # GET - mostrar formulário
-    return render_template('admin/checklist_conclusao.html', repair=repair)
 
-@app.route('/admin/repairs/<repair_id>/or', methods=['GET', 'POST'])
-@login_required
-def admin_emit_or(repair_id):
-    from datetime import datetime
-    import uuid
-    import base64
-    import os
-    
-    repair = db_get_repair(repair_id)
-    if not repair:
-        return "Reparo não encontrado", 404
-    
-    # Validações: reparo deve estar concluído e ter checklist de conclusão
-    if repair.get('status') != 'concluido':
-        return "O reparo precisa estar concluído para emitir a Ordem de Retirada", 400
-    
-    # Buscar todos os checklists associados ao reparo
-    repair_checklists = get_checklists_by_repair(repair_id)
-    
-    if request.method == 'POST':
-        # Criar Ordem de Retirada
-        order_id = str(uuid.uuid4())[:8]
-        or_data = {
-            'id': order_id,
-            'repair_id': repair_id,
-            'emitted_at': datetime.now().isoformat(),
-            'emitted_by': session.get('admin_name', 'Raí Silva'),
-            'observations': request.form.get('observations', ''),
-            'customer_received': request.form.get('customer_received', '') == 'on'
-        }
-        
-        # Assinaturas digitais são apenas no link do cliente, não na OR
-        
-        # Salvar OR diretamente no banco de dados
-        save_order(order_id, repair_id, or_data)
-        
-        # Associar OR ao reparo
-        repair['order_id'] = order_id
-        repair['order_emitted_at'] = or_data['emitted_at']
-        save_repair(repair_id, repair)
-        
-        # Redirecionar para visualizar/baixar a OR
-        return redirect(url_for('admin_view_or', repair_id=repair_id))
-    
-    # GET - mostrar formulário
-    # Calcular score de risco do cliente
-    from db import calculate_customer_risk_score
-    customer_cpf = repair.get('customer_cpf', '')
-    risk_score = None
-    if customer_cpf:
-        risk_score = calculate_customer_risk_score(customer_cpf)
-    
-    return render_template('admin/emit_or.html', 
-                         repair=repair, 
-                         conclusion_checklist=None, 
-                         unsigned_checklists=[],
-                         risk_score=risk_score)
 
-@app.route('/admin/repairs/<repair_id>/or/view', methods=['GET'])
-@login_required
-def admin_view_or(repair_id):
-    repair = db_get_repair(repair_id)
-    if not repair:
-        return "Reparo não encontrado", 404
-    
-    order_id = repair.get('order_id')
-    if not order_id:
-        return redirect(url_for('admin_emit_or', repair_id=repair_id))
-    
-    order = db_get_order(order_id)
-    if not order:
-        return "Ordem de Retirada não encontrada", 404
-    
-    return render_template('admin/view_or.html', repair=repair, order=order)
 
-@app.route('/admin/repairs/<repair_id>/unified_os', methods=['GET'])
-@login_required
-def admin_view_unified_os(repair_id):
-    """
-    Visualiza a Ordem de Serviço unificada para um reparo,
-    incluindo todos os detalhes do reparo, checklists e OR.
-    """
-    full_details = get_full_repair_details(repair_id)
-    if not full_details:
-        return "Reparo não encontrado", 404
-    
-    repair = full_details['repair']
-    checklists = full_details['checklists']
-    order = full_details['order']
 
-    # Separar checklists em inicial e conclusão
-    initial_checklist = next((c for c in checklists if c.get('type') == 'inicial'), None)
-    conclusion_checklist = next((c for c in checklists if c.get('type') == 'conclusao'), None)
-    
-    return render_template('admin/unified_os.html', 
-                           repair=repair, 
-                           initial_checklist=initial_checklist,
-                           conclusion_checklist=conclusion_checklist,
-                           order=order)
 
-@app.route('/generate_qr_code/<repair_id>', methods=['GET'])
-def generate_qr_code(repair_id):
-    """Gera um QR code para o link público de status do reparo."""
-    import qrcode
-    from io import BytesIO
-    from flask import send_file
 
-    # URL para o status público do reparo
-    # Certifique-se de que a URL_BASE esteja configurada corretamente no seu ambiente
-    # ou construa a URL dinamicamente se o app estiver em um domínio fixo.
-    # Por simplicidade, vamos usar url_for e assumir que o Flask pode gerar a URL externa.
-    # Em produção, você pode precisar de uma variável de ambiente para a URL base.
-    public_status_url = url_for('public_repair_status', repair_id=repair_id, _external=True)
 
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(public_status_url)
-    qr.make(fit=True)
 
-    img = qr.make_image(fill_color="black", back_color="white")
-    
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    
-    return send_file(buffer, mimetype="image/png")
 
-@app.route('/status/<repair_id>/or/pdf', methods=['GET'])
-def public_or_pdf(repair_id):
-    """Gera PDF da OR para cliente (público)"""
-    return admin_or_pdf_internal(repair_id)
 
-@app.route('/admin/repairs/<repair_id>/or/pdf', methods=['GET'])
-@login_required
-def admin_or_pdf(repair_id):
-    """Gera PDF da OR (requer login admin)"""
-    return admin_or_pdf_internal(repair_id)
+
+
+
 
 def admin_or_pdf_internal(repair_id):
     from reportlab.lib.pagesizes import A4
