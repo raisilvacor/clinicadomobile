@@ -1,5 +1,31 @@
 {% extends "admin/base.html" %}
 
+{% macro render_os_card(repair) %}
+<div class="os-card" onclick="goToRepairDetails('{{ repair.id }}')">
+    <span class="os-number">#{{ repair.id }}</span>
+    <div class="os-device">
+        <i class="fa-solid fa-mobile-screen"></i>
+        <div class="device-info">
+            <span class="name">{{ repair.device_name or 'N/A' }}</span>
+            <span class="type">{{ repair.device_type or 'celular' }}</span>
+        </div>
+    </div>
+    <div class="os-customer">
+        <i class="fa-solid fa-user"></i>
+        <span>{{ repair.customer_name or 'N/A' }}</span>
+    </div>
+    <div class="os-problem">
+        {{ repair.problem_description or 'Sem descrição' }}
+    </div>
+    <div class="os-dates">
+        <div><i class="fa-regular fa-calendar"></i> Entrada: {{ repair.created_at[:10] if repair.created_at else 'N/A' }}</div>
+        {% if repair.delivery_forecast %}
+        <div><i class="fa-regular fa-clock"></i> Previsão: {{ repair.delivery_forecast }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
 {% block title %}Painel Técnico (Admin){% endblock %}
 
 {% block extra_css %}
@@ -341,32 +367,6 @@
         </div>
     </div>
 </div>
-
-{% macro render_os_card(repair) %}
-<div class="os-card" onclick="goToRepairDetails('{{ repair.id }}')">
-    <span class="os-number">#{{ repair.id }}</span>
-    <div class="os-device">
-        <i class="fa-solid fa-mobile-screen"></i>
-        <div class="device-info">
-            <span class="name">{{ repair.device_name or 'N/A' }}</span>
-            <span class="type">{{ repair.device_type or 'celular' }}</span>
-        </div>
-    </div>
-    <div class="os-customer">
-        <i class="fa-solid fa-user"></i>
-        <span>{{ repair.customer_name or 'N/A' }}</span>
-    </div>
-    <div class="os-problem">
-        {{ repair.problem_description or 'Sem descrição' }}
-    </div>
-    <div class="os-dates">
-        <div><i class="fa-regular fa-calendar"></i> Entrada: {{ repair.created_at[:10] if repair.created_at else 'N/A' }}</div>
-        {% if repair.delivery_forecast %}
-        <div><i class="fa-regular fa-clock"></i> Previsão: {{ repair.delivery_forecast }}</div>
-        {% endif %}
-    </div>
-</div>
-{% endmacro %}
 
 {% endblock %}
 
