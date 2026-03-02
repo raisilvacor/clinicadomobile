@@ -369,15 +369,6 @@ def create_tables():
         """)
         
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS customer_passwords (
-                cpf VARCHAR(11) PRIMARY KEY,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        cur.execute("""
             CREATE TABLE IF NOT EXISTS budget_requests (
                 id VARCHAR(50) PRIMARY KEY,
                 data JSONB NOT NULL,
@@ -387,25 +378,11 @@ def create_tables():
             )
         """)
         
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS push_tokens (
-                id SERIAL PRIMARY KEY,
-                cpf VARCHAR(11) NOT NULL,
-                token TEXT NOT NULL,
-                device_info JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(cpf, token)
-            )
-        """)
-        
         
         cur.execute("CREATE INDEX IF NOT EXISTS idx_repairs_repair_id ON repairs(id)")
 
         cur.execute("CREATE INDEX IF NOT EXISTS idx_suppliers_id ON suppliers(id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_customer_passwords_cpf ON customer_passwords(cpf)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_push_tokens_cpf ON push_tokens(cpf)")
         
             
         # Tabela para usuários do admin
@@ -466,25 +443,6 @@ def create_tables():
             print(f"⚠️  Erro ao criar índices: {e}")
             import traceback
             traceback.print_exc()
-        
-        # Criar índices para pending_notifications se a tabela existir
-        try:
-            # Verificar se o índice já existe antes de criar
-            cur.execute("""
-                SELECT 1 FROM pg_indexes 
-                WHERE indexname = 'idx_pending_notifications_cpf'
-            """)
-            if not cur.fetchone():
-                cur.execute("CREATE INDEX idx_pending_notifications_cpf ON pending_notifications(cpf)")
-            
-            cur.execute("""
-                SELECT 1 FROM pg_indexes 
-                WHERE indexname = 'idx_pending_notifications_created'
-            """)
-            if not cur.fetchone():
-                cur.execute("CREATE INDEX idx_pending_notifications_created ON pending_notifications(created_at)")
-        except Exception as e:
-            print(f"⚠️  Erro ao criar índices de notificações: {e}")
         
         # Com autocommit=True, as tabelas já foram criadas automaticamente
         # Verificar se as tabelas foram criadas
@@ -1770,42 +1728,6 @@ def delete_technician(tech_id):
         print(f"⚠️  Erro ao deletar técnico: {e}")
         return False
 
-# ========== FUNÇÕES DE CUSTOMER PASSWORDS ==========
-
-def get_customer_password_hash(cpf):
-    """Obtém o hash da senha de um cliente pelo CPF"""
-    if not USE_DATABASE:
-        return None
-    try:
-        with get_db_connection() as conn:
-            if not conn: return None
-            cur = _get_cursor(conn, dict_cursor=True)
-            cur.execute("SELECT password_hash FROM customer_passwords WHERE cpf = %s", (cpf,))
-            row = cur.fetchone()
-            return row['password_hash'] if row else None
-    except Exception as e:
-        print(f"⚠️  Erro ao obter hash de senha do cliente: {e}")
-        return None
-
-def set_customer_password_hash(cpf, password_hash):
-    """Define ou atualiza o hash da senha de um cliente"""
-    if not USE_DATABASE:
-        return False
-    try:
-        with get_db_connection() as conn:
-            if not conn: return False
-            cur = _get_cursor(conn)
-            cur.execute("""
-                INSERT INTO customer_passwords (cpf, password_hash, updated_at)
-                VALUES (%s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (cpf) 
-                DO UPDATE SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
-            """, (cpf, password_hash, password_hash))
-            return True
-    except Exception as e:
-        print(f"⚠️  Erro ao definir hash de senha do cliente: {e}")
-        return False
-
 # ========== FUNÇÕES DE BUDGET REQUESTS ==========
 
 def get_all_budget_requests():
@@ -1872,67 +1794,4 @@ def delete_budget_request(request_id):
         print(f"⚠️  Erro ao deletar solicitação de orçamento: {e}")
         return False
 
-# ========== FUNÇÕES DE PUSH NOTIFICATIONS ==========
-
-def save_push_token(cpf, token, device_info=None):
-    """Salva um token de notificação push para um CPF"""
-    if not USE_DATABASE:
-        return False
-    try:
-        with get_db_connection() as conn:
-            if not conn: return False
-            cur = _get_cursor(conn)
-            device_info_json = json.dumps(device_info) if device_info else None
-            cur.execute("""
-                INSERT INTO push_tokens (cpf, token, device_info, updated_at)
-                VALUES (%s, %s, %s::jsonb, CURRENT_TIMESTAMP)
-                ON CONFLICT (cpf, token) 
-                DO UPDATE SET device_info = %s::jsonb, updated_at = CURRENT_TIMESTAMP
-            """, (cpf, token, device_info_json, device_info_json))
-            return True
-    except Exception as e:
-        print(f"⚠️  Erro ao salvar token push: {e}")
-        return False
-
-def get_push_tokens_by_cpf(cpf):
-    """Obtém todos os tokens de notificação push para um CPF"""
-    if not USE_DATABASE:
-        return []
-    try:
-        with get_db_connection() as conn:
-            if not conn: return []
-            cur = _get_cursor(conn, dict_cursor=True)
-            cur.execute("SELECT token FROM push_tokens WHERE cpf = %s", (cpf,))
-            tokens = cur.fetchall()
-            return [t['token'] for t in tokens]
-    except Exception as e:
-        print(f"⚠️  Erro ao obter tokens push por CPF: {e}")
-        return []
-
-def delete_push_token(token):
-    """Deleta um token de notificação push"""
-    if not USE_DATABASE:
-        return False
-    try:
-        with get_db_connection() as conn:
-            if not conn: return False
-            cur = _get_cursor(conn)
-            cur.execute("DELETE FROM push_tokens WHERE token = %s", (token,))
-            return True
-    except Exception as e:
-        print(f"⚠️  Erro ao deletar token push: {e}")
-        return False
-
-def delete_push_tokens_by_cpf(cpf):
-    """Deleta todos os tokens de notificação push para um CPF"""
-    if not USE_DATABASE:
-        return False
-    try:
-        with get_db_connection() as conn:
-            if not conn: return False
-            cur = _get_cursor(conn)
-            cur.execute("DELETE FROM push_tokens WHERE cpf = %s", (cpf,))
-            return True
-    except Exception as e:
-        print(f"⚠️  Erro ao deletar tokens push por CPF: {e}")
-        return False
+# ========== FIM DO ARQUIVO ==========
