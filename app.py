@@ -14,6 +14,7 @@ from db import (
     get_repair as db_get_repair,
     save_repair,
     delete_repair as db_delete_repair,
+    get_full_repair_details,
     get_all_checklists,
     get_checklist as db_get_checklist,
     get_checklists_by_repair,
