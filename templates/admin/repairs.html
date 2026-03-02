@@ -373,7 +373,7 @@
 {% block extra_js %}
 <script>
     function goToRepairDetails(repairId) {
-        window.location.href = `{{ url_for('admin_edit_repair', repair_id='') }}${repairId}`;
+        window.location.href = `/admin/repairs/${repairId}/edit`;
     }
 </script>
 {% endblock %}

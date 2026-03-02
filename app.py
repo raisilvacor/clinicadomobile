@@ -1085,6 +1085,7 @@ def admin_edit_repair(repair_id):
         repair['customer_address'] = request.form.get('customer_address', '')
         repair['customer_email'] = request.form.get('customer_email', '')
         repair['technician_id'] = request.form.get('technician_id', '')
+        repair['technical_diagnosis'] = request.form.get('technical_diagnosis', '')
         repair['updated_at'] = datetime.now().isoformat()
         
         save_repair(repair_id, repair)
@@ -1129,9 +1130,15 @@ def admin_complete_repair(repair_id):
     if not repair:
         return jsonify({'success': False, 'error': 'Reparo não encontrado'})
     
+    data = request.get_json() or {}
+    notes = data.get('notes', '')
+    checklist = data.get('checklist', {})
+    
     repair['status'] = 'concluido'
     repair['completed_at'] = datetime.now().isoformat()
     repair['updated_at'] = datetime.now().isoformat()
+    repair['technical_notes'] = notes
+    repair['final_checklist'] = checklist
     
     # Gerar garantia (90 dias)
     warranty_until = datetime.now() + timedelta(days=90)
@@ -1143,9 +1150,11 @@ def admin_complete_repair(repair_id):
     
     repair['history'].append({
         'timestamp': datetime.now().isoformat(),
-        'action': 'Reparo concluído - Garantia de 90 dias ativada',
+        'action': f'Reparo concluído - Garantia de 90 dias ativada. Notas: {notes[:50]}...',
         'status': 'concluido'
     })
+    
+    # Adicionar mensagem automática de conclusão
     repair['messages'].append({
         'type': 'completed',
         'content': 'Seu reparo foi concluído com sucesso! Você possui 90 dias de garantia. Obrigado pela confiança!',
@@ -1154,8 +1163,6 @@ def admin_complete_repair(repair_id):
     
     save_repair(repair_id, repair)
     return jsonify({'success': True})
-
-
 
 @app.route('/admin/suppliers', methods=['GET'])
 @login_required
