@@ -1094,6 +1094,51 @@ def admin_edit_repair(repair_id):
     technicians = get_all_technicians()
     return render_template('admin/edit_repair.html', repair=repair, technicians=technicians)
 
+@app.route('/admin/repairs/<repair_id>/generate_qr', methods=['POST'])
+@login_required
+def admin_generate_qr(repair_id):
+    from datetime import datetime, timedelta
+    import uuid
+    repair = db_get_repair(repair_id)
+    if not repair:
+        return jsonify({'success': False, 'error': 'Reparo não encontrado'})
+    token = uuid.uuid4().hex[:12]
+    expires_at = datetime.now() + timedelta(minutes=3)
+    if 'qr_tests' not in repair:
+        repair['qr_tests'] = []
+    repair['qr_tests'].append({
+        'token': token,
+        'created_at': datetime.now().isoformat(),
+        'expires_at': expires_at.isoformat()
+    })
+    save_repair(repair_id, repair)
+    url = url_for('quality_test', token=token, _external=True)
+    return jsonify({'success': True, 'url': url, 'expires_in': 180, 'expires_at': expires_at.isoformat()})
+
+@app.route('/tests/<token>')
+def quality_test(token):
+    from datetime import datetime
+    repairs = get_all_repairs()
+    found = None
+    for r in repairs:
+        for t in r.get('qr_tests', []):
+            if t.get('token') == token:
+                found = {'repair': r, 'token': t}
+                break
+        if found:
+            break
+    if not found:
+        return f"<html><head><meta name='viewport' content='width=device-width,initial-scale=1' /></head><body style='font-family: system-ui; margin: 0; padding: 2rem;'><h2>QR Code inválido</h2><p>Gere um novo QR Code no painel.</p></body></html>"
+    try:
+        exp = datetime.fromisoformat(found['token']['expires_at'])
+    except Exception:
+        exp = None
+    if exp and datetime.now() > exp:
+        return f"<html><head><meta name='viewport' content='width=device-width,initial-scale=1' /></head><body style='font-family: system-ui; margin: 0; padding: 2rem;'><h2>QR Code expirado</h2><p>Peça ao técnico para gerar novamente.</p></body></html>"
+    title = "Checklist de Qualidade"
+    os_id = found['repair'].get('id')
+    return f"<html><head><meta name='viewport' content='width=device-width,initial-scale=1' /></head><body style='font-family: system-ui; margin: 0; padding: 2rem; text-align:center;'><h2>{title}</h2><p>OS {os_id}</p><p>Inicie os testes no aparelho.</p></body></html>"
+
 
 
 

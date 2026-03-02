@@ -332,6 +332,95 @@
         margin-top: 1.5rem;
         line-height: 1.4;
     }
+    .qc-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(2px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .qc-modal {
+        width: 360px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        animation: zoomIn 120ms ease-out;
+    }
+    .qc-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .qc-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+    .qc-close {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: #64748b;
+        cursor: pointer;
+    }
+    .qc-body {
+        padding: 1rem;
+        text-align: center;
+    }
+    .qc-sub {
+        color: #94a3b8;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+    .qc-desc {
+        color: #64748b;
+        font-size: 0.85rem;
+        margin: 0.5rem 0 1rem;
+    }
+    .qc-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.6rem;
+        border-radius: 10px;
+        background: #3b82f6;
+        color: #fff;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .qc-qr-box {
+        width: 220px;
+        height: 220px;
+        margin: 0 auto 0.75rem;
+        border-radius: 12px;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 10px solid #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .qc-expire {
+        color: #64748b;
+        font-size: 0.8rem;
+        margin: 0.25rem 0 0.75rem;
+    }
+    @keyframes zoomIn {
+        from { transform: scale(0.98); opacity: 0 }
+        to { transform: scale(1); opacity: 1 }
+    }
 </style>
 </style>
 {% endblock %}
@@ -492,7 +581,7 @@
                             <span class="option-badge">Interativo</span>
                         </div>
                         <p class="option-desc">Escaneie o QR Code com o aparelho reparado para executar testes automáticos (tela, touch, som, câmeras, sensores).</p>
-                        <button type="button" class="option-btn btn-outline" onclick="generateTestQRCode()">
+                        <button type="button" class="option-btn btn-outline" onclick="openQualityModal()">
                             <i class="fa-solid fa-mobile-screen-button"></i>
                             Gerar QR Code de Teste
                         </button>
@@ -587,6 +676,27 @@
         </div>
     </div>
 </div>
+
+<div id="quality-modal" class="qc-overlay">
+    <div class="qc-modal">
+        <div class="qc-modal-header">
+            <div>
+                <div class="qc-title">Checklist de Qualidade</div>
+                <div class="qc-sub">OS {{ repair.id }}</div>
+            </div>
+            <button class="qc-close" onclick="closeQualityModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="quality-initial" class="qc-body">
+            <div class="qc-desc">Gere um QR Code para iniciar o checklist de qualidade</div>
+            <button class="qc-btn" onclick="generateQualityQRCode()"><i class="fa-solid fa-qrcode"></i> Gerar QR Code</button>
+        </div>
+        <div id="quality-qr" class="qc-body" style="display: none;">
+            <div class="qc-qr-box"><img id="quality-qr-img" src="" alt="QR Code" style="width: 200px; height: 200px;"/></div>
+            <div class="qc-desc">Escaneie com o aparelho reparado para iniciar os testes</div>
+            <div class="qc-expire">Expira em <span id="quality-expire">03:00</span></div>
+            <button class="qc-btn" onclick="generateQualityQRCode()"><i class="fa-solid fa-rotate-right"></i> Gerar Novamente</button>
+        </div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}
@@ -624,14 +734,56 @@
         document.getElementById('manual-checklist-form').style.display = 'none';
     }
 
-    function generateTestQRCode() {
-        document.getElementById('finalize-selection').style.display = 'none';
-        document.getElementById('qr-code-display').style.display = 'block';
-        
-        const testUrl = `${window.location.origin}/test/${'{{ repair.id }}'}`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(testUrl)}`;
-        
-        document.getElementById('qrcode-container').innerHTML = `<img src="${qrUrl}" alt="QR Code" style="width: 200px; height: 200px; border: 10px solid #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">`;
+    let qualityCountdownInterval = null;
+    function openQualityModal() {
+        document.getElementById('quality-modal').style.display = 'flex';
+        document.getElementById('quality-initial').style.display = 'block';
+        document.getElementById('quality-qr').style.display = 'none';
+        if (qualityCountdownInterval) {
+            clearInterval(qualityCountdownInterval);
+            qualityCountdownInterval = null;
+        }
+    }
+    function closeQualityModal() {
+        document.getElementById('quality-modal').style.display = 'none';
+        if (qualityCountdownInterval) {
+            clearInterval(qualityCountdownInterval);
+            qualityCountdownInterval = null;
+        }
+    }
+    function startQualityCountdown(seconds) {
+        const expireEl = document.getElementById('quality-expire');
+        function render(s) {
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            expireEl.textContent = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        }
+        let remaining = seconds;
+        render(remaining);
+        if (qualityCountdownInterval) clearInterval(qualityCountdownInterval);
+        qualityCountdownInterval = setInterval(() => {
+            remaining -= 1;
+            if (remaining <= 0) {
+                clearInterval(qualityCountdownInterval);
+                qualityCountdownInterval = null;
+                expireEl.textContent = '00:00';
+                return;
+            }
+            render(remaining);
+        }, 1000);
+    }
+    function generateQualityQRCode() {
+        fetch(`/admin/repairs/${'{{ repair.id }}'}/generate_qr`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.url)}`;
+                document.getElementById('quality-qr-img').src = qrUrl;
+                document.getElementById('quality-initial').style.display = 'none';
+                document.getElementById('quality-qr').style.display = 'block';
+                startQualityCountdown(data.expires_in || 180);
+            })
+            .catch(() => {});
     }
 
     function hideQRCode() {

@@ -107,7 +107,43 @@
       "whatsapp": "5586988959957"
     }
   },
-  "repairs": [],
+  "repairs": [
+    {
+      "id": "9948ad68",
+      "repair_type": "novo",
+      "device_name": "asas asas",
+      "device_brand": "asas",
+      "device_model": "asas",
+      "device_type": "Celular",
+      "device_imei": "agdg",
+      "imei_serial": "agdg",
+      "problem_description": "sdgsdgsgsgsdg",
+      "accessories": "",
+      "customer_name": "teste",
+      "customer_phone": "11 99999-9999",
+      "customer_cpf": "123.456.789-00",
+      "service_type": "pre_aprovado",
+      "delivery_forecast": "hoje",
+      "status": "aguardando",
+      "created_at": "2026-03-02T00:22:15.846286",
+      "updated_at": "2026-03-02T00:22:15.846297",
+      "budget": {
+        "labor": 645645.0,
+        "parts": 5465654.0,
+        "discount": 0.0,
+        "total": 6111299.0,
+        "status": "pending"
+      },
+      "messages": [],
+      "history": [
+        {
+          "timestamp": "2026-03-02T00:22:15.846303",
+          "action": "Ordem de Serviço criada via Wizard",
+          "status": "aguardando"
+        }
+      ]
+    }
+  ],
   "checklists": [],
   "orders": [
     {
