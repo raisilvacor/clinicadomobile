@@ -47,7 +47,8 @@ def search_product_in_suppliers(suppliers, query):
         if not title: return False
         title_lower = title.lower()
         
-        # Verificar se pelo menos 60% dos termos da busca estão no título
+        # Verificar se pelo menos 40% dos termos da busca estão no título
+        # Isso permite encontrar produtos mesmo que o nome varie um pouco
         matches = 0
         for term in query_terms:
             if term in title_lower:
@@ -55,7 +56,7 @@ def search_product_in_suppliers(suppliers, query):
         
         if len(query_terms) > 0:
             relevance = matches / len(query_terms)
-            return relevance >= 0.6  # 60% de match requerido
+            return relevance >= 0.4  # Reduzido para 40% para ser menos estrito
         return True
 
     def extract_from_json_ld(soup, supplier_name, website):
@@ -227,11 +228,9 @@ def search_product_in_suppliers(suppliers, query):
                 if not title or len(title) < 3 or title.lower() in TITLE_BLACKLIST:
                     continue
 
-                # Validação ESTRITA de relevância
-                if not is_relevant_title(title, query_terms):
-                    continue
-
-                if price > 5: # Filtrar preços muito baixos (ruído)
+                # Na fase de busca de LINKS, não precisamos filtrar tão estritamente por preço > 5
+                # pois o preço aqui pode ser parcial ou errado. O importante é o link.
+                if price > 0: 
                     supplier_results.append({
                         'supplier_name': supplier_name,
                         'title': title,
@@ -352,7 +351,7 @@ def search_product_in_suppliers(suppliers, query):
                 found_internal_links.append(item['link'])
 
         # 3. Deep Scraping (Visitar Links Relevantes)
-        unique_links = list(set(found_internal_links))[:3] # Limitar a 3 visitas
+        unique_links = list(set(found_internal_links))[:6] # Limitar a 6 visitas para aumentar chance de sucesso
         for link in unique_links:
             details = fetch_product_details(link, supplier_name)
             if details and is_relevant_title(details['title'], query_terms):
