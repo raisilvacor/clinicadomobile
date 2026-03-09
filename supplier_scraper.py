@@ -128,6 +128,12 @@ def search_product_in_suppliers(suppliers, query):
             'adicionar ao carrinho', 'ver detalhes', 'comprar'
         ]
 
+        # Containers proibidos (geralmente header/footer/sidebar)
+        FORBIDDEN_CONTAINERS = [
+            'header', 'footer', 'nav', 'aside', 'cart-drawer', 'mini-cart', 'search-modal',
+            'mobile-menu', 'whatsapp-button', 'newsletter-popup'
+        ]
+
         # Estratégia: Encontrar todos os elementos que parecem ser preços
         price_elements = soup.find_all(string=re.compile(r'R\$\s*\d+'))
         
@@ -137,11 +143,17 @@ def search_product_in_suppliers(suppliers, query):
         
         for price_el in price_elements:
             try:
+                price_text = price_el.strip()
+                
+                # Ignorar se tiver 'x' (parcelas) muito perto, a menos que seja o único preço
+                # Mas geralmente queremos o preço à vista ou total
+                # Se for "12x de R$ 50,00", o valor capturado seria 50. Queremos evitar isso se possível.
+                # Mas sem regex complexo, vamos aceitar e filtrar depois se for muito baixo
+                
                 # Limpar preço
-                price_str = price_el.strip()
-                match = re.search(r'(\d{1,3}(?:\.\d{3})*,\d{2})', price_str)
+                match = re.search(r'(\d{1,3}(?:\.\d{3})*,\d{2})', price_text)
                 if not match:
-                    match = re.search(r'(\d+,\d{2})', price_str)
+                    match = re.search(r'(\d+,\d{2})', price_text)
                 
                 if match:
                     val_str = match.group(1)
@@ -155,6 +167,25 @@ def search_product_in_suppliers(suppliers, query):
                 container = price_el.parent
                 found_link = None
                 
+                # Verificar se o container está em área proibida
+                is_forbidden = False
+                temp_node = container
+                for _ in range(8):
+                    if not temp_node: break
+                    if temp_node.name in ['header', 'footer', 'nav']:
+                        is_forbidden = True
+                        break
+                    # Verificar classes/ids comuns de áreas proibidas
+                    classes = str(temp_node.get('class', [])).lower()
+                    ids = str(temp_node.get('id', [])).lower()
+                    if any(x in classes or x in ids for x in FORBIDDEN_CONTAINERS):
+                        is_forbidden = True
+                        break
+                    temp_node = temp_node.parent
+                
+                if is_forbidden:
+                    continue
+
                 # Heurística melhorada: Subir até encontrar um container que pareça um card de produto
                 # ou que tenha um link válido com título válido
                 current_node = container
@@ -185,7 +216,8 @@ def search_product_in_suppliers(suppliers, query):
                                 best_link = l
                                 break
                             # Se tem classe de titulo
-                            if any(c in str(l.get('class', [])).lower() for c in ['title', 'name', 'product']):
+                            classes = str(l.get('class', [])).lower()
+                            if any(c in classes for c in ['title', 'name', 'product']):
                                 best_link = l
                                 break
                         
@@ -240,7 +272,7 @@ def search_product_in_suppliers(suppliers, query):
         
         # Verificar href
         href = link_el.get('href', '').lower()
-        if any(x in href for x in ['/cart', '/checkout', '/login', '/account', 'javascript:', '#']):
+        if any(x in href for x in ['/cart', '/checkout', '/login', '/account', 'javascript:', '#', 'tel:', 'mailto:']):
             return False
             
         return True
