@@ -36,6 +36,14 @@
                     <strong style="color: #ccc;">Email:</strong>
                     <span style="color: #fff; float: right; word-break: break-all;">{{ supplier.email or 'N/A' }}</span>
                 </div>
+                {% if supplier.website %}
+                <div>
+                    <strong style="color: #ccc;">Site:</strong>
+                    <span style="color: #fff; float: right; word-break: break-all;">
+                        <a href="{{ supplier.website }}" target="_blank" style="color: #ff8c00; text-decoration: none;">{{ supplier.website }}</a>
+                    </span>
+                </div>
+                {% endif %}
                 <div>
                     <strong style="color: #ccc;">Endereço:</strong>
                     <div style="color: #fff; margin-top: 0.2rem;">{{ supplier.address or 'N/A' }}</div>

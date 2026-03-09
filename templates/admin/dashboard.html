@@ -24,79 +24,63 @@
     </div>
     {% endif %}
 
-    <!-- Barra de Pesquisa -->
-    <div class="admin-card" style="margin-bottom: 2rem;">
-        <h3 style="color: #ff8c00; margin-bottom: 1rem;">🔍 Buscar por CPF do Cliente</h3>
-        <form method="GET" action="{{ url_for('admin_search') }}" class="search-box" style="margin-bottom: 0; padding: 0; border: none; background: transparent;">
+    <!-- Busca de Produtos em Fornecedores -->
+    <div class="admin-card">
+        <h3 style="color: #ff8c00; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            🔍 Buscar Produto em Fornecedores
+        </h3>
+        
+        <form method="GET" action="{{ url_for('admin_search_suppliers') }}" class="search-box" style="margin-bottom: 2rem; padding: 0; border: none; background: transparent; display: flex; gap: 1rem;">
             <input 
                 type="text" 
-                name="cpf" 
+                name="query" 
                 class="form-control" 
-                style="margin-bottom: 0;"
-                placeholder="Digite o CPF do cliente (apenas números)"
-                value="{{ search_cpf if search_cpf else '' }}"
-                maxlength="11"
-                pattern="[0-9]*"
-                inputmode="numeric"
+                style="margin-bottom: 0; flex: 1;"
+                placeholder="Digite o nome do produto (ex: Tela iPhone 11)"
+                value="{{ search_query if search_query else '' }}"
+                required
             >
             <button type="submit" class="btn btn-primary">🔍 Buscar</button>
         </form>
-    </div>
-    
-    {% if search_results %}
-    <div class="search-results">
-        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Resultados da Busca para CPF: {{ formatted_cpf }}</h3>
-        
-        {% if search_results.repairs %}
-        <div class="admin-card">
-            <h3>🔧 Reparos ({{ search_results.repairs|length }})</h3>
-            <div class="items-list">
-                {% for repair in search_results.repairs %}
-                <div class="item-card">
-                    <h3>ID: {{ repair.id }}</h3>
-                    <p><strong>Cliente:</strong> {{ repair.customer_name or 'N/A' }}</p>
-                    <p><strong>Dispositivo:</strong> {{ repair.device_name or 'N/A' }}</p>
-                    <p><strong>Status:</strong> <span class="status-badge pending">{{ repair.status or 'N/A' }}</span></p>
-                    <p><strong>Data:</strong> {{ repair.created_at[:10] if repair.created_at else 'N/A' }}</p>
-                    <div class="item-actions">
-                        <a href="{{ url_for('admin_repairs') }}#repair-{{ repair.id }}" class="btn btn-primary">Ver Reparo</a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        
-        {% if not search_results.repairs %}
-        <div class="admin-card" style="text-align: center; padding: 2rem;">
-            <p style="color: #999;">Nenhum reparo encontrado para este CPF.</p>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
 
-    {% if os_stats %}
-    <div class="admin-card">
-        <h3 style="color: #ff8c00; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            📋 Estatísticas de Ordens de Serviço
-        </h3>
-        
-        <div class="details-grid" style="margin-bottom: 1rem;">
-            <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
-                <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Total de Ordens de Serviço</span>
-                <strong style="color: #fff; font-size: 1.6rem;">{{ os_stats.total }}</strong>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #ffc107;">
-                <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Ordens em Aberto</span>
-                <strong style="color: #ffc107; font-size: 1.6rem;">{{ os_stats.abertas }}</strong>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: #1a1a1a; border-radius: 8px; border: 1px solid #17a2b8;">
-                <span style="display: block; color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem;">Ordens Finalizadas</span>
-                <strong style="color: #17a2b8; font-size: 1.6rem;">{{ os_stats.finalizadas }}</strong>
-            </div>
+        {% if supplier_results %}
+        <div class="supplier-results">
+            <h4 style="margin-bottom: 1rem;">Resultados para: "{{ search_query }}" ({{ supplier_results|length }} encontrados)</h4>
+            
+            {% if supplier_results|length > 0 %}
+                <div class="items-list">
+                    {% for result in supplier_results %}
+                    <div class="item-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 0.8rem; color: #ff8c00; margin-bottom: 0.3rem;">{{ result.supplier_name }}</div>
+                                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem;">
+                                    <a href="{{ result.link }}" target="_blank" style="color: #fff; text-decoration: none;">{{ result.title }}</a>
+                                </h3>
+                                <p style="color: #999; font-size: 0.9rem; margin: 0;">{{ result.description }}</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">{{ result.price_formatted }}</div>
+                                <a href="{{ result.link }}" target="_blank" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem; display: inline-block;">Ver no Site ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 2rem; background: #1a1a1a; border-radius: 8px;">
+                    <p style="color: #999;">Nenhum produto encontrado nos sites dos fornecedores.</p>
+                </div>
+            {% endif %}
         </div>
+        {% endif %}
+        
+        {% if search_error %}
+        <div class="alert-card error">
+            {{ search_error }}
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 
     <!-- Calculadora de Lucro -->
     <div class="admin-card">
@@ -194,11 +178,7 @@
             <a href="{{ url_for('admin_contact') }}" class="btn btn-primary">Editar</a>
         </div>
 
-        <div class="stat-card">
-            <h3>📋 Ordens de Serviço</h3>
-            <p>Gerencie reparos, checklists e ordens de retirada em um único lugar</p>
-            <a href="{{ url_for('admin_repairs') }}" class="btn btn-primary">Acessar</a>
-        </div>
+
 
         <div class="stat-card">
             <h3>🏢 Fornecedores</h3>
@@ -230,17 +210,7 @@
             <a href="https://www.nfse.gov.br/EmissorNacional/Login?ReturnUrl=%2fEmissorNacional" target="_blank" class="btn btn-primary">Acessar</a>
         </div>
 
-        <div class="stat-card">
-            <h3>💰 Gestão Financeira</h3>
-            <p>Relatórios de faturamento, serviços mais vendidos, abandono e garantias</p>
-            <a href="{{ url_for('admin_financeiro') }}" class="btn btn-primary">Acessar</a>
-        </div>
 
-        <div class="stat-card">
-            <h3>🛡️ Score de Risco do Cliente</h3>
-            <p>Sistema automático de avaliação de risco baseado no histórico do cliente</p>
-            <a href="{{ url_for('admin_risk_scores') }}" class="btn btn-primary">Acessar</a>
-        </div>
 
         <div class="stat-card">
             <h3>👥 Usuários do Admin</h3>

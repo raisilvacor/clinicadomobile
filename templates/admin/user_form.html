@@ -37,18 +37,6 @@
                 <label class="mb-3">Permissões de Acesso</label>
                 <div class="checkbox-grid">
                     <label class="checkbox-item">
-                        <input type="checkbox" name="perm_repairs" {% if user and user.permissions and user.permissions.repairs %}checked{% endif %}>
-                        <span>🔧 Reparos</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <input type="checkbox" name="perm_checklist" {% if user and user.permissions and user.permissions.checklist %}checked{% endif %}>
-                        <span>🛡️ Checklist</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <input type="checkbox" name="perm_orders" {% if user and user.permissions and user.permissions.orders %}checked{% endif %}>
-                        <span>📋 Ordens</span>
-                    </label>
-                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_suppliers" {% if user and user.permissions and user.permissions.suppliers %}checked{% endif %}>
                         <span>🏢 Fornecedores</span>
                     </label>

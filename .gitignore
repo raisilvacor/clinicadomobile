@@ -1,3 +1,4 @@
+
 # Python
 __pycache__/
 *.py[cod]
@@ -48,3 +49,5 @@ static/checklist_photos/
 # Signatures (dados sensíveis)
 static/signatures/
 
+# Local tools and scripts
+scripts/

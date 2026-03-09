@@ -40,15 +40,6 @@
                     <div class="specialties-section">
                         <strong class="text-warning" style="display: block; margin-bottom: 0.5rem;">Permissões:</strong>
                         <div class="tags-container">
-                            {% if user.permissions.repairs %}
-                            <span class="status-badge info">Reparos</span>
-                            {% endif %}
-                            {% if user.permissions.checklist %}
-                            <span class="status-badge info">Checklist</span>
-                            {% endif %}
-                            {% if user.permissions.orders %}
-                            <span class="status-badge info">Ordens</span>
-                            {% endif %}
                             {% if user.permissions.suppliers %}
                             <span class="status-badge info">Fornecedores</span>
                             {% endif %}
