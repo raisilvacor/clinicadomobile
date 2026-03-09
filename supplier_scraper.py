@@ -11,8 +11,8 @@ def search_product_in_suppliers(suppliers, query):
     """
     Busca um produto em todos os sites dos fornecedores cadastrados.
     Utiliza múltiplas estratégias:
-    1. Busca interna do site (heurística + JSON-LD)
-    2. Busca externa via DuckDuckGo (site:domain)
+    1. Busca interna do site -> Extrai Links -> Deep Scraping (Visita o produto)
+    2. Busca externa via DuckDuckGo -> Deep Scraping
     
     Retorna uma lista de resultados ordenados por preço.
     """
@@ -66,7 +66,6 @@ def search_product_in_suppliers(suppliers, query):
                 except:
                     continue
         except Exception as e:
-            # print(f"Erro ao extrair JSON-LD: {e}")
             pass
         return products
 
@@ -125,13 +124,16 @@ def search_product_in_suppliers(suppliers, query):
             'checkout', 'finalizar compra', 'política de privacidade', 
             'termos de uso', 'contato', 'fale conosco', 'sobre nós', 'login', 
             'register', 'cart', 'my account', 'shop', 'loja', 'whatsapp',
-            'adicionar ao carrinho', 'ver detalhes', 'comprar'
+            'adicionar ao carrinho', 'ver detalhes', 'comprar',
+            'resultados da pesquisa', 'search results', 'resultados para', 
+            'nenhum produto encontrado', 'filtrar', 'ordernar por', 'mais vendidos',
+            'lançamentos', 'ofertas', 'categorias', 'produtos'
         ]
 
         # Containers proibidos (geralmente header/footer/sidebar)
         FORBIDDEN_CONTAINERS = [
             'header', 'footer', 'nav', 'aside', 'cart-drawer', 'mini-cart', 'search-modal',
-            'mobile-menu', 'whatsapp-button', 'newsletter-popup'
+            'mobile-menu', 'whatsapp-button', 'newsletter-popup', 'breadcrumb'
         ]
 
         # Estratégia: Encontrar todos os elementos que parecem ser preços
@@ -144,11 +146,6 @@ def search_product_in_suppliers(suppliers, query):
         for price_el in price_elements:
             try:
                 price_text = price_el.strip()
-                
-                # Ignorar se tiver 'x' (parcelas) muito perto, a menos que seja o único preço
-                # Mas geralmente queremos o preço à vista ou total
-                # Se for "12x de R$ 50,00", o valor capturado seria 50. Queremos evitar isso se possível.
-                # Mas sem regex complexo, vamos aceitar e filtrar depois se for muito baixo
                 
                 # Limpar preço
                 match = re.search(r'(\d{1,3}(?:\.\d{3})*,\d{2})', price_text)
@@ -187,7 +184,6 @@ def search_product_in_suppliers(suppliers, query):
                     continue
 
                 # Heurística melhorada: Subir até encontrar um container que pareça um card de produto
-                # ou que tenha um link válido com título válido
                 current_node = container
                 
                 for _ in range(6): # Subir até 6 níveis
@@ -195,7 +191,7 @@ def search_product_in_suppliers(suppliers, query):
                     
                     # Se o próprio nó é um link
                     if current_node.name == 'a':
-                        if is_valid_link(current_node, TITLE_BLACKLIST):
+                        if is_valid_link(current_node, TITLE_BLACKLIST, website):
                             found_link = current_node
                             break
                             
@@ -203,7 +199,7 @@ def search_product_in_suppliers(suppliers, query):
                     links = current_node.find_all('a', href=True)
                     valid_links = []
                     for l in links:
-                        if is_valid_link(l, TITLE_BLACKLIST):
+                        if is_valid_link(l, TITLE_BLACKLIST, website):
                             valid_links.append(l)
                     
                     # Se encontrou links válidos
@@ -256,9 +252,14 @@ def search_product_in_suppliers(suppliers, query):
                 continue
         return supplier_results
 
-    def is_valid_link(link_el, blacklist):
+    def is_valid_link(link_el, blacklist, base_url=""):
         """Verifica se um link é válido para ser um produto"""
         text = link_el.get_text(strip=True).lower()
+        
+        # Tentar pegar texto do atributo title se não tiver texto visível
+        if not text:
+            text = link_el.get('title', '').strip().lower()
+
         if not text:
             # Se não tem texto, verifique se tem imagem com alt ou title
             img = link_el.find('img')
@@ -268,12 +269,26 @@ def search_product_in_suppliers(suppliers, query):
         
         if not text: return False
         if len(text) < 3: return False
-        if text in blacklist: return False
+        
+        # Verificar se o texto está na blacklist
+        for blacklisted in blacklist:
+            if blacklisted in text:
+                return False
         
         # Verificar href
         href = link_el.get('href', '').lower()
-        if any(x in href for x in ['/cart', '/checkout', '/login', '/account', 'javascript:', '#', 'tel:', 'mailto:']):
+        if any(x in href for x in ['/cart', '/checkout', '/login', '/account', 'javascript:', '#', 'tel:', 'mailto:', 'wp-login', 'wp-admin', 'minha-conta']):
             return False
+            
+        # Evitar links para a própria página de busca (loop)
+        if base_url:
+            base_domain = urlparse(base_url).netloc
+            href_domain = urlparse(href).netloc
+            if href_domain and base_domain != href_domain:
+                return False # Link externo (opcional, mas geralmente queremos produtos do fornecedor)
+            
+            if '?s=' in href or 'search' in href or 'busca' in href:
+                return False
             
         return True
 
@@ -306,13 +321,12 @@ def search_product_in_suppliers(suppliers, query):
             
             return links
         except Exception as e:
-            # print(f"Erro no DDG: {e}")
             return []
 
     def fetch_product_details(url, supplier_name):
         """Acessa a página do produto para tentar pegar o preço"""
         try:
-            resp = requests.get(url, headers=get_headers(), timeout=5)
+            resp = requests.get(url, headers=get_headers(), timeout=8)
             if resp.status_code != 200: return None
             
             soup = BeautifulSoup(resp.text, 'html.parser')
@@ -329,7 +343,15 @@ def search_product_in_suppliers(suppliers, query):
             heuristic_products = extract_via_heuristic(soup, supplier_name, url)
             if heuristic_products:
                 # Heurística pode pegar vários preços (relacionados etc), tenta pegar o maior destaque ou primeiro
-                return heuristic_products[0]
+                # Ordenar por tamanho do título (títulos maiores geralmente são descrições de produtos, títulos curtos podem ser lixo)
+                # Ou ordenar pelo preço para evitar 0 ou muito baixo
+                heuristic_products.sort(key=lambda x: len(x['title']), reverse=True)
+                
+                # Filtrar preços muito baixos (provavelmente parcela ou erro)
+                valid_products = [p for p in heuristic_products if p['price'] > 5]
+                
+                if valid_products:
+                    return valid_products[0]
                 
             return None
         except:
@@ -350,31 +372,35 @@ def search_product_in_suppliers(suppliers, query):
             f"{website}/loja/busca?q={quote(query)}"
         ]
         
-        found_internal = False
+        found_internal_links = []
         
-        # Tenta busca interna primeiro
+        # Tenta busca interna primeiro para encontrar LINKS de produtos
         for url in search_urls:
             try:
                 response = requests.get(url, headers=get_headers(), timeout=8)
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.text, 'html.parser')
                     
-                    # Tenta JSON-LD
-                    json_res = extract_from_json_ld(soup, supplier_name, website)
-                    if json_res:
-                        supplier_results.extend(json_res)
-                        found_internal = True
+                    # Usar heurística para encontrar "candidates" na lista de busca
+                    # Mas em vez de pegar os dados finais, pegamos apenas os LINKS
+                    candidates = extract_via_heuristic(soup, supplier_name, website)
                     
-                    # Tenta Heurística
-                    html_res = extract_via_heuristic(soup, supplier_name, website)
-                    if html_res:
-                        supplier_results.extend(html_res)
-                        found_internal = True
+                    for cand in candidates:
+                        found_internal_links.append(cand['link'])
                         
-                    if found_internal:
+                    if found_internal_links:
                         break
             except:
                 continue
+        
+        # Deep Scraping: Visitar cada link encontrado (limitado a 3)
+        # para garantir que pegamos o preço certo da página do produto
+        unique_links = list(set(found_internal_links))[:3]
+        
+        for link in unique_links:
+            details = fetch_product_details(link, supplier_name)
+            if details:
+                supplier_results.append(details)
         
         # 2. Se a busca interna retornou pouco ou nada, tenta DuckDuckGo (Deep Search)
         if len(supplier_results) == 0:
