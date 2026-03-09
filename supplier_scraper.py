@@ -118,6 +118,16 @@ def search_product_in_suppliers(suppliers, query):
         """Extração baseada em heurística visual (HTML)"""
         supplier_results = []
         
+        # Lista negra de títulos genéricos para ignorar
+        TITLE_BLACKLIST = [
+            'ir para o conteúdo', 'skip to content', 'menu', 'carrinho', 'minha conta', 
+            'entrar', 'cadastre-se', 'home', 'início', 'busca', 'pesquisa', 
+            'checkout', 'finalizar compra', 'política de privacidade', 
+            'termos de uso', 'contato', 'fale conosco', 'sobre nós', 'login', 
+            'register', 'cart', 'my account', 'shop', 'loja', 'whatsapp',
+            'adicionar ao carrinho', 'ver detalhes', 'comprar'
+        ]
+
         # Estratégia: Encontrar todos os elementos que parecem ser preços
         price_elements = soup.find_all(string=re.compile(r'R\$\s*\d+'))
         
@@ -145,20 +155,44 @@ def search_product_in_suppliers(suppliers, query):
                 container = price_el.parent
                 found_link = None
                 
-                # Subir até 5 níveis procurando um link
-                for _ in range(5):
-                    if not container: break
-                    if container.name == 'a':
-                        found_link = container
-                        break
-                    # Link com classe de titulo ou produto
-                    links = container.find_all('a', href=True)
-                    for l in links:
-                        if len(l.get_text(strip=True)) > 5:
-                            found_link = l
+                # Heurística melhorada: Subir até encontrar um container que pareça um card de produto
+                # ou que tenha um link válido com título válido
+                current_node = container
+                
+                for _ in range(6): # Subir até 6 níveis
+                    if not current_node: break
+                    
+                    # Se o próprio nó é um link
+                    if current_node.name == 'a':
+                        if is_valid_link(current_node, TITLE_BLACKLIST):
+                            found_link = current_node
                             break
-                    if found_link: break
-                    container = container.parent
+                            
+                    # Procurar links dentro deste nó
+                    links = current_node.find_all('a', href=True)
+                    valid_links = []
+                    for l in links:
+                        if is_valid_link(l, TITLE_BLACKLIST):
+                            valid_links.append(l)
+                    
+                    # Se encontrou links válidos
+                    if valid_links:
+                        # Preferir links que tenham imagem ou classe de título
+                        best_link = None
+                        for l in valid_links:
+                            # Se tem imagem dentro, é forte candidato
+                            if l.find('img'):
+                                best_link = l
+                                break
+                            # Se tem classe de titulo
+                            if any(c in str(l.get('class', [])).lower() for c in ['title', 'name', 'product']):
+                                best_link = l
+                                break
+                        
+                        found_link = best_link if best_link else valid_links[0]
+                        break
+                        
+                    current_node = current_node.parent
                     
                 if not found_link:
                     continue
@@ -166,14 +200,16 @@ def search_product_in_suppliers(suppliers, query):
                 link = urljoin(website, found_link['href'])
                 title = found_link.get_text(strip=True)
                 
-                # Tentar melhorar o título
-                if len(title) < 5 and container:
-                    title_el = container.find(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'], class_=re.compile(r'title|name'))
+                # Tentar melhorar o título se for muito curto
+                if len(title) < 5 and current_node:
+                    title_el = current_node.find(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'], class_=re.compile(r'title|name|product', re.I))
                     if title_el:
-                        title = title_el.get_text(strip=True)
+                        t_text = title_el.get_text(strip=True)
+                        if len(t_text) > 3 and t_text.lower() not in TITLE_BLACKLIST:
+                            title = t_text
                 
-                if not title:
-                    title = "Produto sem título"
+                if not title or len(title) < 3 or title.lower() in TITLE_BLACKLIST:
+                    continue
 
                 if price > 0:
                     supplier_results.append({
@@ -187,6 +223,27 @@ def search_product_in_suppliers(suppliers, query):
             except:
                 continue
         return supplier_results
+
+    def is_valid_link(link_el, blacklist):
+        """Verifica se um link é válido para ser um produto"""
+        text = link_el.get_text(strip=True).lower()
+        if not text:
+            # Se não tem texto, verifique se tem imagem com alt ou title
+            img = link_el.find('img')
+            if img:
+                alt = img.get('alt', '').strip()
+                if alt: text = alt.lower()
+        
+        if not text: return False
+        if len(text) < 3: return False
+        if text in blacklist: return False
+        
+        # Verificar href
+        href = link_el.get('href', '').lower()
+        if any(x in href for x in ['/cart', '/checkout', '/login', '/account', 'javascript:', '#']):
+            return False
+            
+        return True
 
     def search_duckduckgo_lite(query, site_url):
         """Busca usando DuckDuckGo Lite (HTML puro) com operador site:"""
