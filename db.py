@@ -351,6 +351,17 @@ def create_tables():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS customers (
+                id VARCHAR(50) PRIMARY KEY,
+                doc_type VARCHAR(10) NOT NULL,
+                doc_number VARCHAR(14) UNIQUE NOT NULL,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
         # Tabela para produtos da loja
         cur.execute("""
@@ -383,6 +394,8 @@ def create_tables():
 
         cur.execute("CREATE INDEX IF NOT EXISTS idx_suppliers_id ON suppliers(id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_customers_doc_number ON customers(doc_number)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_customers_created_at ON customers(created_at)")
         
             
         # Tabela para usuários do admin
@@ -1288,6 +1301,176 @@ def delete_supplier(supplier_id):
         suppliers = config.get('suppliers', [])
         config['suppliers'] = [s for s in suppliers if s.get('id') != supplier_id]
         _save_config_file(config)
+
+# ========== FUNÇÕES DE CLIENTES ==========
+
+def get_all_customers():
+    """Obtém todos os clientes"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('customers', [])
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('customers', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT id, doc_type, doc_number, data, created_at, updated_at FROM customers ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            customers = []
+            for row in rows:
+                data = row['data'] if row and row.get('data') else {}
+                data['id'] = row['id']
+                data['doc_type'] = row['doc_type']
+                data['doc_number'] = row['doc_number']
+                data['created_at'] = row['created_at']
+                data['updated_at'] = row['updated_at']
+                customers.append(data)
+            return customers
+    except Exception as e:
+        print(f"⚠️  Erro ao obter clientes: {e}")
+        config = _load_config_file()
+        return config.get('customers', [])
+
+def get_customer(customer_id):
+    """Obtém um cliente específico"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        customers = config.get('customers', [])
+        for c in customers:
+            if c.get('id') == customer_id:
+                return c
+        return None
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                customers = config.get('customers', [])
+                for c in customers:
+                    if c.get('id') == customer_id:
+                        return c
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT id, doc_type, doc_number, data, created_at, updated_at FROM customers WHERE id = %s", (customer_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            data = row['data'] if row.get('data') else {}
+            data['id'] = row['id']
+            data['doc_type'] = row['doc_type']
+            data['doc_number'] = row['doc_number']
+            data['created_at'] = row['created_at']
+            data['updated_at'] = row['updated_at']
+            return data
+    except Exception as e:
+        print(f"⚠️  Erro ao obter cliente: {e}")
+        return None
+
+def get_customer_by_doc(doc_number):
+    """Obtém um cliente pelo CPF/CNPJ (somente dígitos)"""
+    doc_number = (doc_number or '').strip()
+    if not doc_number:
+        return None
+    if not USE_DATABASE:
+        config = _load_config_file()
+        customers = config.get('customers', [])
+        for c in customers:
+            if c.get('doc_number') == doc_number:
+                return c
+        return None
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT id, doc_type, doc_number, data, created_at, updated_at FROM customers WHERE doc_number = %s", (doc_number,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            data = row['data'] if row.get('data') else {}
+            data['id'] = row['id']
+            data['doc_type'] = row['doc_type']
+            data['doc_number'] = row['doc_number']
+            data['created_at'] = row['created_at']
+            data['updated_at'] = row['updated_at']
+            return data
+    except Exception as e:
+        print(f"⚠️  Erro ao obter cliente por doc: {e}")
+        return None
+
+def save_customer(customer_id, customer_data):
+    """Salva ou atualiza um cliente"""
+    if not customer_data:
+        return
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'customers' not in config:
+            config['customers'] = []
+        customers = config.get('customers', [])
+        found = False
+        for i, c in enumerate(customers):
+            if c.get('id') == customer_id:
+                customers[i] = customer_data
+                found = True
+                break
+        if not found:
+            customers.append(customer_data)
+        config['customers'] = customers
+        _save_config_file(config)
+        return
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'customers' not in config:
+                    config['customers'] = []
+                customers = config.get('customers', [])
+                found = False
+                for i, c in enumerate(customers):
+                    if c.get('id') == customer_id:
+                        customers[i] = customer_data
+                        found = True
+                        break
+                if not found:
+                    customers.append(customer_data)
+                config['customers'] = customers
+                _save_config_file(config)
+                return
+            doc_type = (customer_data.get('doc_type') or '').strip()
+            doc_number = (customer_data.get('doc_number') or '').strip()
+            data_json = json.dumps(customer_data)
+            cur = _get_cursor(conn)
+            cur.execute("""
+                INSERT INTO customers (id, doc_type, doc_number, data, updated_at)
+                VALUES (%s, %s, %s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id)
+                DO UPDATE SET doc_type = %s, doc_number = %s, data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (customer_id, doc_type, doc_number, data_json, doc_type, doc_number, data_json))
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar cliente: {e}")
+        raise
+
+def delete_customer(customer_id):
+    """Deleta um cliente"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        customers = config.get('customers', [])
+        config['customers'] = [c for c in customers if c.get('id') != customer_id]
+        _save_config_file(config)
+        return
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                customers = config.get('customers', [])
+                config['customers'] = [c for c in customers if c.get('id') != customer_id]
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM customers WHERE id = %s", (customer_id,))
+    except Exception as e:
+        print(f"⚠️  Erro ao deletar cliente: {e}")
+        raise
 
 # ========== FUNÇÕES DE PRODUTOS ==========
 

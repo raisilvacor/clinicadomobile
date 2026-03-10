@@ -45,6 +45,11 @@ from db import (
     delete_technician,
     calculate_technician_quality_score,
     get_all_technician_quality_scores,
+    get_all_customers,
+    get_customer,
+    get_customer_by_doc,
+    save_customer,
+    delete_customer,
     get_business_hours,
     save_business_hours,
     is_business_open as db_is_business_open,
@@ -668,6 +673,237 @@ def admin_delete_technician(technician_id):
     """Exclui um técnico"""
     delete_technician(technician_id)
     return redirect(url_for('admin_technicians'))
+
+# ========== ROTAS DE CLIENTES ==========
+
+@app.route('/admin/customers', methods=['GET'])
+@login_required
+def admin_customers():
+    q = request.args.get('q', '').strip()
+    customers = get_all_customers()
+    if q:
+        ql = q.lower()
+        filtered = []
+        for c in customers:
+            if ql in (c.get('full_name') or '').lower():
+                filtered.append(c)
+                continue
+            if ql in (c.get('doc_number') or ''):
+                filtered.append(c)
+                continue
+            if ql in (c.get('email') or '').lower():
+                filtered.append(c)
+                continue
+            if ql in (c.get('phone_primary') or ''):
+                filtered.append(c)
+                continue
+            if ql in (c.get('whatsapp') or ''):
+                filtered.append(c)
+                continue
+        customers = filtered
+    return render_template('admin/customers.html', customers=customers, q=q)
+
+def _clean_digits(value):
+    import re
+    return re.sub(r'\D', '', (value or '').strip())
+
+def _validate_customer_doc(doc_type, doc_number):
+    from validate_docbr import CPF, CNPJ
+    if doc_type == 'PF':
+        if len(doc_number) != 11:
+            return False
+        return CPF().validate(doc_number)
+    if doc_type == 'PJ':
+        if len(doc_number) != 14:
+            return False
+        return CNPJ().validate(doc_number)
+    return False
+
+@app.route('/admin/customers/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_customer():
+    if request.method == 'POST':
+        import uuid
+        from datetime import datetime
+        customer_id = str(uuid.uuid4())[:8]
+
+        doc_type = (request.form.get('doc_type', '') or '').strip()
+        doc_number = _clean_digits(request.form.get('doc_number', ''))
+        if not doc_type:
+            if len(doc_number) == 11:
+                doc_type = 'PF'
+            elif len(doc_number) == 14:
+                doc_type = 'PJ'
+
+        customer = {
+            'id': customer_id,
+            'full_name': (request.form.get('full_name', '') or '').strip(),
+            'doc_type': doc_type,
+            'doc_number': doc_number,
+            'phone_primary': (request.form.get('phone_primary', '') or '').strip(),
+            'phone_secondary': (request.form.get('phone_secondary', '') or '').strip(),
+            'whatsapp': (request.form.get('whatsapp', '') or '').strip(),
+            'email': (request.form.get('email', '') or '').strip(),
+            'cep': _clean_digits(request.form.get('cep', '')),
+            'street': (request.form.get('street', '') or '').strip(),
+            'number': (request.form.get('number', '') or '').strip(),
+            'complement': (request.form.get('complement', '') or '').strip(),
+            'neighborhood': (request.form.get('neighborhood', '') or '').strip(),
+            'city': (request.form.get('city', '') or '').strip(),
+            'state': (request.form.get('state', '') or '').strip().upper(),
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+        }
+
+        if not customer['full_name']:
+            return render_template('admin/customer_form.html', customer=customer, error='Nome completo / Razão social é obrigatório.')
+
+        if not customer['doc_number']:
+            return render_template('admin/customer_form.html', customer=customer, error='CPF ou CNPJ é obrigatório.')
+
+        if not _validate_customer_doc(customer['doc_type'], customer['doc_number']):
+            if customer['doc_type'] == 'PF':
+                return render_template('admin/customer_form.html', customer=customer, error='CPF inválido. Verifique e tente novamente.')
+            if customer['doc_type'] == 'PJ':
+                return render_template('admin/customer_form.html', customer=customer, error='CNPJ inválido. Verifique e tente novamente.')
+            return render_template('admin/customer_form.html', customer=customer, error='Tipo de cliente inválido. Selecione Pessoa Física ou Jurídica.')
+
+        existing = get_customer_by_doc(customer['doc_number'])
+        if existing:
+            return render_template('admin/customer_form.html', customer=customer, error='CPF/CNPJ já cadastrado para outro cliente.')
+
+        try:
+            save_customer(customer_id, customer)
+        except Exception:
+            return render_template('admin/customer_form.html', customer=customer, error='Erro ao salvar cliente. Verifique se o CPF/CNPJ já existe e tente novamente.')
+        return redirect(url_for('admin_customers'))
+
+    return render_template('admin/customer_form.html', customer=None)
+
+@app.route('/admin/customers/<customer_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_customer(customer_id):
+    customer = get_customer(customer_id)
+    if not customer:
+        return redirect(url_for('admin_customers'))
+
+    if request.method == 'POST':
+        from datetime import datetime
+        doc_type = (request.form.get('doc_type', '') or '').strip()
+        doc_number = _clean_digits(request.form.get('doc_number', ''))
+        if not doc_type:
+            if len(doc_number) == 11:
+                doc_type = 'PF'
+            elif len(doc_number) == 14:
+                doc_type = 'PJ'
+
+        updated = {
+            'id': customer_id,
+            'full_name': (request.form.get('full_name', '') or '').strip(),
+            'doc_type': doc_type,
+            'doc_number': doc_number,
+            'phone_primary': (request.form.get('phone_primary', '') or '').strip(),
+            'phone_secondary': (request.form.get('phone_secondary', '') or '').strip(),
+            'whatsapp': (request.form.get('whatsapp', '') or '').strip(),
+            'email': (request.form.get('email', '') or '').strip(),
+            'cep': _clean_digits(request.form.get('cep', '')),
+            'street': (request.form.get('street', '') or '').strip(),
+            'number': (request.form.get('number', '') or '').strip(),
+            'complement': (request.form.get('complement', '') or '').strip(),
+            'neighborhood': (request.form.get('neighborhood', '') or '').strip(),
+            'city': (request.form.get('city', '') or '').strip(),
+            'state': (request.form.get('state', '') or '').strip().upper(),
+            'created_at': customer.get('created_at'),
+            'updated_at': datetime.now().isoformat(),
+        }
+
+        if not updated['full_name']:
+            return render_template('admin/customer_form.html', customer=updated, error='Nome completo / Razão social é obrigatório.')
+
+        if not updated['doc_number']:
+            return render_template('admin/customer_form.html', customer=updated, error='CPF ou CNPJ é obrigatório.')
+
+        if not _validate_customer_doc(updated['doc_type'], updated['doc_number']):
+            if updated['doc_type'] == 'PF':
+                return render_template('admin/customer_form.html', customer=updated, error='CPF inválido. Verifique e tente novamente.')
+            if updated['doc_type'] == 'PJ':
+                return render_template('admin/customer_form.html', customer=updated, error='CNPJ inválido. Verifique e tente novamente.')
+            return render_template('admin/customer_form.html', customer=updated, error='Tipo de cliente inválido. Selecione Pessoa Física ou Jurídica.')
+
+        existing = get_customer_by_doc(updated['doc_number'])
+        if existing and existing.get('id') != customer_id:
+            return render_template('admin/customer_form.html', customer=updated, error='CPF/CNPJ já cadastrado para outro cliente.')
+
+        try:
+            save_customer(customer_id, updated)
+        except Exception:
+            return render_template('admin/customer_form.html', customer=updated, error='Erro ao salvar cliente. Verifique se o CPF/CNPJ já existe e tente novamente.')
+        return redirect(url_for('admin_customers'))
+
+    return render_template('admin/customer_form.html', customer=customer)
+
+@app.route('/admin/customers/<customer_id>', methods=['GET'])
+@login_required
+def admin_view_customer(customer_id):
+    customer = get_customer(customer_id)
+    if not customer:
+        return redirect(url_for('admin_customers'))
+    return render_template('admin/view_customer.html', customer=customer)
+
+@app.route('/admin/customers/<customer_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_customer(customer_id):
+    delete_customer(customer_id)
+    return redirect(url_for('admin_customers'))
+
+@app.route('/admin/api/validate-doc', methods=['GET'])
+@login_required
+def admin_validate_doc():
+    doc_number = _clean_digits(request.args.get('doc', ''))
+    payload = {'doc_number': doc_number, 'valid': False, 'type': None}
+    try:
+        from validate_docbr import CPF, CNPJ
+        if len(doc_number) == 11:
+            payload['type'] = 'PF'
+            payload['valid'] = CPF().validate(doc_number)
+        elif len(doc_number) == 14:
+            payload['type'] = 'PJ'
+            payload['valid'] = CNPJ().validate(doc_number)
+    except Exception:
+        pass
+    return jsonify(payload)
+
+@app.route('/admin/api/cep/<cep>', methods=['GET'])
+@login_required
+def admin_lookup_cep(cep):
+    cep_digits = _clean_digits(cep)
+    if len(cep_digits) != 8:
+        return jsonify({'success': False, 'error': 'CEP inválido'}), 400
+    try:
+        import requests as _requests
+        resp = _requests.get(f'https://brasilapi.com.br/api/cep/v1/{cep_digits}', timeout=10)
+        if resp.status_code != 200:
+            return jsonify({'success': False, 'error': 'CEP não encontrado'}), 404
+        data = resp.json()
+        return jsonify({'success': True, 'data': data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/cnpj/<cnpj>', methods=['GET'])
+@login_required
+def admin_lookup_cnpj(cnpj):
+    cnpj_digits = _clean_digits(cnpj)
+    if len(cnpj_digits) != 14:
+        return jsonify({'success': False, 'error': 'CNPJ inválido'}), 400
+    try:
+        import requests as _requests
+        resp = _requests.get(f'https://brasilapi.com.br/api/cnpj/v1/{cnpj_digits}', timeout=10)
+        if resp.status_code != 200:
+            return jsonify({'success': False, 'error': 'CNPJ não encontrado'}), 404
+        data = resp.json()
+        return jsonify({'success': True, 'data': data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ========== ROTAS DE SCORE DE QUALIDADE DO TÉCNICO ==========
 

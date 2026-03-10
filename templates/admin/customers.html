@@ -1,0 +1,75 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Clientes{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>🧑‍💼 Clientes</h2>
+        <a href="{{ url_for('admin_new_customer') }}" class="btn btn-primary">➕ Novo Cliente</a>
+    </div>
+
+    <form method="GET" class="search-box">
+        <input type="text" name="q" placeholder="Buscar por nome, CPF/CNPJ, email ou telefone" value="{{ q or '' }}">
+        <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+        {% if q %}
+        <a href="{{ url_for('admin_customers') }}" class="btn btn-secondary">Limpar</a>
+        {% endif %}
+    </form>
+
+    {% if customers %}
+    <div class="items-list">
+        {% for customer in customers %}
+        <div class="item-card">
+            <div class="card-content-wrapper">
+                <div class="card-main-content">
+                    <h3 class="card-title-clean">{{ customer.full_name }}</h3>
+                    <div class="details-grid mt-3">
+                        <div>
+                            <strong class="text-warning">{% if customer.doc_type == 'PJ' %}CNPJ{% else %}CPF{% endif %}:</strong>
+                            {% set doc = customer.doc_number or '' %}
+                            <p class="text-value">
+                                {% if customer.doc_type == 'PF' and doc|length == 11 %}
+                                    {{ doc[:3] }}.{{ doc[3:6] }}.{{ doc[6:9] }}-{{ doc[9:] }}
+                                {% elif customer.doc_type == 'PJ' and doc|length == 14 %}
+                                    {{ doc[:2] }}.{{ doc[2:5] }}.{{ doc[5:8] }}/{{ doc[8:12] }}-{{ doc[12:] }}
+                                {% else %}
+                                    {{ doc or 'N/A' }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <strong class="text-warning">Telefone:</strong>
+                            <p class="text-value">{{ customer.phone_primary or 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <strong class="text-warning">WhatsApp:</strong>
+                            <p class="text-value">{{ customer.whatsapp or 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <strong class="text-warning">Email:</strong>
+                            <p class="text-value">{{ customer.email or 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="item-actions mt-0">
+                    <a href="{{ url_for('admin_view_customer', customer_id=customer.id) }}" class="btn btn-secondary">👁️ Ver</a>
+                    <a href="{{ url_for('admin_edit_customer', customer_id=customer.id) }}" class="btn btn-secondary">✏️ Editar</a>
+                    <form method="POST" action="{{ url_for('admin_delete_customer', customer_id=customer.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este cliente?');">
+                        <button type="submit" class="btn btn-danger">🗑️ Excluir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 4rem 2rem; background: #0d0d0d; border-radius: 10px; border: 2px solid #333;">
+        <h3 style="color: #ff8c00; margin-bottom: 1rem;">Nenhum cliente cadastrado</h3>
+        <p style="color: #999; margin-bottom: 2rem;">Cadastre o primeiro cliente para iniciar o controle.</p>
+        <a href="{{ url_for('admin_new_customer') }}" class="btn btn-primary">➕ Cadastrar Primeiro Cliente</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

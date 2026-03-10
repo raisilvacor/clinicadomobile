@@ -1,0 +1,227 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if customer %}Editar Cliente{% else %}Novo Cliente{% endif %}{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>{% if customer %}✏️ Editar Cliente{% else %}➕ Novo Cliente{% endif %}</h2>
+
+    {% if error %}
+    <div class="alert-card critical mt-4">
+        <strong>Erro:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" class="mt-4" autocomplete="off">
+        <div class="form-grid-layout">
+            <div class="item-card">
+                <h3>1. Identificação</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Nome completo / Razão social *</label>
+                        <input type="text" name="full_name" id="full_name" value="{{ customer.full_name if customer else '' }}" required class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo de cliente *</label>
+                        <select name="doc_type" id="doc_type" class="form-control" required>
+                            <option value="PF" {% if customer and customer.doc_type == 'PF' %}selected{% endif %}>Pessoa Física</option>
+                            <option value="PJ" {% if customer and customer.doc_type == 'PJ' %}selected{% endif %}>Pessoa Jurídica</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>CPF ou CNPJ *</label>
+                        <input type="text" name="doc_number" id="doc_number" value="{{ customer.doc_number if customer else '' }}" required class="form-control" inputmode="numeric">
+                        <div id="doc_status" style="color: #999; font-size: 0.9rem; margin-top: -0.5rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>2. Contato</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Telefone principal</label>
+                        <input type="text" name="phone_primary" id="phone_primary" value="{{ customer.phone_primary if customer else '' }}" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefone secundário (opcional)</label>
+                        <input type="text" name="phone_secondary" id="phone_secondary" value="{{ customer.phone_secondary if customer else '' }}" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>WhatsApp</label>
+                        <input type="text" name="whatsapp" id="whatsapp" value="{{ customer.whatsapp if customer else '' }}" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" name="email" id="email" value="{{ customer.email if customer else '' }}" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>3. Endereço</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>CEP</label>
+                        <input type="text" name="cep" id="cep" value="{{ customer.cep if customer else '' }}" class="form-control" inputmode="numeric">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Rua / Avenida</label>
+                        <input type="text" name="street" id="street" value="{{ customer.street if customer else '' }}" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Número</label>
+                        <input type="text" name="number" id="number" value="{{ customer.number if customer else '' }}" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Complemento</label>
+                        <input type="text" name="complement" id="complement" value="{{ customer.complement if customer else '' }}" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bairro</label>
+                        <input type="text" name="neighborhood" id="neighborhood" value="{{ customer.neighborhood if customer else '' }}" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Cidade</label>
+                        <input type="text" name="city" id="city" value="{{ customer.city if customer else '' }}" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <input type="text" name="state" id="state" value="{{ customer.state if customer else '' }}" class="form-control" maxlength="2">
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>4. Controle interno</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Data de cadastro</label>
+                        <input type="text" value="{{ (customer.created_at[:16] if customer and customer.created_at else '') }}" class="form-control" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                <a href="{{ url_for('admin_customers') }}" class="btn btn-secondary">❌ Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function onlyDigits(value) {
+        return (value || '').replace(/\D/g, '');
+    }
+
+    async function validateDoc() {
+        const docInput = document.getElementById('doc_number');
+        const typeSelect = document.getElementById('doc_type');
+        const statusEl = document.getElementById('doc_status');
+        const docDigits = onlyDigits(docInput.value);
+
+        statusEl.textContent = '';
+        if (!docDigits) {
+            return;
+        }
+
+        if (docDigits.length !== 11 && docDigits.length !== 14) {
+            statusEl.style.color = '#ffc107';
+            statusEl.textContent = 'Quantidade de dígitos inválida. CPF = 11, CNPJ = 14.';
+            return;
+        }
+
+        const resp = await fetch(`{{ url_for('admin_validate_doc') }}?doc=${encodeURIComponent(docDigits)}`);
+        const data = await resp.json();
+
+        if (data.type) {
+            typeSelect.value = data.type;
+        }
+
+        if (!data.valid) {
+            statusEl.style.color = '#dc3545';
+            statusEl.textContent = data.type === 'PJ' ? 'CNPJ inválido.' : 'CPF inválido.';
+            return;
+        }
+
+        statusEl.style.color = '#28a745';
+        statusEl.textContent = data.type === 'PJ' ? 'CNPJ válido.' : 'CPF válido.';
+
+        if (data.type === 'PJ') {
+            await lookupCNPJ(docDigits);
+        }
+    }
+
+    async function lookupCNPJ(cnpjDigits) {
+        const resp = await fetch(`{{ url_for('admin_lookup_cnpj', cnpj='__CNPJ__') }}`.replace('__CNPJ__', encodeURIComponent(cnpjDigits)));
+        const payload = await resp.json();
+        if (!payload.success) {
+            return;
+        }
+        const d = payload.data || {};
+
+        const fullName = document.getElementById('full_name');
+        if (!fullName.value) {
+            fullName.value = d.razao_social || d.nome_fantasia || '';
+        }
+
+        const cep = document.getElementById('cep');
+        if (!cep.value) cep.value = onlyDigits(d.cep || '');
+        const street = document.getElementById('street');
+        if (!street.value) street.value = d.logradouro || '';
+        const number = document.getElementById('number');
+        if (!number.value) number.value = d.numero || '';
+        const complement = document.getElementById('complement');
+        if (!complement.value) complement.value = d.complemento || '';
+        const neighborhood = document.getElementById('neighborhood');
+        if (!neighborhood.value) neighborhood.value = d.bairro || '';
+        const city = document.getElementById('city');
+        if (!city.value) city.value = d.municipio || '';
+        const state = document.getElementById('state');
+        if (!state.value) state.value = (d.uf || '').toUpperCase();
+
+        await lookupCEP();
+    }
+
+    async function lookupCEP() {
+        const cepInput = document.getElementById('cep');
+        const cepDigits = onlyDigits(cepInput.value);
+        if (cepDigits.length !== 8) {
+            return;
+        }
+        const resp = await fetch(`{{ url_for('admin_lookup_cep', cep='__CEP__') }}`.replace('__CEP__', encodeURIComponent(cepDigits)));
+        const payload = await resp.json();
+        if (!payload.success) {
+            return;
+        }
+        const d = payload.data || {};
+
+        const street = document.getElementById('street');
+        if (!street.value) street.value = d.street || '';
+        const neighborhood = document.getElementById('neighborhood');
+        if (!neighborhood.value) neighborhood.value = d.neighborhood || '';
+        const city = document.getElementById('city');
+        if (!city.value) city.value = d.city || '';
+        const state = document.getElementById('state');
+        if (!state.value) state.value = (d.state || '').toUpperCase();
+    }
+
+    document.getElementById('doc_number').addEventListener('blur', validateDoc);
+    document.getElementById('cep').addEventListener('blur', lookupCEP);
+</script>
+{% endblock %}
+
