@@ -1,0 +1,84 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if transaction %}Editar Transação{% else %}Nova Transação{% endif %}{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>{% if transaction %}✏️ Editar Transação{% else %}➕ Nova Transação{% endif %}</h2>
+
+    {% if error %}
+    <div class="alert-card critical mt-4">
+        <strong>Erro:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" class="mt-4">
+        <div class="form-grid-layout">
+            <div class="item-card">
+                <div class="form-grid-layout">
+                    <div class="form-group">
+                        <label>Tipo *</label>
+                        <select name="type" class="form-control" required>
+                            <option value="entrada" {% if transaction and transaction.type == 'entrada' %}selected{% endif %}>Entrada</option>
+                            <option value="saida" {% if transaction and transaction.type == 'saida' %}selected{% endif %}>Saída</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data *</label>
+                        <input type="date" name="date" value="{{ transaction.date if transaction else '' }}" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Valor (R$) *</label>
+                        <input type="text" name="amount" value="{{ transaction.amount if transaction else '' }}" class="form-control" required inputmode="decimal">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Categoria *</label>
+                        <select name="category" class="form-control" required>
+                            {% set common_categories = ['Venda', 'Serviço', 'Peça', 'Compra Fornecedor', 'Imposto', 'Aluguel', 'Salário', 'Marketing', 'Transporte', 'Manutenção', 'Outros'] %}
+                            {% for c in common_categories %}
+                            <option value="{{ c }}" {% if transaction and transaction.category == c %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                            {% if transaction and transaction.category and transaction.category not in common_categories %}
+                            <option value="{{ transaction.category }}" selected>{{ transaction.category }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Forma de pagamento</label>
+                        <select name="payment_method" class="form-control">
+                            {% set common_methods = ['Dinheiro', 'Pix', 'Cartão', 'Boleto', 'Transferência', 'Outros'] %}
+                            <option value="" {% if not transaction or not transaction.payment_method %}selected{% endif %}>N/A</option>
+                            {% for m in common_methods %}
+                            <option value="{{ m }}" {% if transaction and transaction.payment_method == m %}selected{% endif %}>{{ m }}</option>
+                            {% endfor %}
+                            {% if transaction and transaction.payment_method and transaction.payment_method not in common_methods %}
+                            <option value="{{ transaction.payment_method }}" selected>{{ transaction.payment_method }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Descrição *</label>
+                        <input type="text" name="description" value="{{ transaction.description if transaction else '' }}" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data de cadastro</label>
+                        <input type="text" value="{{ (transaction.created_at[:16] if transaction and transaction.created_at else '') }}" class="form-control" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                <a href="{{ url_for('admin_financeiro') }}" class="btn btn-secondary">❌ Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

@@ -362,6 +362,58 @@ def create_tables():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS equipments (
+                id VARCHAR(50) PRIMARY KEY,
+                customer_id VARCHAR(50) NOT NULL,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS service_orders (
+                id VARCHAR(50) PRIMARY KEY,
+                os_number SERIAL UNIQUE,
+                customer_id VARCHAR(50) NOT NULL,
+                technician_id VARCHAR(50),
+                equipment_id VARCHAR(50),
+                status VARCHAR(30) NOT NULL,
+                labor_value NUMERIC(12,2) DEFAULT 0,
+                parts_value NUMERIC(12,2) DEFAULT 0,
+                total_value NUMERIC(12,2) DEFAULT 0,
+                budget_date DATE,
+                authorized BOOLEAN DEFAULT FALSE,
+                opened_at DATE,
+                concluded_at DATE,
+                delivered_at DATE,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS service_order_parts (
+                id SERIAL PRIMARY KEY,
+                service_order_id VARCHAR(50) NOT NULL,
+                part VARCHAR(300) NOT NULL,
+                quantity INTEGER NOT NULL,
+                value NUMERIC(12,2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS service_order_history (
+                id SERIAL PRIMARY KEY,
+                service_order_id VARCHAR(50) NOT NULL,
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
         # Tabela para produtos da loja
         cur.execute("""
@@ -396,6 +448,11 @@ def create_tables():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_budget_requests_status ON budget_requests(status)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_customers_doc_number ON customers(doc_number)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_customers_created_at ON customers(created_at)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_equipments_customer_id ON equipments(customer_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_service_orders_customer_id ON service_orders(customer_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_service_order_parts_os_id ON service_order_parts(service_order_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_service_order_history_os_id ON service_order_history(service_order_id)")
         
             
         # Tabela para usuários do admin
@@ -1470,6 +1527,436 @@ def delete_customer(customer_id):
             cur.execute("DELETE FROM customers WHERE id = %s", (customer_id,))
     except Exception as e:
         print(f"⚠️  Erro ao deletar cliente: {e}")
+        raise
+
+def get_all_equipments_by_customer(customer_id):
+    if not USE_DATABASE:
+        config = _load_config_file()
+        equipments = config.get('equipments', [])
+        return [e for e in equipments if e.get('customer_id') == customer_id]
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                equipments = config.get('equipments', [])
+                return [e for e in equipments if e.get('customer_id') == customer_id]
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT id, customer_id, data, created_at, updated_at FROM equipments WHERE customer_id = %s ORDER BY created_at DESC", (customer_id,))
+            rows = cur.fetchall()
+            result = []
+            for row in rows:
+                data = row['data'] if row and row.get('data') else {}
+                data['id'] = row['id']
+                data['customer_id'] = row['customer_id']
+                data['created_at'] = row['created_at']
+                data['updated_at'] = row['updated_at']
+                result.append(data)
+            return result
+    except Exception as e:
+        print(f"⚠️  Erro ao obter equipamentos: {e}")
+        config = _load_config_file()
+        equipments = config.get('equipments', [])
+        return [e for e in equipments if e.get('customer_id') == customer_id]
+
+def get_equipment(equipment_id):
+    if not USE_DATABASE:
+        config = _load_config_file()
+        equipments = config.get('equipments', [])
+        for e in equipments:
+            if e.get('id') == equipment_id:
+                return e
+        return None
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT id, customer_id, data, created_at, updated_at FROM equipments WHERE id = %s", (equipment_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            data = row['data'] if row.get('data') else {}
+            data['id'] = row['id']
+            data['customer_id'] = row['customer_id']
+            data['created_at'] = row['created_at']
+            data['updated_at'] = row['updated_at']
+            return data
+    except Exception as e:
+        print(f"⚠️  Erro ao obter equipamento: {e}")
+        return None
+
+def save_equipment(equipment_id, customer_id, equipment_data):
+    if not equipment_data:
+        return
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'equipments' not in config:
+            config['equipments'] = []
+        equipments = config.get('equipments', [])
+        payload = equipment_data.copy()
+        payload['id'] = equipment_id
+        payload['customer_id'] = customer_id
+        found = False
+        for i, e in enumerate(equipments):
+            if e.get('id') == equipment_id:
+                equipments[i] = payload
+                found = True
+                break
+        if not found:
+            equipments.append(payload)
+        config['equipments'] = equipments
+        _save_config_file(config)
+        return
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'equipments' not in config:
+                    config['equipments'] = []
+                equipments = config.get('equipments', [])
+                payload = equipment_data.copy()
+                payload['id'] = equipment_id
+                payload['customer_id'] = customer_id
+                found = False
+                for i, e in enumerate(equipments):
+                    if e.get('id') == equipment_id:
+                        equipments[i] = payload
+                        found = True
+                        break
+                if not found:
+                    equipments.append(payload)
+                config['equipments'] = equipments
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(equipment_data)
+            cur.execute("""
+                INSERT INTO equipments (id, customer_id, data, updated_at)
+                VALUES (%s, %s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id)
+                DO UPDATE SET customer_id = %s, data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (equipment_id, customer_id, data_json, customer_id, data_json))
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar equipamento: {e}")
+        raise
+
+def delete_equipment(equipment_id):
+    if not USE_DATABASE:
+        config = _load_config_file()
+        equipments = config.get('equipments', [])
+        config['equipments'] = [e for e in equipments if e.get('id') != equipment_id]
+        _save_config_file(config)
+        return
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                equipments = config.get('equipments', [])
+                config['equipments'] = [e for e in equipments if e.get('id') != equipment_id]
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM equipments WHERE id = %s", (equipment_id,))
+    except Exception as e:
+        print(f"⚠️  Erro ao deletar equipamento: {e}")
+        raise
+
+def get_all_service_orders():
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('service_orders', [])
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('service_orders', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("""
+                SELECT 
+                    so.id,
+                    so.os_number,
+                    so.customer_id,
+                    so.technician_id,
+                    so.equipment_id,
+                    so.status,
+                    so.labor_value,
+                    so.parts_value,
+                    so.total_value,
+                    so.opened_at,
+                    so.concluded_at,
+                    so.delivered_at,
+                    so.created_at,
+                    so.updated_at,
+                    c.data->>'full_name' AS customer_name,
+                    c.doc_number AS customer_doc,
+                    t.name AS technician_name
+                FROM service_orders so
+                LEFT JOIN customers c ON c.id = so.customer_id
+                LEFT JOIN technicians t ON t.id = so.technician_id
+                ORDER BY so.os_number DESC
+            """)
+            rows = cur.fetchall()
+            result = []
+            for row in rows:
+                result.append(row)
+            return result
+    except Exception as e:
+        print(f"⚠️  Erro ao obter OS: {e}")
+        config = _load_config_file()
+        return config.get('service_orders', [])
+
+def get_service_order(service_order_id):
+    if not USE_DATABASE:
+        config = _load_config_file()
+        orders = config.get('service_orders', [])
+        for o in orders:
+            if o.get('id') == service_order_id:
+                return o
+        return None
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("""
+                SELECT 
+                    id,
+                    os_number,
+                    customer_id,
+                    technician_id,
+                    equipment_id,
+                    status,
+                    labor_value,
+                    parts_value,
+                    total_value,
+                    budget_date,
+                    authorized,
+                    opened_at,
+                    concluded_at,
+                    delivered_at,
+                    data,
+                    created_at,
+                    updated_at
+                FROM service_orders
+                WHERE id = %s
+            """, (service_order_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            data = row['data'] if row.get('data') else {}
+            data['id'] = row['id']
+            data['os_number'] = row['os_number']
+            data['customer_id'] = row['customer_id']
+            data['technician_id'] = row['technician_id']
+            data['equipment_id'] = row['equipment_id']
+            data['status'] = row['status']
+            data['labor_value'] = float(row['labor_value'] or 0)
+            data['parts_value'] = float(row['parts_value'] or 0)
+            data['total_value'] = float(row['total_value'] or 0)
+            data['budget_date'] = row['budget_date']
+            data['authorized'] = row['authorized']
+            data['opened_at'] = row['opened_at']
+            data['concluded_at'] = row['concluded_at']
+            data['delivered_at'] = row['delivered_at']
+            data['created_at'] = row['created_at']
+            data['updated_at'] = row['updated_at']
+
+            cur.execute("SELECT id, customer_id, doc_type, doc_number, data FROM customers WHERE id = %s", (row['customer_id'],))
+            customer_row = cur.fetchone()
+            if customer_row:
+                customer_data = customer_row['data'] if customer_row.get('data') else {}
+                customer_data['id'] = customer_row['id']
+                customer_data['doc_type'] = customer_row['doc_type']
+                customer_data['doc_number'] = customer_row['doc_number']
+                data['customer'] = customer_data
+
+            if row['technician_id']:
+                cur.execute("SELECT id, name, cpf, email, phone, address, specialties, is_active FROM technicians WHERE id = %s", (row['technician_id'],))
+                tech_row = cur.fetchone()
+                if tech_row:
+                    data['technician'] = tech_row
+
+            if row['equipment_id']:
+                cur.execute("SELECT id, customer_id, data FROM equipments WHERE id = %s", (row['equipment_id'],))
+                eq_row = cur.fetchone()
+                if eq_row:
+                    eq_data = eq_row['data'] if eq_row.get('data') else {}
+                    eq_data['id'] = eq_row['id']
+                    eq_data['customer_id'] = eq_row['customer_id']
+                    data['equipment'] = eq_data
+
+            cur.execute("SELECT part, quantity, value FROM service_order_parts WHERE service_order_id = %s ORDER BY id ASC", (service_order_id,))
+            data['parts'] = cur.fetchall() or []
+
+            cur.execute("SELECT message, created_at FROM service_order_history WHERE service_order_id = %s ORDER BY created_at ASC", (service_order_id,))
+            data['history'] = cur.fetchall() or []
+
+            return data
+    except Exception as e:
+        print(f"⚠️  Erro ao obter OS: {e}")
+        return None
+
+def save_service_order(service_order_id, payload, parts, history_message=None, create_new=False):
+    if not payload:
+        return None
+    from datetime import datetime
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'service_orders' not in config:
+            config['service_orders'] = []
+        orders = config.get('service_orders', [])
+        if create_new:
+            max_number = 0
+            for o in orders:
+                try:
+                    max_number = max(max_number, int(o.get('os_number') or 0))
+                except Exception:
+                    continue
+            payload['os_number'] = max_number + 1
+        payload['id'] = service_order_id
+        if parts is not None:
+            payload['parts'] = parts
+        if history_message:
+            history = payload.get('history') or []
+            history.append({'message': history_message, 'created_at': datetime.now().isoformat()})
+            payload['history'] = history
+        found = False
+        for i, o in enumerate(orders):
+            if o.get('id') == service_order_id:
+                orders[i] = payload
+                found = True
+                break
+        if not found:
+            orders.append(payload)
+        config['service_orders'] = orders
+        _save_config_file(config)
+        return payload.get('os_number')
+
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'service_orders' not in config:
+                    config['service_orders'] = []
+                orders = config.get('service_orders', [])
+                if create_new:
+                    max_number = 0
+                    for o in orders:
+                        try:
+                            max_number = max(max_number, int(o.get('os_number') or 0))
+                        except Exception:
+                            continue
+                    payload['os_number'] = max_number + 1
+                payload['id'] = service_order_id
+                if parts is not None:
+                    payload['parts'] = parts
+                if history_message:
+                    history = payload.get('history') or []
+                    history.append({'message': history_message, 'created_at': datetime.now().isoformat()})
+                    payload['history'] = history
+                found = False
+                for i, o in enumerate(orders):
+                    if o.get('id') == service_order_id:
+                        orders[i] = payload
+                        found = True
+                        break
+                if not found:
+                    orders.append(payload)
+                config['service_orders'] = orders
+                _save_config_file(config)
+                return payload.get('os_number')
+
+            cur = _get_cursor(conn)
+            data_json = json.dumps(payload)
+            customer_id = payload.get('customer_id')
+            technician_id = payload.get('technician_id')
+            equipment_id = payload.get('equipment_id')
+            status = payload.get('status')
+            labor_value = payload.get('labor_value') or 0
+            parts_value = payload.get('parts_value') or 0
+            total_value = payload.get('total_value') or 0
+            budget_date = payload.get('budget_date') or None
+            authorized = payload.get('authorized') is True
+            opened_at = payload.get('opened_at') or None
+            concluded_at = payload.get('concluded_at') or None
+            delivered_at = payload.get('delivered_at') or None
+
+            if create_new:
+                cur.execute("""
+                    INSERT INTO service_orders (
+                        id, customer_id, technician_id, equipment_id, status,
+                        labor_value, parts_value, total_value, budget_date, authorized,
+                        opened_at, concluded_at, delivered_at, data, updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, CURRENT_TIMESTAMP)
+                    RETURNING os_number
+                """, (
+                    service_order_id, customer_id, technician_id, equipment_id, status,
+                    labor_value, parts_value, total_value, budget_date, authorized,
+                    opened_at, concluded_at, delivered_at, data_json
+                ))
+                row = cur.fetchone()
+                os_number = row[0] if row else None
+            else:
+                cur.execute("""
+                    UPDATE service_orders
+                    SET customer_id = %s, technician_id = %s, equipment_id = %s, status = %s,
+                        labor_value = %s, parts_value = %s, total_value = %s, budget_date = %s, authorized = %s,
+                        opened_at = %s, concluded_at = %s, delivered_at = %s, data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (
+                    customer_id, technician_id, equipment_id, status,
+                    labor_value, parts_value, total_value, budget_date, authorized,
+                    opened_at, concluded_at, delivered_at, data_json, service_order_id
+                ))
+                cur.execute("SELECT os_number FROM service_orders WHERE id = %s", (service_order_id,))
+                row = cur.fetchone()
+                os_number = row[0] if row else None
+
+            if parts is not None:
+                cur.execute("DELETE FROM service_order_parts WHERE service_order_id = %s", (service_order_id,))
+                for p in parts:
+                    part_name = (p.get('part') or '').strip()
+                    quantity = int(p.get('quantity') or 0)
+                    value = float(p.get('value') or 0)
+                    if part_name and quantity > 0 and value >= 0:
+                        cur.execute(
+                            "INSERT INTO service_order_parts (service_order_id, part, quantity, value) VALUES (%s, %s, %s, %s)",
+                            (service_order_id, part_name, quantity, value),
+                        )
+
+            if history_message:
+                cur.execute(
+                    "INSERT INTO service_order_history (service_order_id, message) VALUES (%s, %s)",
+                    (service_order_id, history_message),
+                )
+
+            return os_number
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar OS: {e}")
+        raise
+
+def delete_service_order(service_order_id):
+    if not USE_DATABASE:
+        config = _load_config_file()
+        orders = config.get('service_orders', [])
+        config['service_orders'] = [o for o in orders if o.get('id') != service_order_id]
+        _save_config_file(config)
+        return
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                orders = config.get('service_orders', [])
+                config['service_orders'] = [o for o in orders if o.get('id') != service_order_id]
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM service_order_parts WHERE service_order_id = %s", (service_order_id,))
+            cur.execute("DELETE FROM service_order_history WHERE service_order_id = %s", (service_order_id,))
+            cur.execute("DELETE FROM service_orders WHERE id = %s", (service_order_id,))
+    except Exception as e:
+        print(f"⚠️  Erro ao deletar OS: {e}")
         raise
 
 # ========== FUNÇÕES DE PRODUTOS ==========

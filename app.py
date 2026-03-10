@@ -3,9 +3,11 @@ import os
 # Adicionar diretório local de bibliotecas ao path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'libs'))
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory, send_file
 import json
 from functools import wraps
+from io import BytesIO
+from os_pdf import build_os_pdf
 from db import (
     create_tables,
     get_site_content as db_get_site_content,
@@ -50,6 +52,15 @@ from db import (
     get_customer_by_doc,
     save_customer,
     delete_customer,
+    get_all_transactions,
+    get_transaction,
+    save_transaction,
+    delete_transaction,
+    get_all_service_orders,
+    get_service_order,
+    save_service_order,
+    delete_service_order,
+    save_equipment,
     get_business_hours,
     save_business_hours,
     is_business_open as db_is_business_open,
@@ -296,6 +307,7 @@ def admin_contact():
     business_hours = get_business_hours()
     
     if request.method == 'POST':
+        contact['cnpj'] = request.form.get('cnpj', '')
         contact['phone'] = request.form.get('phone', '')
         contact['email'] = request.form.get('email', '')
         contact['whatsapp'] = request.form.get('whatsapp', '')
@@ -631,16 +643,92 @@ def _clean_digits(value):
     import re
     return re.sub(r'\D', '', (value or '').strip())
 
+def _parse_money(value):
+    value = (value or '').strip()
+    if not value:
+        return 0.0
+    cleaned = value.replace('R$', '').replace(' ', '')
+    if ',' in cleaned and '.' in cleaned:
+        cleaned = cleaned.replace('.', '').replace(',', '.')
+    elif ',' in cleaned and '.' not in cleaned:
+        cleaned = cleaned.replace(',', '.')
+    try:
+        return float(cleaned)
+    except Exception:
+        return 0.0
+
+WARRANTY_TEXT = (
+    "A assistência técnica Clínica CELL garante os serviços realizados pelo prazo de 90 (noventa) dias, conforme previsto no Código de Defesa do Consumidor, contados a partir da data de entrega do equipamento ao cliente.\n\n"
+    "A garantia cobre exclusivamente o serviço executado e/ou as peças substituídas durante o reparo, desde que comprovado defeito relacionado diretamente ao serviço realizado.\n\n"
+    "A garantia não cobre:\n\n"
+    "Danos causados por mau uso, quedas, impactos, líquidos ou exposição a umidade;\n\n"
+    "Tentativas de reparo por terceiros após a entrega do equipamento;\n\n"
+    "Problemas decorrentes de desgaste natural de componentes não substituídos no reparo;\n\n"
+    "Instalação de softwares ou aplicativos de terceiros que causem mau funcionamento;\n\n"
+    "Danos causados por variações elétricas, curto-circuito, descargas elétricas ou uso de acessórios inadequados.\n\n"
+    "Junto com essa OS voce receberá tambem o termo de garantia."
+)
+
+RESPONSIBILITY_TERM_TEXT = (
+    "TERMO DE RESPONSABILIDADE – ASSISTÊNCIA TÉCNICA\n\n"
+    "Ao entregar o equipamento para análise e/ou reparo, o cliente declara estar ciente e de acordo com as seguintes condições:\n\n"
+    "O equipamento será submetido a testes e procedimentos técnicos necessários para diagnóstico e reparo do defeito informado.\n\n"
+    "Durante o processo de análise ou manutenção, poderá ocorrer perda total ou parcial de dados armazenados no equipamento, tais como arquivos, fotos, vídeos, aplicativos ou configurações. É de responsabilidade do cliente manter cópia de segurança (backup) de seus dados antes da realização do serviço.\n\n"
+    "A assistência técnica não se responsabiliza pela perda de dados ou informações contidas no equipamento durante o processo de diagnóstico ou reparo.\n\n"
+    "O cliente declara que informou corretamente o defeito apresentado pelo equipamento e que retirou chips, cartões de memória, pendrives ou quaisquer mídias removíveis, salvo quando entregues juntamente com o equipamento e devidamente registrados na ordem de serviço.\n\n"
+    "Equipamentos que apresentem sinais de queda, contato com líquido, oxidação, violação ou reparo anterior por terceiros poderão apresentar defeitos adicionais durante o processo de manutenção, não sendo responsabilidade da assistência técnica eventuais agravamentos decorrentes dessas condições preexistentes.\n\n"
+    "Caso o equipamento não seja retirado no prazo de 90 (noventa) dias após a comunicação de conclusão do serviço ou orçamento recusado, a assistência técnica poderá considerar o equipamento como abandonado, podendo dar a destinação que julgar adequada para ressarcimento de custos operacionais, conforme legislação aplicável.\n\n"
+    "O cliente declara ter ciência de que a assistência técnica poderá realizar abertura do equipamento, o que poderá implicar na perda de garantia do fabricante, quando existente."
+)
+
+def _validate_cpf(cpf):
+    cpf = _clean_digits(cpf)
+    if len(cpf) != 11:
+        return False
+    if cpf == cpf[0] * 11:
+        return False
+    try:
+        nums = [int(d) for d in cpf]
+    except Exception:
+        return False
+
+    s1 = sum(nums[i] * (10 - i) for i in range(9))
+    d1 = 0 if (s1 % 11) < 2 else 11 - (s1 % 11)
+    if nums[9] != d1:
+        return False
+
+    s2 = sum(nums[i] * (11 - i) for i in range(10))
+    d2 = 0 if (s2 % 11) < 2 else 11 - (s2 % 11)
+    return nums[10] == d2
+
+def _validate_cnpj(cnpj):
+    cnpj = _clean_digits(cnpj)
+    if len(cnpj) != 14:
+        return False
+    if cnpj == cnpj[0] * 14:
+        return False
+    try:
+        nums = [int(d) for d in cnpj]
+    except Exception:
+        return False
+
+    w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    s1 = sum(nums[i] * w1[i] for i in range(12))
+    d1 = 0 if (s1 % 11) < 2 else 11 - (s1 % 11)
+    if nums[12] != d1:
+        return False
+
+    w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    s2 = sum(nums[i] * w2[i] for i in range(13))
+    d2 = 0 if (s2 % 11) < 2 else 11 - (s2 % 11)
+    return nums[13] == d2
+
 def _validate_customer_doc(doc_type, doc_number):
-    from validate_docbr import CPF, CNPJ
+    doc_number = _clean_digits(doc_number)
     if doc_type == 'PF':
-        if len(doc_number) != 11:
-            return False
-        return CPF().validate(doc_number)
+        return _validate_cpf(doc_number)
     if doc_type == 'PJ':
-        if len(doc_number) != 14:
-            return False
-        return CNPJ().validate(doc_number)
+        return _validate_cnpj(doc_number)
     return False
 
 @app.route('/admin/customers/new', methods=['GET', 'POST'])
@@ -780,22 +868,539 @@ def admin_delete_customer(customer_id):
     delete_customer(customer_id)
     return redirect(url_for('admin_customers'))
 
+@app.route('/admin/financeiro', methods=['GET'])
+@login_required
+def admin_financeiro():
+    q = request.args.get('q', '').strip()
+    tx_type = request.args.get('type', '').strip()
+    category = request.args.get('category', '').strip()
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+
+    service_orders = get_all_service_orders()
+    os_open_total = 0.0
+    os_done_total = 0.0
+    os_open_statuses = {'aberta', 'em_analise', 'aguardando_peca'}
+    os_done_statuses = {'concluida', 'entregue'}
+    for o in service_orders:
+        if not isinstance(o, dict):
+            continue
+        s = (o.get('status') or '').strip()
+        opened = o.get('opened_at')
+        try:
+            if hasattr(opened, 'isoformat'):
+                opened = opened.isoformat()
+            else:
+                opened = (opened or '').strip()
+        except Exception:
+            opened = ''
+        if start_date and opened and opened < start_date:
+            continue
+        if end_date and opened and opened > end_date:
+            continue
+        try:
+            v = float(o.get('total_value') or 0)
+        except Exception:
+            v = _parse_money(str(o.get('total_value') or '0'))
+        if s in os_open_statuses:
+            os_open_total += v
+        if s in os_done_statuses:
+            os_done_total += v
+
+    transactions = get_all_transactions()
+    normalized = []
+    for t in transactions:
+        if not isinstance(t, dict):
+            continue
+        tx = t.copy()
+        tx_id = tx.get('id')
+        if not tx_id:
+            continue
+        tx['type'] = (tx.get('type') or '').strip()
+        tx['category'] = (tx.get('category') or '').strip()
+        tx['description'] = (tx.get('description') or '').strip()
+        tx['payment_method'] = (tx.get('payment_method') or '').strip()
+        tx['date'] = (tx.get('date') or '').strip()
+        tx['amount'] = tx.get('amount', 0)
+        try:
+            tx['amount'] = float(tx['amount'])
+        except Exception:
+            tx['amount'] = _parse_money(str(tx['amount']))
+        normalized.append(tx)
+
+    filtered = []
+    ql = q.lower()
+    for tx in normalized:
+        if tx_type and tx.get('type') != tx_type:
+            continue
+        if category and tx.get('category') != category:
+            continue
+        d = tx.get('date') or ''
+        if start_date and d and d < start_date:
+            continue
+        if end_date and d and d > end_date:
+            continue
+        if q:
+            if ql not in (tx.get('description') or '').lower() and ql not in (tx.get('category') or '').lower() and ql not in (tx.get('payment_method') or '').lower():
+                continue
+        filtered.append(tx)
+
+    total_income = sum(t.get('amount', 0.0) for t in filtered if t.get('type') == 'entrada')
+    total_expense = sum(t.get('amount', 0.0) for t in filtered if t.get('type') == 'saida')
+    balance = total_income - total_expense
+
+    categories = sorted({(t.get('category') or '').strip() for t in normalized if (t.get('category') or '').strip()})
+
+    return render_template(
+        'admin/financeiro.html',
+        transactions=filtered,
+        q=q,
+        type=tx_type,
+        category=category,
+        start_date=start_date,
+        end_date=end_date,
+        categories=categories,
+        total_income=total_income,
+        total_expense=total_expense,
+        balance=balance,
+        os_open_total=os_open_total,
+        os_done_total=os_done_total,
+    )
+
+@app.route('/admin/financeiro/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_transaction():
+    if request.method == 'POST':
+        import uuid
+        from datetime import datetime
+
+        tx_id = str(uuid.uuid4())[:8]
+        tx_type = (request.form.get('type', '') or '').strip()
+        tx_date = (request.form.get('date', '') or '').strip()
+        if not tx_date:
+            tx_date = datetime.now().date().isoformat()
+
+        tx = {
+            'id': tx_id,
+            'type': tx_type,
+            'amount': _parse_money(request.form.get('amount', '')),
+            'description': (request.form.get('description', '') or '').strip(),
+            'category': (request.form.get('category', '') or '').strip(),
+            'payment_method': (request.form.get('payment_method', '') or '').strip(),
+            'date': tx_date,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+        }
+
+        if tx['type'] not in ['entrada', 'saida']:
+            return render_template('admin/transaction_form.html', transaction=tx, error='Tipo inválido. Selecione Entrada ou Saída.')
+        if tx['amount'] <= 0:
+            return render_template('admin/transaction_form.html', transaction=tx, error='Valor inválido. Informe um valor maior que zero.')
+        if not tx['description']:
+            return render_template('admin/transaction_form.html', transaction=tx, error='Descrição é obrigatória.')
+        if not tx['category']:
+            return render_template('admin/transaction_form.html', transaction=tx, error='Categoria é obrigatória.')
+
+        save_transaction(tx_id, tx)
+        return redirect(url_for('admin_financeiro'))
+
+    return render_template('admin/transaction_form.html', transaction=None)
+
+@app.route('/admin/financeiro/<transaction_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_transaction(transaction_id):
+    transaction = get_transaction(transaction_id)
+    if not transaction:
+        return redirect(url_for('admin_financeiro'))
+
+    if request.method == 'POST':
+        from datetime import datetime
+
+        tx_type = (request.form.get('type', '') or '').strip()
+        tx_date = (request.form.get('date', '') or '').strip()
+
+        updated = {
+            'id': transaction_id,
+            'type': tx_type,
+            'amount': _parse_money(request.form.get('amount', '')),
+            'description': (request.form.get('description', '') or '').strip(),
+            'category': (request.form.get('category', '') or '').strip(),
+            'payment_method': (request.form.get('payment_method', '') or '').strip(),
+            'date': tx_date,
+            'created_at': transaction.get('created_at'),
+            'updated_at': datetime.now().isoformat(),
+        }
+
+        if updated['type'] not in ['entrada', 'saida']:
+            return render_template('admin/transaction_form.html', transaction=updated, error='Tipo inválido. Selecione Entrada ou Saída.')
+        if updated['amount'] <= 0:
+            return render_template('admin/transaction_form.html', transaction=updated, error='Valor inválido. Informe um valor maior que zero.')
+        if not updated['description']:
+            return render_template('admin/transaction_form.html', transaction=updated, error='Descrição é obrigatória.')
+        if not updated['category']:
+            return render_template('admin/transaction_form.html', transaction=updated, error='Categoria é obrigatória.')
+
+        save_transaction(transaction_id, updated)
+        return redirect(url_for('admin_financeiro'))
+
+    return render_template('admin/transaction_form.html', transaction=transaction)
+
+@app.route('/admin/financeiro/<transaction_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_transaction(transaction_id):
+    delete_transaction(transaction_id)
+    return redirect(url_for('admin_financeiro'))
+
+@app.route('/admin/os', methods=['GET'])
+@login_required
+def admin_os():
+    q = request.args.get('q', '').strip()
+    status = request.args.get('status', '').strip()
+    items = get_all_service_orders()
+    rows = []
+    for r in items:
+        if not isinstance(r, dict):
+            continue
+        rr = r.copy()
+        rr['os_number'] = rr.get('os_number')
+        rr['status'] = (rr.get('status') or '').strip()
+        rr['customer_name'] = (rr.get('customer_name') or '').strip()
+        rr['technician_name'] = (rr.get('technician_name') or '').strip()
+        try:
+            rr['total_value'] = float(rr.get('total_value') or 0)
+        except Exception:
+            rr['total_value'] = _parse_money(str(rr.get('total_value') or '0'))
+        rows.append(rr)
+
+    filtered = []
+    ql = q.lower()
+    for r in rows:
+        if status and r.get('status') != status:
+            continue
+        if q:
+            if ql not in str(r.get('os_number') or '').lower() and ql not in (r.get('customer_name') or '').lower() and ql not in (r.get('customer_doc') or '').lower():
+                continue
+        filtered.append(r)
+
+    status_options = [
+        ('aberta', 'Aberta'),
+        ('em_analise', 'Em análise'),
+        ('aguardando_peca', 'Aguardando peça'),
+        ('concluida', 'Concluída'),
+        ('entregue', 'Entregue'),
+    ]
+
+    return render_template('admin/os_list.html', orders=filtered, q=q, status=status, status_options=status_options)
+
+def _status_label(value):
+    mapping = {
+        'aberta': 'Aberta',
+        'em_analise': 'Em análise',
+        'aguardando_peca': 'Aguardando peça',
+        'concluida': 'Concluída',
+        'entregue': 'Entregue',
+    }
+    return mapping.get(value, value or 'N/A')
+
+def _read_parts_from_form(form):
+    parts = []
+    names = form.getlist('part_name')
+    quantities = form.getlist('part_quantity')
+    values = form.getlist('part_value')
+    for i in range(max(len(names), len(quantities), len(values))):
+        name = (names[i] if i < len(names) else '').strip()
+        try:
+            qty = int((quantities[i] if i < len(quantities) else '0') or 0)
+        except Exception:
+            qty = 0
+        value = _parse_money(values[i] if i < len(values) else '0')
+        if name and qty > 0:
+            parts.append({'part': name, 'quantity': qty, 'value': value})
+    return parts
+
+def _sum_parts(parts):
+    total = 0.0
+    for p in parts:
+        try:
+            total += float(p.get('quantity') or 0) * float(p.get('value') or 0)
+        except Exception:
+            continue
+    return total
+
+def _read_photos(files):
+    photos = []
+    import base64
+    for f in files:
+        if not f:
+            continue
+        filename = (f.filename or '').strip()
+        content_type = (f.mimetype or '').strip()
+        data = f.read()
+        if not data:
+            continue
+        encoded = base64.b64encode(data).decode('utf-8')
+        photos.append({'filename': filename, 'content_type': content_type, 'data': encoded})
+    return photos
+
+@app.route('/admin/os/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_os():
+    customers = get_all_customers()
+    technicians = get_all_technicians()
+    status_options = [
+        ('aberta', 'Aberta'),
+        ('em_analise', 'Em análise'),
+        ('aguardando_peca', 'Aguardando peça'),
+        ('concluida', 'Concluída'),
+        ('entregue', 'Entregue'),
+    ]
+
+    if request.method == 'POST':
+        import uuid
+        from datetime import datetime
+
+        os_id = str(uuid.uuid4())[:8]
+        customer_id = (request.form.get('customer_id', '') or '').strip()
+        technician_id = (request.form.get('technician_id', '') or '').strip()
+        status = (request.form.get('status', 'aberta') or 'aberta').strip()
+
+        customer = get_customer(customer_id) if customer_id else None
+        if not customer:
+            return render_template('admin/os_form.html', os_data=request.form, customers=customers, technicians=technicians, status_options=status_options, error='Cliente é obrigatório.')
+
+        equipment_id = str(uuid.uuid4())[:8]
+        equipment_data = {
+            'type': (request.form.get('equipment_type', '') or '').strip(),
+            'brand': (request.form.get('equipment_brand', '') or '').strip(),
+            'model': (request.form.get('equipment_model', '') or '').strip(),
+            'serial_number': (request.form.get('serial_number', '') or '').strip(),
+            'imei': _clean_digits(request.form.get('imei', '')),
+            'accessories': request.form.getlist('accessories'),
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+        }
+        save_equipment(equipment_id, customer_id, equipment_data)
+
+        parts = _read_parts_from_form(request.form)
+        parts_value = _sum_parts(parts)
+        labor_value = _parse_money(request.form.get('labor_value', '0'))
+        total_value = labor_value + parts_value
+
+        opened_at = (request.form.get('opened_at', '') or '').strip()
+        if not opened_at:
+            opened_at = datetime.now().date().isoformat()
+
+        budget_date = (request.form.get('budget_date', '') or '').strip() or None
+        authorized = (request.form.get('authorized', '') or '').strip() == 'sim'
+
+        photos = _read_photos(request.files.getlist('photos'))
+        payload = {
+            'id': os_id,
+            'customer_id': customer_id,
+            'technician_id': technician_id or None,
+            'equipment_id': equipment_id,
+            'status': status,
+            'opened_at': opened_at,
+            'concluded_at': (request.form.get('concluded_at', '') or '').strip() or None,
+            'delivered_at': (request.form.get('delivered_at', '') or '').strip() or None,
+            'budget_date': budget_date,
+            'authorized': authorized,
+            'labor_value': labor_value,
+            'parts_value': parts_value,
+            'total_value': total_value,
+            'customer_snapshot': {
+                'full_name': customer.get('full_name'),
+                'doc_type': customer.get('doc_type'),
+                'doc_number': customer.get('doc_number'),
+                'phone_primary': customer.get('phone_primary'),
+                'whatsapp': customer.get('whatsapp'),
+                'email': customer.get('email'),
+            },
+            'reported_issue': (request.form.get('reported_issue', '') or '').strip(),
+            'technical_diagnosis': (request.form.get('technical_diagnosis', '') or '').strip(),
+            'required_service': (request.form.get('required_service', '') or '').strip(),
+            'delivered_to_name': (request.form.get('delivered_to_name', '') or '').strip(),
+            'delivered_to_doc': _clean_digits(request.form.get('delivered_to_doc', '')),
+            'warranty_days': int((request.form.get('warranty_days', '') or '90') or 90),
+            'warranty_notes': (request.form.get('warranty_notes', '') or '').strip() or WARRANTY_TEXT,
+            'responsibility_term': RESPONSIBILITY_TERM_TEXT,
+            'photos': photos,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+        }
+
+        os_number = save_service_order(os_id, payload, parts, history_message='OS criada', create_new=True)
+        return redirect(url_for('admin_view_os', os_id=os_id))
+
+    return render_template('admin/os_form.html', os_data=None, customers=customers, technicians=technicians, status_options=status_options)
+
+@app.route('/admin/os/<os_id>', methods=['GET'])
+@login_required
+def admin_view_os(os_id):
+    order = get_service_order(os_id)
+    if not order:
+        return redirect(url_for('admin_os'))
+    order['status_label'] = _status_label(order.get('status'))
+    return render_template('admin/os_view.html', order=order)
+
+@app.route('/admin/os/<os_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_os(os_id):
+    order = get_service_order(os_id)
+    if not order:
+        return redirect(url_for('admin_os'))
+
+    customers = get_all_customers()
+    technicians = get_all_technicians()
+    status_options = [
+        ('aberta', 'Aberta'),
+        ('em_analise', 'Em análise'),
+        ('aguardando_peca', 'Aguardando peça'),
+        ('concluida', 'Concluída'),
+        ('entregue', 'Entregue'),
+    ]
+
+    if request.method == 'POST':
+        from datetime import datetime
+
+        customer_id = (request.form.get('customer_id', '') or '').strip()
+        technician_id = (request.form.get('technician_id', '') or '').strip()
+        status = (request.form.get('status', order.get('status') or 'aberta') or 'aberta').strip()
+
+        customer = get_customer(customer_id) if customer_id else None
+        if not customer:
+            return render_template('admin/os_form.html', os_data=request.form, customers=customers, technicians=technicians, status_options=status_options, error='Cliente é obrigatório.', existing_order=order)
+
+        equipment_id = order.get('equipment_id') or (order.get('equipment') or {}).get('id')
+        if not equipment_id:
+            import uuid
+            equipment_id = str(uuid.uuid4())[:8]
+
+        equipment_data = {
+            'type': (request.form.get('equipment_type', '') or '').strip(),
+            'brand': (request.form.get('equipment_brand', '') or '').strip(),
+            'model': (request.form.get('equipment_model', '') or '').strip(),
+            'serial_number': (request.form.get('serial_number', '') or '').strip(),
+            'imei': _clean_digits(request.form.get('imei', '')),
+            'accessories': request.form.getlist('accessories'),
+            'created_at': (order.get('equipment') or {}).get('created_at') or datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+        }
+        save_equipment(equipment_id, customer_id, equipment_data)
+
+        parts = _read_parts_from_form(request.form)
+        parts_value = _sum_parts(parts)
+        labor_value = _parse_money(request.form.get('labor_value', '0'))
+        total_value = labor_value + parts_value
+
+        opened_at = (request.form.get('opened_at', '') or '').strip() or None
+        budget_date = (request.form.get('budget_date', '') or '').strip() or None
+        authorized = (request.form.get('authorized', '') or '').strip() == 'sim'
+
+        photos_existing = order.get('photos') or []
+        photos_new = _read_photos(request.files.getlist('photos'))
+        updated = order.copy()
+        updated.update({
+            'customer_id': customer_id,
+            'technician_id': technician_id or None,
+            'equipment_id': equipment_id,
+            'status': status,
+            'opened_at': opened_at,
+            'concluded_at': (request.form.get('concluded_at', '') or '').strip() or None,
+            'delivered_at': (request.form.get('delivered_at', '') or '').strip() or None,
+            'budget_date': budget_date,
+            'authorized': authorized,
+            'labor_value': labor_value,
+            'parts_value': parts_value,
+            'total_value': total_value,
+            'customer_snapshot': {
+                'full_name': customer.get('full_name'),
+                'doc_type': customer.get('doc_type'),
+                'doc_number': customer.get('doc_number'),
+                'phone_primary': customer.get('phone_primary'),
+                'whatsapp': customer.get('whatsapp'),
+                'email': customer.get('email'),
+            },
+            'reported_issue': (request.form.get('reported_issue', '') or '').strip(),
+            'technical_diagnosis': (request.form.get('technical_diagnosis', '') or '').strip(),
+            'required_service': (request.form.get('required_service', '') or '').strip(),
+            'delivered_to_name': (request.form.get('delivered_to_name', '') or '').strip(),
+            'delivered_to_doc': _clean_digits(request.form.get('delivered_to_doc', '')),
+            'warranty_days': int((request.form.get('warranty_days', '') or '90') or 90),
+            'warranty_notes': (request.form.get('warranty_notes', '') or '').strip() or WARRANTY_TEXT,
+            'responsibility_term': RESPONSIBILITY_TERM_TEXT,
+            'photos': photos_existing + photos_new,
+            'updated_at': datetime.now().isoformat(),
+        })
+
+        note = (request.form.get('history_note', '') or '').strip()
+        save_service_order(os_id, updated, parts, history_message=note if note else None, create_new=False)
+        return redirect(url_for('admin_view_os', os_id=os_id))
+
+    order['status_label'] = _status_label(order.get('status'))
+    return render_template('admin/os_form.html', os_data=order, customers=customers, technicians=technicians, status_options=status_options, existing_order=order)
+
+@app.route('/admin/os/<os_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_os(os_id):
+    delete_service_order(os_id)
+    return redirect(url_for('admin_os'))
+
+@app.route('/admin/api/customers/<customer_id>', methods=['GET'])
+@login_required
+def admin_customer_api(customer_id):
+    customer = get_customer(customer_id)
+    if not customer:
+        return jsonify({'success': False, 'error': 'Cliente não encontrado'}), 404
+    return jsonify({'success': True, 'data': customer})
+
+@app.route('/admin/os/<os_id>/pdf', methods=['GET'])
+@login_required
+def admin_os_pdf(os_id):
+    try:
+        pdf_bytes, filename = gerar_pdf_os(os_id)
+        if not pdf_bytes:
+            return redirect(url_for('admin_view_os', os_id=os_id))
+        return send_file(BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        return f"Erro ao gerar PDF: {str(e)}", 500
+
 @app.route('/admin/api/validate-doc', methods=['GET'])
 @login_required
 def admin_validate_doc():
     doc_number = _clean_digits(request.args.get('doc', ''))
     payload = {'doc_number': doc_number, 'valid': False, 'type': None}
-    try:
-        from validate_docbr import CPF, CNPJ
-        if len(doc_number) == 11:
-            payload['type'] = 'PF'
-            payload['valid'] = CPF().validate(doc_number)
-        elif len(doc_number) == 14:
-            payload['type'] = 'PJ'
-            payload['valid'] = CNPJ().validate(doc_number)
-    except Exception:
-        pass
+    if len(doc_number) == 11:
+        payload['type'] = 'PF'
+        payload['valid'] = _validate_cpf(doc_number)
+    elif len(doc_number) == 14:
+        payload['type'] = 'PJ'
+        payload['valid'] = _validate_cnpj(doc_number)
     return jsonify(payload)
+
+def gerar_pdf_os(os_id):
+    order = get_service_order(os_id)
+    if not order:
+        return None, None
+
+    site_content = db_get_site_content() or {}
+    contact = site_content.get('contact', {}) if isinstance(site_content, dict) else {}
+    company = {
+        'name': 'Clínica CELL',
+        'cnpj': (contact.get('cnpj') or '').strip(),
+        'phone': (contact.get('phone') or contact.get('phone1') or '').strip(),
+        'address': (contact.get('address') or '').strip(),
+        'city': (contact.get('city') or '').strip(),
+    }
+    logo_path = os.path.join(app.root_path, 'static', 'images', 'logopdf.png')
+    pdf_bytes = build_os_pdf(order, company, logo_path)
+
+    os_number = order.get('os_number')
+    if os_number not in [None, '']:
+        filename = f'OS_{int(os_number):06d}.pdf'
+    else:
+        filename = f'OS_{order.get("id")}.pdf'
+    return pdf_bytes, filename
 
 @app.route('/admin/api/cep/<cep>', methods=['GET'])
 @login_required

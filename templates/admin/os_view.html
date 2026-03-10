@@ -1,0 +1,231 @@
+{% extends "admin/base.html" %}
+
+{% block title %}OS{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <h2>🧾 Ordem de Serviço</h2>
+            <p style="color: #999; margin: 0;">
+                {% if order.os_number %}OS {{ "%06d" % order.os_number }}{% else %}OS {{ order.id }}{% endif %} · {{ order.status_label or order.status }}
+            </p>
+        </div>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{{ url_for('admin_edit_os', os_id=order.id) }}" class="btn btn-primary">✏️ Editar</a>
+            <a href="{{ url_for('admin_os_pdf', os_id=order.id) }}" class="btn btn-secondary">📄 Gerar PDF</a>
+            <a href="{{ url_for('admin_os') }}" class="btn btn-secondary">← Voltar</a>
+            <form method="POST" action="{{ url_for('admin_delete_os', os_id=order.id) }}" style="display: inline;" onsubmit="return confirm('Excluir esta OS?');">
+                <button type="submit" class="btn btn-danger">🗑️ Excluir</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="items-list mt-4">
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Cliente</div>
+            <div style="font-weight: bold; font-size: 1.1rem;">{{ order.customer.full_name if order.customer else order.customer_snapshot.full_name if order.customer_snapshot else 'N/A' }}</div>
+            <div style="color: #999; margin-top: 0.5rem;">
+                {% if order.customer_snapshot and order.customer_snapshot.doc_number %}{{ order.customer_snapshot.doc_number }}{% endif %}
+            </div>
+        </div>
+
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Técnico</div>
+            <div style="font-weight: bold; font-size: 1.1rem;">{{ order.technician.name if order.technician else 'N/A' }}</div>
+        </div>
+
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Abertura</div>
+            <div style="font-weight: bold; font-size: 1.1rem;">{{ order.opened_at or 'N/A' }}</div>
+        </div>
+
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Total</div>
+            <div style="font-weight: bold; font-size: 1.2rem; color: #28a745;">
+                R$ {{ "{:,.2f}".format(order.total_value or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-grid mt-4">
+        <div class="admin-card">
+            <h3>Equipamento</h3>
+            <div class="details-grid mt-3">
+                <div>
+                    <strong class="text-warning">Tipo:</strong>
+                    <p class="text-value">{{ order.equipment.type if order.equipment else 'N/A' }}</p>
+                </div>
+                <div>
+                    <strong class="text-warning">Marca:</strong>
+                    <p class="text-value">{{ order.equipment.brand if order.equipment else 'N/A' }}</p>
+                </div>
+                <div>
+                    <strong class="text-warning">Modelo:</strong>
+                    <p class="text-value">{{ order.equipment.model if order.equipment else 'N/A' }}</p>
+                </div>
+                <div>
+                    <strong class="text-warning">Nº Série:</strong>
+                    <p class="text-value">{{ order.equipment.serial_number if order.equipment else 'N/A' }}</p>
+                </div>
+                <div>
+                    <strong class="text-warning">IMEI:</strong>
+                    <p class="text-value">{{ order.equipment.imei if order.equipment else 'N/A' }}</p>
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <strong class="text-warning">Acessórios:</strong>
+                    <p class="text-value">
+                        {% if order.equipment and order.equipment.accessories %}
+                            {{ order.equipment.accessories | join(', ') }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <h3>Problema e diagnóstico</h3>
+            <div class="mt-3">
+                <strong class="text-warning">Defeito relatado:</strong>
+                <p class="text-value">{{ order.reported_issue or 'N/A' }}</p>
+                <strong class="text-warning">Diagnóstico técnico:</strong>
+                <p class="text-value">{{ order.technical_diagnosis or 'N/A' }}</p>
+                <strong class="text-warning">Serviço necessário:</strong>
+                <p class="text-value">{{ order.required_service or 'N/A' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <h3>Orçamento</h3>
+        <div class="details-grid mt-3">
+            <div>
+                <strong class="text-warning">Mão de obra:</strong>
+                <p class="text-value">R$ {{ "{:,.2f}".format(order.labor_value or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</p>
+            </div>
+            <div>
+                <strong class="text-warning">Peças:</strong>
+                <p class="text-value">R$ {{ "{:,.2f}".format(order.parts_value or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</p>
+            </div>
+            <div>
+                <strong class="text-warning">Total:</strong>
+                <p class="text-value">R$ {{ "{:,.2f}".format(order.total_value or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</p>
+            </div>
+            <div>
+                <strong class="text-warning">Data do orçamento:</strong>
+                <p class="text-value">{{ order.budget_date or 'N/A' }}</p>
+            </div>
+            <div>
+                <strong class="text-warning">Autorizado:</strong>
+                <p class="text-value">{% if order.authorized %}Sim{% else %}Não{% endif %}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <h3>Peças usadas</h3>
+        <div class="admin-table-container mt-3">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Peça</th>
+                        <th>Quantidade</th>
+                        <th>Valor (R$)</th>
+                        <th>Total (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if order.parts %}
+                        {% for p in order.parts %}
+                        <tr>
+                            <td>{{ p.part }}</td>
+                            <td>{{ p.quantity }}</td>
+                            <td>R$ {{ "{:,.2f}".format(p.value or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                            <td>R$ {{ "{:,.2f}".format((p.quantity or 0) * (p.value or 0)).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="4" style="color: #999;">Nenhuma peça registrada.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <h3>Histórico</h3>
+        {% if order.history %}
+        <div class="item-card mt-3" style="background: #0d0d0d;">
+            {% for h in order.history %}
+            <div style="display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #333; padding: 0.75rem 0;">
+                <div style="color: #ffffff;">{{ h.message }}</div>
+                <div style="color: #999; font-size: 0.9rem;">{{ h.created_at[:16] if h.created_at else '' }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="color: #999; margin-top: 1rem;">Sem histórico.</div>
+        {% endif %}
+    </div>
+
+    <div class="admin-card">
+        <h3>Entrega</h3>
+        <div class="details-grid mt-3">
+            <div>
+                <strong class="text-warning">Conclusão:</strong>
+                <p class="text-value">{{ order.concluded_at or 'N/A' }}</p>
+            </div>
+            <div>
+                <strong class="text-warning">Retirada:</strong>
+                <p class="text-value">{{ order.delivered_at or 'N/A' }}</p>
+            </div>
+            <div>
+                <strong class="text-warning">Quem retirou:</strong>
+                <p class="text-value">{{ order.delivered_to_name or 'N/A' }}</p>
+            </div>
+            <div>
+                <strong class="text-warning">Documento:</strong>
+                <p class="text-value">{{ order.delivered_to_doc or 'N/A' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <h3>Garantia</h3>
+        <div class="details-grid mt-3">
+            <div>
+                <strong class="text-warning">Dias:</strong>
+                <p class="text-value">{{ order.warranty_days if order.warranty_days is not none else 'N/A' }}</p>
+            </div>
+            <div style="grid-column: 1 / -1;">
+                <strong class="text-warning">Observações:</strong>
+                <p class="text-value">{{ order.warranty_notes or 'N/A' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <h3>Fotos</h3>
+        {% if order.photos %}
+        <div class="tags-container mt-3">
+            {% for p in order.photos %}
+            <a href="data:{{ p.content_type }};base64,{{ p.data }}" target="_blank" style="text-decoration: none;">
+                <img src="data:{{ p.content_type }};base64,{{ p.data }}" alt="{{ p.filename }}" style="width: 140px; height: 140px; object-fit: cover; border-radius: 10px; border: 1px solid #333;">
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="color: #999; margin-top: 1rem;">Sem fotos.</div>
+        {% endif %}
+    </div>
+
+    <div class="admin-card">
+        <h3>Termo de responsabilidade</h3>
+        <div class="mt-3">
+            <p class="text-value">{{ order.responsibility_term or 'N/A' }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

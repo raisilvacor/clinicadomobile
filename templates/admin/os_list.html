@@ -1,0 +1,94 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Ordem de Serviço{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2>🧾 Ordem de Serviço</h2>
+            <p style="color: #999; margin: 0;">Controle do equipamento, cliente, serviço e valores</p>
+        </div>
+        <a href="{{ url_for('admin_new_os') }}" class="btn btn-primary">➕ Nova OS</a>
+    </div>
+
+    <form method="GET" class="search-box">
+        <input type="text" name="q" placeholder="Buscar por número, cliente ou CPF/CNPJ" value="{{ q or '' }}">
+        <select name="status" class="form-control" style="margin-bottom: 0; width: 220px;">
+            <option value="" {% if not status %}selected{% endif %}>Status (Todos)</option>
+            {% for v, label in status_options %}
+            <option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        {% if q or status %}
+        <a href="{{ url_for('admin_os') }}" class="btn btn-secondary">Limpar</a>
+        {% endif %}
+    </form>
+
+    <div class="admin-table-container" style="margin-top: 2rem;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>OS</th>
+                    <th>Status</th>
+                    <th>Cliente</th>
+                    <th>Técnico</th>
+                    <th>Abertura</th>
+                    <th>Total</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if orders %}
+                    {% for o in orders %}
+                    <tr>
+                        <td style="font-weight: bold;">
+                            <a href="{{ url_for('admin_view_os', os_id=o.id) }}" style="color: #ff8c00; text-decoration: none;">
+                                {% if o.os_number %}{{ "%06d" % o.os_number }}{% else %}{{ o.id }}{% endif %}
+                            </a>
+                        </td>
+                        <td>
+                            {% if o.status == 'aberta' %}
+                                <span class="status-badge pending">Aberta</span>
+                            {% elif o.status == 'em_analise' %}
+                                <span class="status-badge info">Em análise</span>
+                            {% elif o.status == 'aguardando_peca' %}
+                                <span class="status-badge orange">Aguardando peça</span>
+                            {% elif o.status == 'concluida' %}
+                                <span class="status-badge primary">Concluída</span>
+                            {% elif o.status == 'entregue' %}
+                                <span class="status-badge active">Entregue</span>
+                            {% else %}
+                                <span class="status-badge info">{{ o.status or 'N/A' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-weight: 600;">{{ o.customer_name or 'N/A' }}</div>
+                            <div style="color: #999; font-size: 0.9rem;">{{ o.customer_doc or '' }}</div>
+                        </td>
+                        <td>{{ o.technician_name or 'N/A' }}</td>
+                        <td>{{ o.opened_at or 'N/A' }}</td>
+                        <td style="font-weight: bold;">
+                            R$ {{ "{:,.2f}".format(o.total_value or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin_view_os', os_id=o.id) }}" class="btn btn-secondary">👁️</a>
+                            <a href="{{ url_for('admin_edit_os', os_id=o.id) }}" class="btn btn-secondary">✏️</a>
+                            <form method="POST" action="{{ url_for('admin_delete_os', os_id=o.id) }}" style="display: inline;" onsubmit="return confirm('Excluir esta OS?');">
+                                <button type="submit" class="btn btn-danger">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="color: #999;">Nenhuma OS encontrada.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

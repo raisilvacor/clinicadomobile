@@ -1,0 +1,117 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Financeiro{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2>💵 Financeiro</h2>
+            <p style="color: #999; margin: 0;">Fluxo de caixa: entradas, saídas e saldo</p>
+        </div>
+        <a href="{{ url_for('admin_new_transaction') }}" class="btn btn-primary">➕ Nova Transação</a>
+    </div>
+
+    <form method="GET" class="search-box">
+        <input type="text" name="q" placeholder="Buscar por descrição, categoria ou forma de pagamento" value="{{ q or '' }}">
+        <select name="type" class="form-control" style="margin-bottom: 0; width: 180px;">
+            <option value="" {% if not type %}selected{% endif %}>Tipo (Todos)</option>
+            <option value="entrada" {% if type == 'entrada' %}selected{% endif %}>Entrada</option>
+            <option value="saida" {% if type == 'saida' %}selected{% endif %}>Saída</option>
+        </select>
+        <select name="category" class="form-control" style="margin-bottom: 0; width: 220px;">
+            <option value="" {% if not category %}selected{% endif %}>Categoria (Todas)</option>
+            {% for c in categories %}
+            <option value="{{ c }}" {% if category == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="start_date" class="form-control" style="margin-bottom: 0; width: 170px;" value="{{ start_date or '' }}">
+        <input type="date" name="end_date" class="form-control" style="margin-bottom: 0; width: 170px;" value="{{ end_date or '' }}">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        {% if q or type or category or start_date or end_date %}
+        <a href="{{ url_for('admin_financeiro') }}" class="btn btn-secondary">Limpar</a>
+        {% endif %}
+    </form>
+
+    <div class="details-grid" style="margin-top: 1.5rem;">
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Entradas</div>
+            <div style="color: #28a745; font-size: 1.4rem; font-weight: bold;">
+                R$ {{ "{:,.2f}".format(total_income).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            </div>
+        </div>
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Saídas</div>
+            <div style="color: #dc3545; font-size: 1.4rem; font-weight: bold;">
+                R$ {{ "{:,.2f}".format(total_expense).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            </div>
+        </div>
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Saldo</div>
+            <div style="color: {% if balance >= 0 %}#28a745{% else %}#dc3545{% endif %}; font-size: 1.4rem; font-weight: bold;">
+                R$ {{ "{:,.2f}".format(balance).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            </div>
+        </div>
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Entrada de OS</div>
+            <div style="color: #ffc107; font-size: 1.4rem; font-weight: bold;">
+                R$ {{ "{:,.2f}".format(os_open_total or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            </div>
+        </div>
+        <div class="item-card">
+            <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Saldo de OS</div>
+            <div style="color: #28a745; font-size: 1.4rem; font-weight: bold;">
+                R$ {{ "{:,.2f}".format(os_done_total or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-table-container" style="margin-top: 2rem;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Categoria</th>
+                    <th>Descrição</th>
+                    <th>Pagamento</th>
+                    <th>Valor</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if transactions %}
+                    {% for t in transactions %}
+                    <tr>
+                        <td>{{ t.date or 'N/A' }}</td>
+                        <td>
+                            {% if t.type == 'entrada' %}
+                                <span class="status-badge active">Entrada</span>
+                            {% else %}
+                                <span class="status-badge inactive">Saída</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ t.category or 'N/A' }}</td>
+                        <td>{{ t.description or 'N/A' }}</td>
+                        <td>{{ t.payment_method or 'N/A' }}</td>
+                        <td style="font-weight: bold; color: {% if t.type == 'entrada' %}#28a745{% else %}#dc3545{% endif %};">
+                            R$ {{ "{:,.2f}".format(t.amount).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin_edit_transaction', transaction_id=t.id) }}" class="btn btn-secondary">✏️</a>
+                            <form method="POST" action="{{ url_for('admin_delete_transaction', transaction_id=t.id) }}" style="display: inline;" onsubmit="return confirm('Excluir esta transação?');">
+                                <button type="submit" class="btn btn-danger">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="color: #999;">Nenhuma transação encontrada.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

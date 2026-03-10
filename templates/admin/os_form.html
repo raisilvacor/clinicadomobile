@@ -1,0 +1,440 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if existing_order %}Editar OS{% else %}Nova OS{% endif %}{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+    <h2>{% if existing_order %}✏️ Editar Ordem de Serviço{% else %}➕ Nova Ordem de Serviço{% endif %}</h2>
+
+    {% if error %}
+    <div class="alert-card critical mt-4">
+        <strong>Erro:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" class="mt-4" enctype="multipart/form-data">
+        <div class="form-grid-layout">
+            <div class="item-card">
+                <h3>1. Identificação</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Número da OS</label>
+                        <input type="text" class="form-control" value="{% if existing_order and existing_order.os_number %}{{ '%06d' % existing_order.os_number }}{% else %}N/A{% endif %}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Data de abertura *</label>
+                        <input type="date" name="opened_at" class="form-control" value="{{ (os_data.get('opened_at') if os_data else '') or '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="status" class="form-control" required>
+                            {% set current_status = (os_data.get('status') if os_data else '') or 'aberta' %}
+                            {% for v, label in status_options %}
+                            <option value="{{ v }}" {% if current_status == v %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Técnico responsável</label>
+                        {% set current_tech = (os_data.get('technician_id') if os_data else '') or '' %}
+                        <select name="technician_id" class="form-control">
+                            <option value="">N/A</option>
+                            {% for t in technicians %}
+                            <option value="{{ t.id }}" {% if current_tech == t.id %}selected{% endif %}>{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>2. Dados do cliente</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Cliente *</label>
+                        {% set current_customer = (os_data.get('customer_id') if os_data else '') or '' %}
+                        <select name="customer_id" id="customer_id" class="form-control" required>
+                            <option value="">Selecione</option>
+                            {% for c in customers %}
+                            <option value="{{ c.id }}" {% if current_customer == c.id %}selected{% endif %}>{{ c.full_name }} ({{ c.doc_number }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="details-grid mt-3">
+                    <div>
+                        <strong class="text-warning">CPF/CNPJ:</strong>
+                        <p class="text-value" id="cust_doc">N/A</p>
+                    </div>
+                    <div>
+                        <strong class="text-warning">Telefone:</strong>
+                        <p class="text-value" id="cust_phone">N/A</p>
+                    </div>
+                    <div>
+                        <strong class="text-warning">WhatsApp:</strong>
+                        <p class="text-value" id="cust_whatsapp">N/A</p>
+                    </div>
+                    <div>
+                        <strong class="text-warning">E-mail:</strong>
+                        <p class="text-value" id="cust_email">N/A</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>3. Dados do equipamento</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Tipo de equipamento</label>
+                        <input type="text" name="equipment_type" class="form-control" value="{{ (os_data.get('equipment', {}).get('type') if os_data and os_data.get('equipment') else os_data.get('equipment_type') if os_data else '') or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Marca</label>
+                        <input type="text" name="equipment_brand" class="form-control" value="{{ (os_data.get('equipment', {}).get('brand') if os_data and os_data.get('equipment') else os_data.get('equipment_brand') if os_data else '') or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Modelo</label>
+                        <input type="text" name="equipment_model" class="form-control" value="{{ (os_data.get('equipment', {}).get('model') if os_data and os_data.get('equipment') else os_data.get('equipment_model') if os_data else '') or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Número de série</label>
+                        <input type="text" name="serial_number" class="form-control" value="{{ (os_data.get('equipment', {}).get('serial_number') if os_data and os_data.get('equipment') else os_data.get('serial_number') if os_data else '') or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>IMEI (se for celular)</label>
+                        <input type="text" name="imei" class="form-control" value="{{ (os_data.get('equipment', {}).get('imei') if os_data and os_data.get('equipment') else os_data.get('imei') if os_data else '') or '' }}" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="item-card mt-3">
+                    <label class="mb-3">Acessórios entregues</label>
+                    {% set acc_current = (os_data.get('equipment', {}).get('accessories') if os_data and os_data.get('equipment') else os_data.getlist('accessories') if os_data and os_data.getlist is defined else []) %}
+                    <div class="checkbox-grid">
+                        {% set accessories = ['Carregador', 'Cabo', 'Capa', 'Bateria'] %}
+                        {% for a in accessories %}
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="accessories" value="{{ a }}" {% if acc_current and a in acc_current %}checked{% endif %}>
+                            <span>{{ a }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>4. Problema relatado</h3>
+                <div class="form-group mt-3">
+                    <label>Defeito relatado pelo cliente</label>
+                    <textarea name="reported_issue" rows="4" class="form-control" style="resize: vertical;">{{ (os_data.get('reported_issue') if os_data else '') or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>5. Análise técnica</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Diagnóstico técnico</label>
+                        <textarea name="technical_diagnosis" rows="4" class="form-control" style="resize: vertical;">{{ (os_data.get('technical_diagnosis') if os_data else '') or '' }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Serviço necessário</label>
+                        <textarea name="required_service" rows="4" class="form-control" style="resize: vertical;">{{ (os_data.get('required_service') if os_data else '') or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>6. Orçamento</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Valor da mão de obra (R$)</label>
+                        <input type="text" name="labor_value" id="labor_value" class="form-control" value="{{ (os_data.get('labor_value') if os_data else '') or '0' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Data do orçamento</label>
+                        <input type="date" name="budget_date" class="form-control" value="{{ (os_data.get('budget_date') if os_data else '') or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Autorização do cliente</label>
+                        {% set current_auth = 'sim' if os_data and os_data.get('authorized') else 'nao' %}
+                        <select name="authorized" class="form-control">
+                            <option value="nao" {% if current_auth == 'nao' %}selected{% endif %}>Não</option>
+                            <option value="sim" {% if current_auth == 'sim' %}selected{% endif %}>Sim</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor das peças (R$)</label>
+                        <input type="text" id="parts_total" class="form-control" value="{{ (os_data.get('parts_value') if os_data else '') or '0' }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor total (R$)</label>
+                        <input type="text" id="total_value" class="form-control" value="{{ (os_data.get('total_value') if os_data else '') or '0' }}" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>7. Peças usadas</h3>
+                <div class="admin-table-container mt-3">
+                    <table class="admin-table" id="parts_table">
+                        <thead>
+                            <tr>
+                                <th>Peça</th>
+                                <th>Quantidade</th>
+                                <th>Valor (R$)</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="parts_body">
+                            {% set existing_parts = existing_order.get('parts', []) if existing_order else [] %}
+                            {% if existing_parts and existing_parts|length > 0 %}
+                                {% for p in existing_parts %}
+                                <tr>
+                                    <td><input type="text" name="part_name" class="form-control" value="{{ p.part }}"></td>
+                                    <td><input type="number" name="part_quantity" class="form-control" value="{{ p.quantity }}" min="1"></td>
+                                    <td><input type="text" name="part_value" class="form-control part_value" value="{{ p.value }}"></td>
+                                    <td><button type="button" class="btn btn-danger" onclick="removePartRow(this)">🗑️</button></td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td><input type="text" name="part_name" class="form-control" value=""></td>
+                                    <td><input type="number" name="part_quantity" class="form-control" value="1" min="1"></td>
+                                    <td><input type="text" name="part_value" class="form-control part_value" value="0"></td>
+                                    <td><button type="button" class="btn btn-danger" onclick="removePartRow(this)">🗑️</button></td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="addPartRow()">➕ Adicionar peça</button>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>8. Histórico / andamento</h3>
+                {% if existing_order and existing_order.get('history') %}
+                <div class="item-card mt-3" style="background: #0d0d0d;">
+                    {% for h in existing_order.get('history', []) %}
+                    <div style="display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #333; padding: 0.75rem 0;">
+                        <div style="color: #ffffff;">{{ h.message }}</div>
+                        <div style="color: #999; font-size: 0.9rem;">{{ h.created_at[:16] if h.created_at else '' }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="form-group mt-3">
+                    <label>Nova atualização</label>
+                    <input type="text" name="history_note" class="form-control" placeholder="Ex: Diagnóstico concluído / Aguardando peça">
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>9. Entrega</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Data de conclusão</label>
+                        <input type="date" name="concluded_at" class="form-control" value="{{ (os_data.get('concluded_at') if os_data else '') or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Data de retirada</label>
+                        <input type="date" name="delivered_at" class="form-control" value="{{ (os_data.get('delivered_at') if os_data else '') or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Nome de quem retirou</label>
+                        <input type="text" name="delivered_to_name" class="form-control" value="{{ (os_data.get('delivered_to_name') if os_data else '') or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Documento de quem retirou</label>
+                        <input type="text" name="delivered_to_doc" class="form-control" value="{{ (os_data.get('delivered_to_doc') if os_data else '') or '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>10. Garantia</h3>
+                <div class="form-grid-layout mt-3">
+                    <div class="form-group">
+                        <label>Dias de garantia</label>
+                        <input type="number" name="warranty_days" class="form-control" value="{{ (os_data.get('warranty_days') if os_data else '') or 90 }}" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Observações da garantia</label>
+                        <input type="hidden" name="warranty_notes" value="A assistência técnica Clínica CELL garante os serviços realizados pelo prazo de 90 (noventa) dias, conforme previsto no Código de Defesa do Consumidor, contados a partir da data de entrega do equipamento ao cliente.\n\nA garantia cobre exclusivamente o serviço executado e/ou as peças substituídas durante o reparo, desde que comprovado defeito relacionado diretamente ao serviço realizado.\n\nA garantia não cobre:\n\nDanos causados por mau uso, quedas, impactos, líquidos ou exposição a umidade;\n\nTentativas de reparo por terceiros após a entrega do equipamento;\n\nProblemas decorrentes de desgaste natural de componentes não substituídos no reparo;\n\nInstalação de softwares ou aplicativos de terceiros que causem mau funcionamento;\n\nDanos causados por variações elétricas, curto-circuito, descargas elétricas ou uso de acessórios inadequados.\n\nJunto com essa OS voce receberá tambem o termo de garantia.">
+                        <div class="item-card" style="background: #0d0d0d; border: 1px solid #333; margin-top: 0.5rem;">
+                            <div style="color: #ffffff; white-space: pre-line; line-height: 1.7;">
+                                A assistência técnica Clínica CELL garante os serviços realizados pelo prazo de 90 (noventa) dias, conforme previsto no Código de Defesa do Consumidor, contados a partir da data de entrega do equipamento ao cliente.
+
+                                A garantia cobre exclusivamente o serviço executado e/ou as peças substituídas durante o reparo, desde que comprovado defeito relacionado diretamente ao serviço realizado.
+
+                                A garantia não cobre:
+
+                                Danos causados por mau uso, quedas, impactos, líquidos ou exposição a umidade;
+
+                                Tentativas de reparo por terceiros após a entrega do equipamento;
+
+                                Problemas decorrentes de desgaste natural de componentes não substituídos no reparo;
+
+                                Instalação de softwares ou aplicativos de terceiros que causem mau funcionamento;
+
+                                Danos causados por variações elétricas, curto-circuito, descargas elétricas ou uso de acessórios inadequados.
+
+                                Junto com essa OS voce receberá tambem o termo de garantia.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <h3>Fotos do equipamento</h3>
+                <div class="form-group mt-3">
+                    <input type="file" name="photos" multiple class="form-control" accept="image/*">
+                </div>
+                {% if existing_order and existing_order.get('photos') %}
+                <div class="tags-container mt-3">
+                    {% for p in existing_order.get('photos', []) %}
+                    <a href="data:{{ p.content_type }};base64,{{ p.data }}" target="_blank" style="text-decoration: none;">
+                        <img src="data:{{ p.content_type }};base64,{{ p.data }}" alt="{{ p.filename }}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 10px; border: 1px solid #333;">
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="item-card">
+                <h3>Termo de responsabilidade</h3>
+                <div class="form-group mt-3">
+                    <input type="hidden" name="responsibility_term" value="TERMO DE RESPONSABILIDADE – ASSISTÊNCIA TÉCNICA\n\nAo entregar o equipamento para análise e/ou reparo, o cliente declara estar ciente e de acordo com as seguintes condições:\n\nO equipamento será submetido a testes e procedimentos técnicos necessários para diagnóstico e reparo do defeito informado.\n\nDurante o processo de análise ou manutenção, poderá ocorrer perda total ou parcial de dados armazenados no equipamento, tais como arquivos, fotos, vídeos, aplicativos ou configurações. É de responsabilidade do cliente manter cópia de segurança (backup) de seus dados antes da realização do serviço.\n\nA assistência técnica não se responsabiliza pela perda de dados ou informações contidas no equipamento durante o processo de diagnóstico ou reparo.\n\nO cliente declara que informou corretamente o defeito apresentado pelo equipamento e que retirou chips, cartões de memória, pendrives ou quaisquer mídias removíveis, salvo quando entregues juntamente com o equipamento e devidamente registrados na ordem de serviço.\n\nEquipamentos que apresentem sinais de queda, contato com líquido, oxidação, violação ou reparo anterior por terceiros poderão apresentar defeitos adicionais durante o processo de manutenção, não sendo responsabilidade da assistência técnica eventuais agravamentos decorrentes dessas condições preexistentes.\n\nCaso o equipamento não seja retirado no prazo de 90 (noventa) dias após a comunicação de conclusão do serviço ou orçamento recusado, a assistência técnica poderá considerar o equipamento como abandonado, podendo dar a destinação que julgar adequada para ressarcimento de custos operacionais, conforme legislação aplicável.\n\nO cliente declara ter ciência de que a assistência técnica poderá realizar abertura do equipamento, o que poderá implicar na perda de garantia do fabricante, quando existente.">
+                    <div class="item-card" style="background: #0d0d0d; border: 1px solid #333; margin-top: 0.5rem;">
+                        <div style="color: #ffffff; white-space: pre-line; line-height: 1.7;">
+                            TERMO DE RESPONSABILIDADE – ASSISTÊNCIA TÉCNICA
+
+                            Ao entregar o equipamento para análise e/ou reparo, o cliente declara estar ciente e de acordo com as seguintes condições:
+
+                            O equipamento será submetido a testes e procedimentos técnicos necessários para diagnóstico e reparo do defeito informado.
+
+                            Durante o processo de análise ou manutenção, poderá ocorrer perda total ou parcial de dados armazenados no equipamento, tais como arquivos, fotos, vídeos, aplicativos ou configurações. É de responsabilidade do cliente manter cópia de segurança (backup) de seus dados antes da realização do serviço.
+
+                            A assistência técnica não se responsabiliza pela perda de dados ou informações contidas no equipamento durante o processo de diagnóstico ou reparo.
+
+                            O cliente declara que informou corretamente o defeito apresentado pelo equipamento e que retirou chips, cartões de memória, pendrives ou quaisquer mídias removíveis, salvo quando entregues juntamente com o equipamento e devidamente registrados na ordem de serviço.
+
+                            Equipamentos que apresentem sinais de queda, contato com líquido, oxidação, violação ou reparo anterior por terceiros poderão apresentar defeitos adicionais durante o processo de manutenção, não sendo responsabilidade da assistência técnica eventuais agravamentos decorrentes dessas condições preexistentes.
+
+                            Caso o equipamento não seja retirado no prazo de 90 (noventa) dias após a comunicação de conclusão do serviço ou orçamento recusado, a assistência técnica poderá considerar o equipamento como abandonado, podendo dar a destinação que julgar adequada para ressarcimento de custos operacionais, conforme legislação aplicável.
+
+                            O cliente declara ter ciência de que a assistência técnica poderá realizar abertura do equipamento, o que poderá implicar na perda de garantia do fabricante, quando existente.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                <a href="{{ url_for('admin_os') }}" class="btn btn-secondary">❌ Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function onlyDigits(value) {
+        return (value || '').replace(/\D/g, '');
+    }
+
+    async function loadCustomerSnapshot() {
+        const select = document.getElementById('customer_id');
+        const customerId = select.value;
+        const docEl = document.getElementById('cust_doc');
+        const phoneEl = document.getElementById('cust_phone');
+        const waEl = document.getElementById('cust_whatsapp');
+        const emailEl = document.getElementById('cust_email');
+
+        docEl.textContent = 'N/A';
+        phoneEl.textContent = 'N/A';
+        waEl.textContent = 'N/A';
+        emailEl.textContent = 'N/A';
+
+        if (!customerId) {
+            return;
+        }
+
+        const resp = await fetch(`{{ url_for('admin_customer_api', customer_id='__ID__') }}`.replace('__ID__', encodeURIComponent(customerId)));
+        const payload = await resp.json();
+        if (!payload.success) {
+            return;
+        }
+        const c = payload.data || {};
+        docEl.textContent = c.doc_number || 'N/A';
+        phoneEl.textContent = c.phone_primary || 'N/A';
+        waEl.textContent = c.whatsapp || 'N/A';
+        emailEl.textContent = c.email || 'N/A';
+    }
+
+    function addPartRow() {
+        const body = document.getElementById('parts_body');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="text" name="part_name" class="form-control" value=""></td>
+            <td><input type="number" name="part_quantity" class="form-control" value="1" min="1"></td>
+            <td><input type="text" name="part_value" class="form-control part_value" value="0"></td>
+            <td><button type="button" class="btn btn-danger" onclick="removePartRow(this)">🗑️</button></td>
+        `;
+        body.appendChild(row);
+        bindPartsListeners();
+        recalcParts();
+    }
+
+    function removePartRow(button) {
+        const row = button.closest('tr');
+        if (!row) return;
+        row.remove();
+        recalcParts();
+    }
+
+    function parseMoney(value) {
+        let v = (value || '').toString().replace('R$', '').trim();
+        if (v.includes('.') && v.includes(',')) {
+            v = v.replace(/\./g, '').replace(',', '.');
+        } else if (v.includes(',') && !v.includes('.')) {
+            v = v.replace(',', '.');
+        }
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function recalcParts() {
+        const quantities = Array.from(document.getElementsByName('part_quantity'));
+        const values = Array.from(document.getElementsByName('part_value'));
+        let partsTotal = 0;
+        for (let i = 0; i < Math.max(quantities.length, values.length); i++) {
+            const qty = parseInt((quantities[i] && quantities[i].value) || '0', 10) || 0;
+            const val = parseMoney((values[i] && values[i].value) || '0');
+            if (qty > 0) {
+                partsTotal += qty * val;
+            }
+        }
+        const labor = parseMoney(document.getElementById('labor_value').value);
+        const total = labor + partsTotal;
+        const fmt = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('parts_total').value = fmt(partsTotal);
+        document.getElementById('total_value').value = fmt(total);
+    }
+
+    function bindPartsListeners() {
+        const inputs = Array.from(document.querySelectorAll('input[name="part_quantity"], input[name="part_value"], #labor_value'));
+        inputs.forEach((i) => {
+            i.removeEventListener('input', recalcParts);
+            i.addEventListener('input', recalcParts);
+        });
+    }
+
+    document.getElementById('customer_id').addEventListener('change', loadCustomerSnapshot);
+    bindPartsListeners();
+    recalcParts();
+    loadCustomerSnapshot();
+</script>
+{% endblock %}

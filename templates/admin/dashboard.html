@@ -126,33 +126,21 @@
 
     <div class="admin-dashboard-grid">
         <div class="stat-card">
-            <h3>🎯 Hero</h3>
-            <p>Edite o título, subtítulo e imagem de fundo da seção principal</p>
-            <a href="{{ url_for('admin_hero') }}" class="btn btn-primary">Editar</a>
+            <h3>🔑 Alterar Senha</h3>
+            <p>Altere a senha de acesso ao painel administrativo</p>
+            <a href="{{ url_for('admin_password') }}" class="btn btn-primary">Alterar</a>
         </div>
 
         <div class="stat-card">
-            <h3>⚙️ Serviços</h3>
-            <p>Gerencie os serviços oferecidos pela assistência técnica</p>
-            <a href="{{ url_for('admin_services') }}" class="btn btn-primary">Editar</a>
+            <h3>🧑‍💼 Clientes</h3>
+            <p>Cadastre e gerencie clientes com CPF/CNPJ e endereço</p>
+            <a href="{{ url_for('admin_customers') }}" class="btn btn-primary">Acessar</a>
         </div>
 
         <div class="stat-card">
-            <h3>ℹ️ Sobre</h3>
-            <p>Edite informações sobre a empresa e características</p>
-            <a href="{{ url_for('admin_about') }}" class="btn btn-primary">Editar</a>
-        </div>
-
-        <div class="stat-card">
-            <h3>📱 Dispositivos</h3>
-            <p>Gerencie os módulos Android, iPhone e MAC</p>
-            <a href="{{ url_for('admin_devices') }}" class="btn btn-primary">Editar</a>
-        </div>
-
-        <div class="stat-card">
-            <h3>🔬 Laboratório</h3>
-            <p>Gerencie as imagens da galeria do laboratório</p>
-            <a href="{{ url_for('admin_laboratory') }}" class="btn btn-primary">Editar</a>
+            <h3>🏷️ Config. Orçamentos</h3>
+            <p>Gerencie marcas, modelos e preços da página de orçamentos (/orcamento/)</p>
+            <a href="{{ url_for('admin_budget_config') }}" class="btn btn-primary">Acessar</a>
         </div>
 
         <div class="stat-card">
@@ -162,17 +150,33 @@
         </div>
 
         <div class="stat-card">
-            <h3>🧑‍💼 Clientes</h3>
-            <p>Cadastre e gerencie clientes com CPF/CNPJ e endereço</p>
-            <a href="{{ url_for('admin_customers') }}" class="btn btn-primary">Acessar</a>
+            <h3>📱 Dispositivos</h3>
+            <p>Gerencie os módulos Android, iPhone e MAC</p>
+            <a href="{{ url_for('admin_devices') }}" class="btn btn-primary">Editar</a>
         </div>
 
-
+        <div class="stat-card">
+            <h3>💵 Financeiro</h3>
+            <p>Controle de entradas, saídas e saldo do caixa</p>
+            <a href="{{ url_for('admin_financeiro') }}" class="btn btn-primary">Acessar</a>
+        </div>
 
         <div class="stat-card">
             <h3>🏢 Fornecedores</h3>
             <p>Gerencie fornecedores e parceiros da assistência técnica</p>
             <a href="{{ url_for('admin_suppliers') }}" class="btn btn-primary">Acessar</a>
+        </div>
+
+        <div class="stat-card">
+            <h3>🎯 Hero</h3>
+            <p>Edite o título, subtítulo e imagem de fundo da seção principal</p>
+            <a href="{{ url_for('admin_hero') }}" class="btn btn-primary">Editar</a>
+        </div>
+
+        <div class="stat-card">
+            <h3>🔬 Laboratório</h3>
+            <p>Gerencie as imagens da galeria do laboratório</p>
+            <a href="{{ url_for('admin_laboratory') }}" class="btn btn-primary">Editar</a>
         </div>
 
         <div class="stat-card">
@@ -193,24 +197,28 @@
             <a href="https://www.nfse.gov.br/EmissorNacional/Login?ReturnUrl=%2fEmissorNacional" target="_blank" class="btn btn-primary">Acessar</a>
         </div>
 
+        <div class="stat-card">
+            <h3>🧾 Ordem de Serviço</h3>
+            <p>Crie e gerencie OS com equipamento, peças e histórico</p>
+            <a href="{{ url_for('admin_os') }}" class="btn btn-primary">Acessar</a>
+        </div>
 
+        <div class="stat-card">
+            <h3>⚙️ Serviços</h3>
+            <p>Gerencie os serviços oferecidos pela assistência técnica</p>
+            <a href="{{ url_for('admin_services') }}" class="btn btn-primary">Editar</a>
+        </div>
+
+        <div class="stat-card">
+            <h3>ℹ️ Sobre</h3>
+            <p>Edite informações sobre a empresa e características</p>
+            <a href="{{ url_for('admin_about') }}" class="btn btn-primary">Editar</a>
+        </div>
 
         <div class="stat-card">
             <h3>👥 Usuários do Admin</h3>
             <p>Gerencie usuários do sistema com controle de permissões e acesso</p>
             <a href="{{ url_for('admin_users') }}" class="btn btn-primary">Acessar</a>
-        </div>
-
-        <div class="stat-card">
-            <h3>🔑 Alterar Senha</h3>
-            <p>Altere a senha de acesso ao painel administrativo</p>
-            <a href="{{ url_for('admin_password') }}" class="btn btn-primary">Alterar</a>
-        </div>
-
-        <div class="stat-card">
-            <h3>🏷️ Config. Orçamentos</h3>
-            <p>Gerencie marcas, modelos e preços da página de orçamentos (/orcamento/)</p>
-            <a href="{{ url_for('admin_budget_config') }}" class="btn btn-primary">Acessar</a>
         </div>
 
     </div>
