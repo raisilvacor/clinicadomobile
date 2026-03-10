@@ -5,6 +5,7 @@ Compatível com Python 3.13 usando psycopg (psycopg3)
 import os
 import json
 from contextlib import contextmanager
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 # Usar psycopg (psycopg3) que é compatível com Python 3.13
 CONFIG_FILE = 'config.json'  # Definir sempre para fallback
@@ -59,18 +60,51 @@ except ImportError as e:
     print(f"⚠️  psycopg não encontrado ({e}), usando config.json como fallback")
     print("⚠️  ATENÇÃO: Dados serão perdidos após deploy! Instale psycopg[binary]>=3.1.0")
 
-# URL do banco de dados do Render
-# Priorizar variável de ambiente, senão usar fallback
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if not DATABASE_URL:
-    # Fallback para URL hardcoded (não recomendado, mas necessário se env var não estiver configurada)
-    DATABASE_URL = 'postgresql://rai:nk1HAfaFPhbOvg34lqWl7YC5LfPNnNS3@dpg-d57kenggjchc739lcorg-a.virginia-postgres.render.com/mobiledb_p0w2'
-    print("⚠️  DATABASE_URL não encontrada em variáveis de ambiente, usando fallback")
+def _get_database_url():
+    url = os.environ.get('DATABASE_URL')
+    if url:
+        return url
 
+    host = os.environ.get('PGHOST')
+    user = os.environ.get('PGUSER')
+    password = os.environ.get('PGPASSWORD')
+    database = os.environ.get('PGDATABASE')
+    port = os.environ.get('PGPORT') or '5432'
+
+    if host and user and password and database:
+        return f'postgresql://{user}:{password}@{host}:{port}/{database}'
+
+    return None
+
+def _redact_database_url(database_url):
+    try:
+        parts = urlsplit(database_url)
+        netloc = parts.netloc
+        if '@' in netloc:
+            creds, host = netloc.rsplit('@', 1)
+            if ':' in creds:
+                username, _ = creds.split(':', 1)
+                netloc = f'{username}:***@{host}'
+            else:
+                netloc = f'{creds}@{host}'
+        return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+    except Exception:
+        return '***'
+
+DATABASE_URL = _get_database_url()
 if DATABASE_URL:
-    print(f"✅ DATABASE_URL configurada: {DATABASE_URL[:40]}...")
+    redacted = _redact_database_url(DATABASE_URL)
+    try:
+        host = urlsplit(DATABASE_URL).hostname or ''
+        if host and '.' not in host:
+            print(f"⚠️  DATABASE_URL parece inválida (host sem domínio): {host}")
+            print("⚠️  Use a URL completa do Postgres (ex: ...render.com) nas variáveis de ambiente.")
+    except Exception:
+        pass
+    print(f"✅ DATABASE_URL configurada: {redacted}")
 else:
-    print("❌ DATABASE_URL não configurada!")
+    print("⚠️  DATABASE_URL não configurada - usando config.json como fallback")
+    USE_DATABASE = False
 
 # Pool de conexões
 pool = None
@@ -102,13 +136,14 @@ def init_db():
             print(f"🔌 Conectando ao banco de dados PostgreSQL...")
             
             # Garantir SSL na string de conexão
-            if 'sslmode' not in DATABASE_URL:
-                if '?' in DATABASE_URL:
-                    DATABASE_URL += '&sslmode=require'
-                else:
-                    DATABASE_URL += '?sslmode=require'
+            if DATABASE_URL:
+                parts = urlsplit(DATABASE_URL)
+                query = dict(parse_qsl(parts.query, keep_blank_values=True))
+                query.setdefault('sslmode', 'require')
+                DATABASE_URL = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
                     
-            print(f"🔌 DATABASE_URL: {DATABASE_URL[:40]}...")  # Mostrar apenas início por segurança
+            if DATABASE_URL:
+                print(f"🔌 DATABASE_URL: {_redact_database_url(DATABASE_URL)}")
             
             # Configurar pool com timeout maior e parâmetros otimizados
             # psycopg_pool ConnectionPool aceita: min_size, max_size, timeout, max_waiting, max_idle, reconnect_timeout
