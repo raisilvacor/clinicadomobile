@@ -48,7 +48,7 @@
         </div>
         <div class="item-card">
             <div style="color: #999; font-size: 0.9rem; margin-bottom: 0.5rem;">Saldo</div>
-            <div style="color: {% if balance >= 0 %}#28a745{% else %}#dc3545{% endif %}; font-size: 1.4rem; font-weight: bold;">
+            <div class="{% if balance >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.4rem; font-weight: bold;">
                 R$ {{ "{:,.2f}".format(balance).replace(',', 'X').replace('.', ',').replace('X', '.') }}
             </div>
         </div>
@@ -94,7 +94,7 @@
                         <td>{{ t.category or 'N/A' }}</td>
                         <td>{{ t.description or 'N/A' }}</td>
                         <td>{{ t.payment_method or 'N/A' }}</td>
-                        <td style="font-weight: bold; color: {% if t.type == 'entrada' %}#28a745{% else %}#dc3545{% endif %};">
+                        <td style="font-weight: bold;" class="{% if t.type == 'entrada' %}text-success{% else %}text-danger{% endif %}">
                             R$ {{ "{:,.2f}".format(t.amount).replace(',', 'X').replace('.', ',').replace('X', '.') }}
                         </td>
                         <td>

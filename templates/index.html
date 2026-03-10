@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO Meta Tags -->
-    <title>Clínica CELL - Assistência Técnica Profissional para Android e iPhone</title>
+    <title>Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell</title>
     <meta name="description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo. Troca de tela, bateria, reparos em geral.">
     <meta name="keywords" content="assistência técnica celular, reparo iPhone, reparo Android, troca de tela, conserto celular, assistência técnica smartphone, reparo celular profissional">
     <meta name="author" content="Clínica CELL">
@@ -18,7 +18,7 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
-    <meta property="og:title" content="Clínica CELL - Assistência Técnica Profissional para Android e iPhone">
+    <meta property="og:title" content="Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell">
     <meta property="og:description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo.">
     <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
     <meta property="og:image:width" content="1200">
@@ -29,7 +29,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
-    <meta name="twitter:title" content="Clínica CELL - Assistência Técnica Profissional">
+    <meta name="twitter:title" content="Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell">
     <meta name="twitter:description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo.">
     <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
     
@@ -268,6 +268,35 @@
         .cta-button:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4);
+        }
+
+        .whatsapp-hero-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 1rem 3rem;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.25);
+        }
+
+        .whatsapp-hero-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 34px rgba(37, 211, 102, 0.4);
+        }
+
+        .whatsapp-hero-button::before {
+            content: '📱';
+            font-size: 1.2rem;
         }
 
         .os-tracking {
@@ -1049,8 +1078,16 @@
         <div class="hero-overlay">
             <div class="hero-content">
                 <h1 itemprop="name">{{ content.hero.title if content and content.hero and content.hero.title else 'Assistência Técnica Profissional' }}</h1>
-                <p>{{ content.hero.subtitle if content and content.hero and content.hero.subtitle else 'Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.' }}</p>
+                {% set hero_subtitle = (content.hero.subtitle if content and content.hero and content.hero.subtitle else '') | trim %}
+                {% if hero_subtitle == 'Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.' %}
+                    {% set hero_subtitle = 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP' %}
+                {% endif %}
+                {% set hero_subtitle = (hero_subtitle | replace('<br/>','\n') | replace('<br>','\n') | replace('<BR>','\n') | replace('<BR/>','\n')) %}
+                <p style="white-space: pre-line;">{{ (hero_subtitle if hero_subtitle else 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP') | e }}</p>
                 <a href="/orcamento" class="cta-button">Solicitar Orçamento</a>
+                {% if content and content.contact and content.contact.whatsapp %}
+                <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-hero-button" rel="noopener noreferrer">Chame no WhatsApp</a>
+                {% endif %}
             </div>
         </div>
     </section>
