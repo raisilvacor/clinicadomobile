@@ -93,6 +93,7 @@ def build_os_pdf(order, company, logo_path, public_url=None):
     company_phone = (company.get("phone") or "").strip()
     company_address = (company.get("address") or "").strip()
     company_city = (company.get("city") or "").strip()
+    company_website = (company.get("website") or "").strip()
 
     header_right_lines = [
         f"<b>{company_name}</b>",
@@ -100,6 +101,9 @@ def build_os_pdf(order, company, logo_path, public_url=None):
         f"Telefone: {company_phone or 'N/A'}",
         f"Endereço: {(company_address + (' - ' + company_city if company_city else '')).strip() or 'N/A'}",
     ]
+    if company_website:
+        header_right_lines.append(f"Site: {company_website}")
+
     header_right = Paragraph("<br/>".join(header_right_lines), style_small)
 
     logo_cell = ""

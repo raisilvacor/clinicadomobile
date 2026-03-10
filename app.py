@@ -1568,10 +1568,11 @@ def gerar_pdf_os(os_id, public_base_url=None):
     contact = site_content.get('contact', {}) if isinstance(site_content, dict) else {}
     company = {
         'name': 'Clínica CELL',
-        'cnpj': (contact.get('cnpj') or '').strip(),
+        'cnpj': (contact.get('cnpj') or '62.891.287/0001-44').strip(),
         'phone': (contact.get('phone') or contact.get('phone1') or '').strip(),
         'address': (contact.get('address') or '').strip(),
         'city': (contact.get('city') or '').strip(),
+        'website': (contact.get('website') or 'www.clinicadocellsp.com.br').strip(),
     }
     logo_path = os.path.join(app.root_path, 'static', 'images', 'logopdf.png')
     public_url = None
