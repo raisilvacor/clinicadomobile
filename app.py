@@ -99,7 +99,56 @@ def index():
     site_content = get_site_content()
     brands = get_all_brands()
     is_open = db_is_business_open()
-    return render_template('index.html', content=site_content, brands=brands, is_open=is_open)
+    os_query = (request.args.get('os', '') or '').strip()
+    os_lookup = None
+    os_lookup_error = None
+    if os_query:
+        digits = _clean_digits(os_query)
+        if digits:
+            try:
+                os_number = int(digits)
+                found = None
+                for o in get_all_service_orders():
+                    if not isinstance(o, dict):
+                        continue
+                    if o.get('os_number') == os_number:
+                        found = o
+                        break
+                if not found:
+                    os_lookup_error = 'OS não encontrada.'
+                else:
+                    opened_at = found.get('opened_at')
+                    if hasattr(opened_at, 'isoformat'):
+                        opened_at = opened_at.isoformat()
+                    opened_at = (opened_at or '').strip() or 'N/A'
+
+                    os_lookup = {
+                        'os_number': found.get('os_number'),
+                        'status': found.get('status'),
+                        'status_label': _status_label(found.get('status')),
+                        'opened_at': opened_at,
+                    }
+            except Exception:
+                os_lookup_error = 'Número de OS inválido.'
+        else:
+            os_lookup_error = 'Informe somente números.'
+
+    return render_template(
+        'index.html',
+        content=site_content,
+        brands=brands,
+        is_open=is_open,
+        os_query=os_query,
+        os_lookup=os_lookup,
+        os_lookup_error=os_lookup_error,
+    )
+
+@app.route('/consulta-os', methods=['GET'])
+def public_os_lookup():
+    os_value = (request.args.get('os', '') or request.args.get('numero', '') or '').strip()
+    if not os_value:
+        return redirect(url_for('index'))
+    return redirect(url_for('index', os=os_value))
 
 @app.route('/orcamento')
 def orcamento_redirect():
