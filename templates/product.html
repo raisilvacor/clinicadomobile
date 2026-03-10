@@ -53,6 +53,10 @@
         .nav-links { display: flex; list-style: none; gap: 2rem; }
         .nav-links a { color: #ffffff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
         .nav-links a:hover { color: #ff8c00; }
+        
+        .product-badge { display: inline-block; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; margin-bottom: 1.5rem; }
+        .badge-novo { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 2px solid #28a745; }
+        .badge-usado { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 2px solid #ffc107; }
     </style>
 </head>
 <body>
@@ -85,7 +89,7 @@
                 {% if product.photos and product.photos|length > 0 %}
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                     {% for photo in product.photos %}
-                    <img src="{{ photo }}" alt="{{ product.title }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 10px; border: 2px solid #333333; cursor: pointer;" onclick="openImageModal('{{ photo }}')">
+                    <img src="{{ photo }}" alt="{{ product.title }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 10px; border: 2px solid #333333; cursor: pointer;" class="product-thumb">
                     {% endfor %}
                 </div>
                 <img id="main-product-image" src="{{ product.photos[0] }}" alt="{{ product.title }}" style="width: 100%; height: 400px; object-fit: cover; border-radius: 10px; border: 2px solid #333333;">
@@ -102,7 +106,7 @@
                 
                 <div style="font-size: 2.5rem; color: #28a745; font-weight: bold; margin-bottom: 1rem;">R$ {{ "%.2f"|format(product.price|float) }}</div>
                 
-                <span style="display: inline-block; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; margin-bottom: 1.5rem; {% if product.condition == 'novo' %}background: rgba(40, 167, 69, 0.2); color: #28a745; border: 2px solid #28a745;{% else %}background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 2px solid #ffc107;{% endif %}">
+                <span class="product-badge {% if product.condition == 'novo' %}badge-novo{% else %}badge-usado{% endif %}">
                     {% if product.condition == 'novo' %}🆕 Novo{% else %}🔄 Usado{% endif %}
                 </span>
 
@@ -129,7 +133,7 @@
 </section>
 
 <!-- Modal para ampliar imagem -->
-<div id="imageModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); cursor: pointer;" onclick="closeImageModal()">
+<div id="imageModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); cursor: pointer;">
     <img id="modalImage" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 90%; max-height: 90%; border-radius: 10px;">
 </div>
 
@@ -143,6 +147,12 @@
         document.getElementById('imageModal').style.display = 'none';
     }
 
+    // Fechar modal ao clicar no fundo
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.addEventListener('click', closeImageModal);
+    }
+
     // Fechar modal com ESC
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
@@ -150,15 +160,24 @@
         }
     });
 
-    // Trocar imagem principal ao clicar nas miniaturas
-    {% if product.photos and product.photos|length > 0 %}
-    document.querySelectorAll('img[onclick*="openImageModal"]').forEach(img => {
+    // Trocar imagem principal ao clicar nas miniaturas e abrir modal
+    document.querySelectorAll('.product-thumb').forEach(img => {
         img.addEventListener('click', function(e) {
             e.stopPropagation();
-            document.getElementById('main-product-image').src = this.src;
+            const mainImg = document.getElementById('main-product-image');
+            if (mainImg) mainImg.src = this.src;
+            openImageModal(this.src);
         });
     });
-    {% endif %}
+
+    // Abrir modal ao clicar na imagem principal também
+    const mainImg = document.getElementById('main-product-image');
+    if (mainImg) {
+        mainImg.addEventListener('click', function() {
+            openImageModal(this.src);
+        });
+        mainImg.style.cursor = 'pointer';
+    }
 </script>
 </body>
 </html>

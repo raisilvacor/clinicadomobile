@@ -25,10 +25,18 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000000; color: #ffffff; line-height: 1.6; }
         header { background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 1.5rem 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 20px rgba(255, 140, 0, 0.2); }
         nav { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 2rem; }
+        .logo { height: 60px; display: flex; align-items: center; }
         .logo img { height: 60px; width: auto; max-width: 300px; object-fit: contain; }
         .nav-links { display: flex; list-style: none; gap: 2rem; }
         .nav-links a { color: #ffffff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
         .nav-links a:hover { color: #ff8c00; }
+        
+        /* Classes da Loja */
+        .product-card { background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 1.5rem; border: 2px solid #333333; transition: all 0.3s ease; cursor: pointer; }
+        .product-card:hover { border-color: #ff8c00; transform: translateY(-5px); box-shadow: 0 5px 20px rgba(255, 140, 0, 0.2); }
+        .product-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem; font-weight: bold; margin-bottom: 1rem; }
+        .badge-novo { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+        .badge-usado { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
     </style>
 </head>
 <body>
@@ -62,7 +70,7 @@
         {% if products %}
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem;">
             {% for product in products %}
-            <div style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; padding: 1.5rem; border: 2px solid #333333; transition: all 0.3s ease; cursor: pointer;" onclick="window.location.href='{{ url_for('public_product', product_id=product.id) }}'">
+            <div class="product-card" data-url="{{ url_for('public_product', product_id=product.id) }}">
                 {% if product.photos and product.photos|length > 0 %}
                 <img src="{{ product.photos[0] }}" alt="{{ product.title }}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 1rem;" onerror="this.src='/static/images/placeholder.png'">
                 {% else %}
@@ -73,7 +81,7 @@
                 
                 <h3 style="color: #ff8c00; font-size: 1.2rem; margin-bottom: 0.5rem;">{{ product.title }}</h3>
                 <div style="font-size: 1.5rem; color: #28a745; font-weight: bold; margin-bottom: 0.5rem;">R$ {{ "%.2f"|format(product.price|float) }}</div>
-                <span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem; font-weight: bold; margin-bottom: 1rem; {% if product.condition == 'novo' %}background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745;{% else %}background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107;{% endif %}">
+                <span class="product-badge {% if product.condition == 'novo' %}badge-novo{% else %}badge-usado{% endif %}">
                     {% if product.condition == 'novo' %}🆕 Novo{% else %}🔄 Usado{% endif %}
                 </span>
                 <div style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</div>
@@ -88,6 +96,16 @@
         {% endif %}
     </div>
 </section>
+
+<script>
+    // Handle product card clicks
+    document.querySelectorAll('.product-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const url = this.getAttribute('data-url');
+            if (url) window.location.href = url;
+        });
+    });
+</script>
 </body>
 </html>
 

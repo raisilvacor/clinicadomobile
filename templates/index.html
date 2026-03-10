@@ -20,7 +20,7 @@
     <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
     <meta property="og:title" content="{{ page_title if page_title else 'Conserto de Celular em Barueri' }}">
     <meta property="og:description" content="Conserto de celular em Barueri. Troca de tela e bateria, reparo de placa e serviços para iPhone e Android. Orçamento grátis e atendimento rápido.">
-    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
+    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.webp') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="pt_BR">
@@ -31,7 +31,7 @@
     <meta name="twitter:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
     <meta name="twitter:title" content="{{ page_title if page_title else 'Conserto de Celular em Barueri' }}">
     <meta name="twitter:description" content="Conserto de celular em Barueri. Troca de tela e bateria, reparo de placa e serviços para iPhone e Android. Orçamento grátis e atendimento rápido.">
-    <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
+    <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.webp') }}">
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
@@ -50,7 +50,7 @@
         "@context": "https://schema.org",
         "@type": "LocalBusiness",
         "name": "Clínica CELL",
-        "image": "{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}",
+        "image": "{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.webp') }}",
         "description": "Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo.",
         "address": {
             "@type": "PostalAddress",
@@ -73,7 +73,7 @@
         "@type": "Organization",
         "name": "Clínica CELL",
         "url": "{{ request.url_root.rstrip('/') }}",
-        "logo": "{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}",
+        "logo": "{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.webp') }}",
         "description": "Assistência técnica especializada em reparo de celulares Android e iPhone",
         "contactPoint": {
             "@type": "ContactPoint",
@@ -394,15 +394,15 @@
             font-weight: bold;
             font-size: 1.1rem;
             border-radius: 50px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.25);
+            box-shadow: none;
         }
 
         .whatsapp-hero-button:hover {
             transform: translateY(-3px);
-            box-shadow: 0 12px 34px rgba(37, 211, 102, 0.4);
+            box-shadow: none;
         }
 
         .whatsapp-hero-button::before {
@@ -726,17 +726,18 @@
             width: 100%;
             height: 300px;
             overflow: hidden;
-            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
+            padding: 2rem;
         }
 
         .device-image {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             transition: transform 0.3s ease;
         }
 
@@ -1128,19 +1129,18 @@
             padding: 1rem 1.5rem;
             border-radius: 50px;
             font-weight: bold;
-            box-shadow: 0 5px 20px rgba(37, 211, 102, 0.4);
+            box-shadow: none;
             z-index: 100;
-            animation: pulse 2s infinite;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease;
         }
 
         .whatsapp-button:hover {
             transform: scale(1.05);
-            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.6);
+            box-shadow: none;
         }
 
         .whatsapp-button::before {
@@ -1148,14 +1148,6 @@
             font-size: 1.2rem;
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-        }
     </style>
 </head>
 <body>
@@ -1163,7 +1155,7 @@
     <header>
         <nav>
             <div class="logo">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica CELL - Assistência Técnica Profissional" itemprop="logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica CELL - Assistência Técnica Profissional" itemprop="logo" fetchpriority="high" decoding="async">
             </div>
             <button class="menu-toggle" aria-label="Menu">
                 <span></span>
@@ -1186,7 +1178,22 @@
     {% if not page %}
     <section id="inicio" class="hero" itemscope itemtype="https://schema.org/Service">
         {% if content and content.hero and content.hero.background_image %}
-            <img src="{{ content.hero.background_image }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
+            {% set bg = (content.hero.background_image or '') | trim %}
+            {% if bg.startswith('/static/images/') and (bg.endswith('.jpg') or bg.endswith('.png') or bg.endswith('.jpeg')) %}
+                {% if bg.endswith('.png') %}
+                    {% set bg_webp = bg[:-4] ~ '.webp' %}
+                {% elif bg.endswith('.jpeg') %}
+                    {% set bg_webp = bg[:-5] ~ '.webp' %}
+                {% else %}
+                    {% set bg_webp = bg[:-4] ~ '.webp' %}
+                {% endif %}
+                <picture>
+                    <source srcset="{{ bg_webp }}" type="image/webp">
+                    <img src="{{ bg }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
+                </picture>
+            {% else %}
+                <img src="{{ bg }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
+            {% endif %}
         {% else %}
             <picture>
                 <source srcset="{{ url_for('static', filename='images/head.webp') }}" type="image/webp">
@@ -1317,7 +1324,22 @@
                 {% for device in content.devices %}
                 <div class="device-card">
                     <div class="device-image-container">
-                        <img src="{{ device.image }}" alt="{{ device.name }}" class="device-image js-device-img" loading="lazy" decoding="async">
+                        {% set di = (device.image or '') | trim %}
+                        {% if di.startswith('/static/images/') and (di.endswith('.jpg') or di.endswith('.png') or di.endswith('.jpeg')) %}
+                            {% if di.endswith('.png') %}
+                                {% set di_webp = di[:-4] ~ '.webp' %}
+                            {% elif di.endswith('.jpeg') %}
+                                {% set di_webp = di[:-5] ~ '.webp' %}
+                            {% else %}
+                                {% set di_webp = di[:-4] ~ '.webp' %}
+                            {% endif %}
+                            <picture>
+                                <source srcset="{{ di_webp }}" type="image/webp">
+                                <img src="{{ di }}" alt="{{ device.name }}" class="device-image js-device-img" loading="lazy" decoding="async">
+                            </picture>
+                        {% else %}
+                            <img src="{{ di }}" alt="{{ device.name }}" class="device-image js-device-img" loading="lazy" decoding="async">
+                        {% endif %}
                     </div>
                     <div class="device-content">
                         <h3>{{ device.name }}</h3>
@@ -1329,7 +1351,10 @@
                 <!-- Conteúdo padrão -->
                 <div class="device-card">
                     <div class="device-image-container">
-                        <img src="/static/images/andorid.png" alt="Android" class="device-image js-toggle-next-placeholder" loading="lazy" decoding="async">
+                        <picture>
+                            <source srcset="{{ url_for('static', filename='images/android.webp') }}" type="image/webp">
+                            <img src="{{ url_for('static', filename='images/android.png') }}" alt="Android" class="device-image js-toggle-next-placeholder" loading="lazy" decoding="async">
+                        </picture>
                         <div class="device-image-placeholder is-hidden">🤖</div>
                     </div>
                     <div class="device-content">

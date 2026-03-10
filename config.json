@@ -72,7 +72,7 @@
     "devices": [
       {
         "name": "Android",
-        "image": "/static/images/andorid.png",
+        "image": "/static/images/android.png",
         "description": "Reparos especializados para aparelhos Android de todas as marcas. Samsung, Xiaomi, Motorola, LG e muito mais. Diagnóstico preciso e reparo rápido."
       },
       {
