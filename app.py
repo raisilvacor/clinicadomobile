@@ -868,6 +868,51 @@ def admin_delete_customer(customer_id):
     delete_customer(customer_id)
     return redirect(url_for('admin_customers'))
 
+@app.route('/admin/search-customer', methods=['GET'])
+@login_required
+def admin_search_customer_by_doc():
+    raw = (request.args.get('doc', '') or '').strip()
+    doc = _clean_digits(raw)
+    customer = None
+    orders = []
+    error = None
+
+    if doc:
+        if len(doc) == 11:
+            if not _validate_cpf(doc):
+                error = 'CPF inválido. Verifique e tente novamente.'
+        elif len(doc) == 14:
+            if not _validate_cnpj(doc):
+                error = 'CNPJ inválido. Verifique e tente novamente.'
+        else:
+            error = 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).'
+
+        if not error:
+            customer = get_customer_by_doc(doc)
+            if not customer:
+                error = 'Cliente não encontrado.'
+            else:
+                all_orders = get_all_service_orders()
+                for o in all_orders:
+                    if not isinstance(o, dict):
+                        continue
+                    if o.get('customer_id') != customer.get('id'):
+                        continue
+                    try:
+                        o['total_value'] = float(o.get('total_value') or 0)
+                    except Exception:
+                        o['total_value'] = _parse_money(str(o.get('total_value') or '0'))
+                    orders.append(o)
+                orders.sort(key=lambda x: (x.get('os_number') or 0), reverse=True)
+
+    return render_template(
+        'admin/dashboard.html',
+        customer_query=raw,
+        customer_result=customer,
+        customer_orders=orders,
+        customer_error=error,
+    )
+
 @app.route('/admin/financeiro', methods=['GET'])
 @login_required
 def admin_financeiro():

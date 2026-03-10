@@ -206,48 +206,5 @@
       "customer_id": "4a2a9a27"
     }
   ],
-  "service_orders": [
-    {
-      "id": "b850cead",
-      "customer_id": "4a2a9a27",
-      "technician_id": null,
-      "equipment_id": "60dab82f",
-      "status": "aberta",
-      "opened_at": "20226-12-10",
-      "concluded_at": null,
-      "delivered_at": null,
-      "budget_date": null,
-      "authorized": false,
-      "labor_value": 0.0,
-      "parts_value": 0.0,
-      "total_value": 0.0,
-      "customer_snapshot": {
-        "full_name": "rai",
-        "doc_type": "PF",
-        "doc_number": "05951523338",
-        "phone_primary": "",
-        "whatsapp": "",
-        "email": ""
-      },
-      "reported_issue": "",
-      "technical_diagnosis": "",
-      "required_service": "",
-      "delivered_to_name": "",
-      "delivered_to_doc": "",
-      "warranty_days": 90,
-      "warranty_notes": "A assistência técnica Clínica CELL garante os serviços realizados pelo prazo de 90 (noventa) dias, conforme previsto no Código de Defesa do Consumidor, contados a partir da data de entrega do equipamento ao cliente.\\n\\nA garantia cobre exclusivamente o serviço executado e/ou as peças substituídas durante o reparo, desde que comprovado defeito relacionado diretamente ao serviço realizado.\\n\\nA garantia não cobre:\\n\\nDanos causados por mau uso, quedas, impactos, líquidos ou exposição a umidade;\\n\\nTentativas de reparo por terceiros após a entrega do equipamento;\\n\\nProblemas decorrentes de desgaste natural de componentes não substituídos no reparo;\\n\\nInstalação de softwares ou aplicativos de terceiros que causem mau funcionamento;\\n\\nDanos causados por variações elétricas, curto-circuito, descargas elétricas ou uso de acessórios inadequados.\\n\\nJunto com essa OS voce receberá tambem o termo de garantia.",
-      "responsibility_term": "TERMO DE RESPONSABILIDADE – ASSISTÊNCIA TÉCNICA\n\nAo entregar o equipamento para análise e/ou reparo, o cliente declara estar ciente e de acordo com as seguintes condições:\n\nO equipamento será submetido a testes e procedimentos técnicos necessários para diagnóstico e reparo do defeito informado.\n\nDurante o processo de análise ou manutenção, poderá ocorrer perda total ou parcial de dados armazenados no equipamento, tais como arquivos, fotos, vídeos, aplicativos ou configurações. É de responsabilidade do cliente manter cópia de segurança (backup) de seus dados antes da realização do serviço.\n\nA assistência técnica não se responsabiliza pela perda de dados ou informações contidas no equipamento durante o processo de diagnóstico ou reparo.\n\nO cliente declara que informou corretamente o defeito apresentado pelo equipamento e que retirou chips, cartões de memória, pendrives ou quaisquer mídias removíveis, salvo quando entregues juntamente com o equipamento e devidamente registrados na ordem de serviço.\n\nEquipamentos que apresentem sinais de queda, contato com líquido, oxidação, violação ou reparo anterior por terceiros poderão apresentar defeitos adicionais durante o processo de manutenção, não sendo responsabilidade da assistência técnica eventuais agravamentos decorrentes dessas condições preexistentes.\n\nCaso o equipamento não seja retirado no prazo de 90 (noventa) dias após a comunicação de conclusão do serviço ou orçamento recusado, a assistência técnica poderá considerar o equipamento como abandonado, podendo dar a destinação que julgar adequada para ressarcimento de custos operacionais, conforme legislação aplicável.\n\nO cliente declara ter ciência de que a assistência técnica poderá realizar abertura do equipamento, o que poderá implicar na perda de garantia do fabricante, quando existente.",
-      "photos": [],
-      "created_at": "2026-03-10T16:35:44.227217",
-      "updated_at": "2026-03-10T16:35:44.227225",
-      "os_number": 1,
-      "parts": [],
-      "history": [
-        {
-          "message": "OS criada",
-          "created_at": "2026-03-10T16:35:44.239342"
-        }
-      ]
-    }
-  ]
+  "service_orders": []
 }

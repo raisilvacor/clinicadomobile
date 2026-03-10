@@ -7,60 +7,115 @@
     <h2>📊 Dashboard</h2>
     <p>Bem-vindo ao painel administrativo. Escolha uma seção abaixo para editar o conteúdo do site.</p>
     
-    <!-- Busca de Produtos em Fornecedores -->
     <div class="admin-card">
         <h3 style="color: #ff8c00; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            🔍 Buscar Produto em Fornecedores
+            🔎 Buscar cliente por CPF ou CNPJ
         </h3>
         
-        <form method="GET" action="{{ url_for('admin_search_suppliers') }}" class="search-box" style="margin-bottom: 2rem; padding: 0; border: none; background: transparent; display: flex; gap: 1rem;">
+        <form method="GET" action="{{ url_for('admin_search_customer_by_doc') }}" class="search-box" style="margin-bottom: 1.5rem; padding: 0; border: none; background: transparent; display: flex; gap: 1rem;">
             <input 
                 type="text" 
-                name="query" 
+                name="doc" 
                 class="form-control" 
                 style="margin-bottom: 0; flex: 1;"
-                placeholder="Digite o nome do produto (ex: Tela iPhone 11)"
-                value="{{ search_query if search_query else '' }}"
+                placeholder="Digite o CPF/CNPJ (somente números)"
+                value="{{ customer_query if customer_query else '' }}"
                 required
+                inputmode="numeric"
             >
-            <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+            <button type="submit" class="btn btn-primary">🔎 Buscar</button>
         </form>
 
-        {% if supplier_results %}
-        <div class="supplier-results">
-            <h4 style="margin-bottom: 1rem;">Resultados para: "{{ search_query }}" ({{ supplier_results|length }} encontrados)</h4>
-            
-            {% if supplier_results|length > 0 %}
-                <div class="items-list">
-                    {% for result in supplier_results %}
-                    <div class="item-card">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
-                            <div style="flex: 1;">
-                                <div style="font-size: 0.8rem; color: #ff8c00; margin-bottom: 0.3rem;">{{ result.supplier_name }}</div>
-                                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem;">
-                                    <a href="{{ result.link }}" target="_blank" style="color: #fff; text-decoration: none;">{{ result.title }}</a>
-                                </h3>
-                                <p style="color: #999; font-size: 0.9rem; margin: 0;">{{ result.description }}</p>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">{{ result.price_formatted }}</div>
-                                <a href="{{ result.link }}" target="_blank" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem; display: inline-block;">Ver no Site ↗</a>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div style="text-align: center; padding: 2rem; background: #1a1a1a; border-radius: 8px;">
-                    <p style="color: #999;">Nenhum produto encontrado nos sites dos fornecedores.</p>
-                </div>
-            {% endif %}
+        {% if customer_error %}
+        <div class="alert-card error">
+            {{ customer_error }}
         </div>
         {% endif %}
-        
-        {% if search_error %}
-        <div class="alert-card error">
-            {{ search_error }}
+
+        {% if customer_result %}
+        <div class="item-card" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 0.75rem 0; color: #fff;">{{ customer_result.full_name or 'N/A' }}</h3>
+                    <div class="details-grid">
+                        <div>
+                            <strong class="text-warning">{% if customer_result.doc_type == 'PJ' %}CNPJ{% else %}CPF{% endif %}:</strong>
+                            <p class="text-value">{{ customer_result.doc_number or 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <strong class="text-warning">Telefone:</strong>
+                            <p class="text-value">{{ customer_result.phone_primary or 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <strong class="text-warning">WhatsApp:</strong>
+                            <p class="text-value">{{ customer_result.whatsapp or 'N/A' }}</p>
+                        </div>
+                        <div>
+                            <strong class="text-warning">E-mail:</strong>
+                            <p class="text-value">{{ customer_result.email or 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <a href="{{ url_for('admin_view_customer', customer_id=customer_result.id) }}" class="btn btn-secondary">👁️ Ver Cliente</a>
+                    <a href="{{ url_for('admin_new_os') }}" class="btn btn-primary">➕ Nova OS</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-table-container" style="margin-top: 1.5rem;">
+            <h4 style="margin-bottom: 1rem;">OS emitidas</h4>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>OS</th>
+                        <th>Status</th>
+                        <th>Abertura</th>
+                        <th>Total</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if customer_orders %}
+                        {% for o in customer_orders %}
+                        <tr>
+                            <td style="font-weight: bold;">
+                                <a href="{{ url_for('admin_view_os', os_id=o.id) }}" style="color: #ff8c00; text-decoration: none;">
+                                    {% if o.os_number %}{{ "%06d" % o.os_number }}{% else %}{{ o.id }}{% endif %}
+                                </a>
+                            </td>
+                            <td>
+                                {% if o.status == 'aberta' %}
+                                    <span class="status-badge pending">Aberta</span>
+                                {% elif o.status == 'em_analise' %}
+                                    <span class="status-badge info">Em análise</span>
+                                {% elif o.status == 'aguardando_peca' %}
+                                    <span class="status-badge orange">Aguardando peça</span>
+                                {% elif o.status == 'concluida' %}
+                                    <span class="status-badge primary">Concluída</span>
+                                {% elif o.status == 'entregue' %}
+                                    <span class="status-badge active">Entregue</span>
+                                {% else %}
+                                    <span class="status-badge info">{{ o.status or 'N/A' }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ o.opened_at or 'N/A' }}</td>
+                            <td style="font-weight: bold;">
+                                R$ {{ "{:,.2f}".format(o.total_value or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin_view_os', os_id=o.id) }}" class="btn btn-secondary">👁️</a>
+                                <a href="{{ url_for('admin_edit_os', os_id=o.id) }}" class="btn btn-secondary">✏️</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" style="color: #999;">Nenhuma OS encontrada para este cliente.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
         {% endif %}
     </div>
