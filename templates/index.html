@@ -6,7 +6,7 @@
     
     <!-- SEO Meta Tags -->
     <title>{{ page_title if page_title else 'Conserto de Celular em Barueri' }}</title>
-    <meta name="description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo. Troca de tela, bateria, reparos em geral.">
+    <meta name="description" content="Conserto de celular em Barueri. Troca de tela e bateria, reparo de placa e serviços para iPhone e Android. Orçamento grátis e atendimento rápido.">
     <meta name="keywords" content="assistência técnica celular, reparo iPhone, reparo Android, troca de tela, conserto celular, assistência técnica smartphone, reparo celular profissional">
     <meta name="author" content="Clínica CELL">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
@@ -19,7 +19,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
     <meta property="og:title" content="{{ page_title if page_title else 'Conserto de Celular em Barueri' }}">
-    <meta property="og:description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo.">
+    <meta property="og:description" content="Conserto de celular em Barueri. Troca de tela e bateria, reparo de placa e serviços para iPhone e Android. Orçamento grátis e atendimento rápido.">
     <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -30,7 +30,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
     <meta name="twitter:title" content="{{ page_title if page_title else 'Conserto de Celular em Barueri' }}">
-    <meta name="twitter:description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo.">
+    <meta name="twitter:description" content="Conserto de celular em Barueri. Troca de tela e bateria, reparo de placa e serviços para iPhone e Android. Orçamento grátis e atendimento rápido.">
     <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
     
     <!-- Favicon -->
@@ -268,6 +268,117 @@
         .cta-button:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(255, 140, 0, 0.4);
+        }
+
+        .hero-subtitle {
+            white-space: pre-line;
+        }
+
+        .os-opened-at {
+            color: #999;
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .is-hidden {
+            display: none !important;
+        }
+
+        .brands-section {
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+        }
+
+        .brands-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .brands-title {
+            text-align: center;
+            font-size: 2.5rem;
+            color: #ff8c00;
+            margin-bottom: 1rem;
+        }
+
+        .brands-subtitle {
+            text-align: center;
+            color: #ffffff;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .brands-carousel-container {
+            position: relative;
+            overflow: hidden;
+            padding: 2rem 0;
+        }
+
+        .brands-carousel {
+            display: flex;
+            gap: 2rem;
+            animation: scrollBrands 30s linear infinite;
+            width: fit-content;
+        }
+
+        .brands-carousel-container:hover .brands-carousel {
+            animation-play-state: paused;
+        }
+
+        .brand-item {
+            flex: 0 0 auto;
+            width: 200px;
+            height: 150px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 20px rgba(255, 140, 0, 0.2);
+            border: 2px solid #333333;
+        }
+
+        .brand-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .brand-fallback {
+            color: #000;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        @keyframes scrollBrands {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(calc(-50% - 1rem));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .brand-item {
+                width: 150px;
+                height: 120px;
+            }
+        }
+
+        .contact-email-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.85rem 1.2rem;
+            border-radius: 12px;
+            border: 1px solid #333;
+            background: rgba(255, 255, 255, 0.03);
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
         }
 
         .whatsapp-hero-button {
@@ -1074,7 +1185,14 @@
 
     {% if not page %}
     <section id="inicio" class="hero" itemscope itemtype="https://schema.org/Service">
-        <img src="{{ content.hero.background_image if content and content.hero and content.hero.background_image else '/static/images/head.jpg' }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image">
+        {% if content and content.hero and content.hero.background_image %}
+            <img src="{{ content.hero.background_image }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
+        {% else %}
+            <picture>
+                <source srcset="{{ url_for('static', filename='images/head.webp') }}" type="image/webp">
+                <img src="{{ url_for('static', filename='images/head.jpg') }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
+            </picture>
+        {% endif %}
         <div class="hero-overlay">
             <div class="hero-content">
                 <h1 itemprop="name">{{ content.hero.title if content and content.hero and content.hero.title else 'Assistência Técnica Profissional' }}</h1>
@@ -1083,7 +1201,7 @@
                     {% set hero_subtitle = 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP' %}
                 {% endif %}
                 {% set hero_subtitle = (hero_subtitle | replace('<br/>','\n') | replace('<br>','\n') | replace('<BR>','\n') | replace('<BR/>','\n')) %}
-                <p style="white-space: pre-line;">{{ (hero_subtitle if hero_subtitle else 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP') | e }}</p>
+                <p class="hero-subtitle">{{ (hero_subtitle if hero_subtitle else 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP') | e }}</p>
                 <a href="/orcamento" class="cta-button">Solicitar Orçamento</a>
                 {% if content and content.contact and content.contact.whatsapp %}
                 <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-hero-button" rel="noopener noreferrer">Chame no WhatsApp</a>
@@ -1117,7 +1235,7 @@
             <div class="os-result">
                 <div>
                     <strong>OS {{ "%06d" % os_lookup.os_number if os_lookup.os_number else os_query }}</strong>
-                    <div style="color: #999; font-size: 0.95rem; margin-top: 0.25rem;">Abertura: {{ os_lookup.opened_at or 'N/A' }}</div>
+                    <div class="os-opened-at">Abertura: {{ os_lookup.opened_at or 'N/A' }}</div>
                 </div>
                 <div class="os-badge {{ badge_class }}">{{ os_lookup.status_label or os_lookup.status or 'N/A' }}</div>
             </div>
@@ -1199,7 +1317,7 @@
                 {% for device in content.devices %}
                 <div class="device-card">
                     <div class="device-image-container">
-                        <img src="{{ device.image }}" alt="{{ device.name }}" class="device-image" onerror="this.parentElement.innerHTML='<div class=\'device-image-placeholder\'>📱</div>'">
+                        <img src="{{ device.image }}" alt="{{ device.name }}" class="device-image js-device-img" loading="lazy" decoding="async">
                     </div>
                     <div class="device-content">
                         <h3>{{ device.name }}</h3>
@@ -1211,8 +1329,8 @@
                 <!-- Conteúdo padrão -->
                 <div class="device-card">
                     <div class="device-image-container">
-                        <img src="/static/images/android.jpg" alt="Android" class="device-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="display: block;">
-                        <div class="device-image-placeholder" style="display: none; width: 100%; height: 200px; background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 4rem; border: 2px solid #333333;">🤖</div>
+                        <img src="/static/images/andorid.png" alt="Android" class="device-image js-toggle-next-placeholder" loading="lazy" decoding="async">
+                        <div class="device-image-placeholder is-hidden">🤖</div>
                     </div>
                     <div class="device-content">
                         <h3>Android</h3>
@@ -1233,14 +1351,14 @@
                 {% for image_url in content.laboratory.images %}
                 <div class="lab-image-card">
                     <div class="lab-image-container">
-                        <img src="{{ image_url }}" alt="Laboratório {{ loop.index }}" class="lab-image">
+                        <img src="{{ image_url }}" alt="Laboratório {{ loop.index }}" class="lab-image" loading="lazy" decoding="async">
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
                 <div class="lab-image-card">
                     <div class="lab-image-container">
-                        <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=600&fit=crop" alt="Laboratório" class="lab-image">
+                        <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=600&fit=crop" alt="Laboratório" class="lab-image" loading="lazy" decoding="async">
                     </div>
                 </div>
             {% endif %}
@@ -1261,7 +1379,13 @@
             <div class="contact-card">
                 <div class="contact-icon">✉️</div>
                 <h3>E-mail</h3>
-                <p>{{ content.contact.email if content and content.contact and content.contact.email else (content.contact.email1 if content and content.contact and content.contact.email1 else 'contato@techcell.com.br') }}</p>
+                {% set email_value = (content.contact.email if content and content.contact and content.contact.email else (content.contact.email1 if content and content.contact and content.contact.email1 else '')) | trim %}
+                {% if email_value and ('@' in email_value) %}
+                    {% set parts = email_value.split('@') %}
+                    <a class="contact-email-button js-email" href="#" data-u="{{ parts[0] | e }}" data-d="{{ parts[1] | e }}">Enviar e-mail</a>
+                {% else %}
+                    <p>Chame no WhatsApp</p>
+                {% endif %}
             </div>
             <div class="contact-card">
                 <div class="contact-icon">📍</div>
@@ -1288,50 +1412,28 @@
 
     <!-- Marcas -->
     {% if not page and brands %}
-    <section id="marcas" class="brands" style="padding: 4rem 2rem; background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);">
-        <div style="max-width: 1200px; margin: 0 auto;">
-            <h2 class="section-title" style="text-align: center; font-size: 2.5rem; color: #ff8c00; margin-bottom: 1rem;">Principais Marcas</h2>
-            <p style="text-align: center; color: #ffffff; margin-bottom: 3rem; font-size: 1.1rem;">Trabalhamos com as principais marcas do mercado</p>
+    <section id="marcas" class="brands-section">
+        <div class="brands-container">
+            <h2 class="section-title brands-title">Principais Marcas</h2>
+            <p class="brands-subtitle">Trabalhamos com as principais marcas do mercado</p>
             
-            <div class="brands-carousel-container" style="position: relative; overflow: hidden; padding: 2rem 0;">
-                <div class="brands-carousel" style="display: flex; gap: 2rem; animation: scrollBrands 30s linear infinite; width: fit-content;">
+            <div class="brands-carousel-container">
+                <div class="brands-carousel">
                     {% for brand in brands %}
-                    <div class="brand-item" style="flex: 0 0 auto; width: 200px; height: 150px; background: #ffffff; border-radius: 15px; padding: 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(255, 140, 0, 0.2); border: 2px solid #333333;">
-                        <img src="{{ brand.image }}" alt="{{ brand.name }}" loading="eager" fetchpriority="high" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'color: #000; font-weight: bold; text-align: center;\'>{{ brand.name }}</div>'">
+                    <div class="brand-item">
+                        <img src="{{ brand.image }}" alt="{{ brand.name }}" loading="eager" fetchpriority="high" class="brand-img" data-name="{{ brand.name | e }}">
                     </div>
                     {% endfor %}
                     <!-- Duplicar para loop infinito -->
                     {% for brand in brands %}
-                    <div class="brand-item" style="flex: 0 0 auto; width: 200px; height: 150px; background: #ffffff; border-radius: 15px; padding: 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(255, 140, 0, 0.2); border: 2px solid #333333;">
-                        <img src="{{ brand.image }}" alt="{{ brand.name }}" loading="lazy" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'color: #000; font-weight: bold; text-align: center;\'>{{ brand.name }}</div>'">
+                    <div class="brand-item">
+                        <img src="{{ brand.image }}" alt="{{ brand.name }}" loading="lazy" class="brand-img" data-name="{{ brand.name | e }}">
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
     </section>
-    
-    <style>
-        @keyframes scrollBrands {
-            0% {
-                transform: translateX(0);
-            }
-            100% {
-                transform: translateX(calc(-50% - 1rem));
-            }
-        }
-        
-        .brands-carousel-container:hover .brands-carousel {
-            animation-play-state: paused;
-        }
-        
-        @media (max-width: 768px) {
-            .brand-item {
-                width: 150px !important;
-                height: 120px !important;
-            }
-        }
-    </style>
     {% endif %}
 
     <!-- Footer -->
@@ -1346,7 +1448,8 @@
                 <a href="{{ url_for('site_contato') }}">Contato</a>
             </div>
             <div class="copyright">
-                <p></p>CNPJ: 62.891.287/0001-44</p><p>&copy; 2026 Clínica CELL. Todos os direitos reservados.</p>
+                <p>CNPJ: 62.891.287/0001-44</p>
+                <p>&copy; 2026 Clínica CELL. Todos os direitos reservados.</p>
             </div>
         </div>
     </footer>
@@ -1358,152 +1461,7 @@
     </a>
     {% endif %}
 
-    <script>
-        // Menu Hambúrguer Mobile
-        const menuToggle = document.querySelector('.menu-toggle');
-        const navLinks = document.querySelector('.nav-links');
-        const menuOverlay = document.querySelector('.menu-overlay');
-
-        function toggleMenu() {
-            menuToggle.classList.toggle('active');
-            navLinks.classList.toggle('active');
-            menuOverlay.classList.toggle('active');
-            document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : '';
-        }
-
-        if (menuToggle) {
-            menuToggle.addEventListener('click', toggleMenu);
-        }
-
-        if (menuOverlay) {
-            menuOverlay.addEventListener('click', toggleMenu);
-        }
-
-        // Fechar menu ao clicar em um link
-        document.querySelectorAll('.nav-links a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    toggleMenu();
-                }
-            });
-        });
-
-        // Smooth scroll
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Animação ao scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver(function(entries) {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.animation = 'fadeInUp 0.8s ease forwards';
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.service-card, .contact-card, .device-card, .lab-image-card').forEach(card => {
-            observer.observe(card);
-        });
-
-        // Otimizar carregamento e reprodução do vídeo
-        const video = document.querySelector('.about-video');
-        if (video) {
-            // Carregar vídeo imediatamente
-            video.load();
-            
-            // Tentar reproduzir automaticamente (muted para melhor compatibilidade)
-            const playPromise = video.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    // Se autoplay for bloqueado, tenta quando o usuário interagir
-                    const playOnInteraction = () => {
-                        video.play().catch(() => {});
-                        document.removeEventListener('click', playOnInteraction);
-                        document.removeEventListener('scroll', playOnInteraction);
-                    };
-                    document.addEventListener('click', playOnInteraction, { once: true });
-                    document.addEventListener('scroll', playOnInteraction, { once: true });
-                });
-            }
-            
-            // Precarregar o vídeo quando a página estiver quase carregada
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => {
-                    video.load();
-                });
-            }
-            
-            // Carregar vídeo quando estiver visível (Intersection Observer)
-            const videoObserver = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        video.load();
-                        video.play().catch(() => {});
-                    }
-                });
-            }, { rootMargin: '50px' });
-            
-            videoObserver.observe(video);
-        }
-
-        // Atualizar status de funcionamento em tempo real
-        function updateBusinessStatus() {
-            fetch('/api/business-status')
-                .then(response => response.json())
-                .then(data => {
-                    // Encontrar o card de horário pelo ícone
-                    const contactCards = document.querySelectorAll('.contact-card');
-                    let statusCard = null;
-                    for (let card of contactCards) {
-                        const icon = card.querySelector('.contact-icon');
-                        if (icon && icon.textContent.includes('🕒')) {
-                            statusCard = card;
-                            break;
-                        }
-                    }
-                    
-                    if (statusCard) {
-                        const statusIndicator = statusCard.querySelector('.status-indicator');
-                        const statusText = statusCard.querySelector('.status-text');
-                        if (statusIndicator && statusText) {
-                            if (data.is_open) {
-                                statusIndicator.classList.remove('closed');
-                                statusIndicator.classList.add('open');
-                                statusText.classList.remove('closed');
-                                statusText.classList.add('open');
-                                statusText.textContent = 'ABERTO AGORA';
-                            } else {
-                                statusIndicator.classList.remove('open');
-                                statusIndicator.classList.add('closed');
-                                statusText.classList.remove('open');
-                                statusText.classList.add('closed');
-                                statusText.textContent = 'FECHADO';
-                            }
-                        }
-                    }
-                })
-                .catch(error => console.error('Erro ao atualizar status:', error));
-        }
-
-        // Atualizar status a cada minuto
-        setInterval(updateBusinessStatus, 60000);
-    </script>
+    <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
 </body>
 </html>
 

@@ -3,7 +3,7 @@ import os
 # Adicionar diretório local de bibliotecas ao path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'libs'))
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory, send_file, Response
 import json
 from functools import wraps
 from io import BytesIO
@@ -182,6 +182,35 @@ def site_laboratorio():
 @app.route('/contato')
 def site_contato():
     return _render_site_page('contato', 'Contato | Clínica do Cell')
+
+@app.route('/robots.txt', methods=['GET'])
+def robots_txt():
+    base = request.url_root.rstrip('/')
+    body = "\n".join(
+        [
+            "User-agent: *",
+            "Allow: /",
+            f"Sitemap: {base}/sitemap.xml",
+        ]
+    )
+    return Response(body + "\n", mimetype='text/plain')
+
+@app.route('/sitemap.xml', methods=['GET'])
+def sitemap_xml():
+    base = request.url_root.rstrip('/')
+    paths = [
+        '/',
+        '/servicos',
+        '/sobre',
+        '/dispositivos',
+        '/laboratorio',
+        '/contato',
+        '/orcamento',
+        '/loja',
+    ]
+    urls = "".join([f"<url><loc>{base}{p}</loc></url>" for p in paths])
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+    return Response(xml, mimetype='application/xml')
 
 @app.route('/consulta-os', methods=['GET'])
 def public_os_lookup():
