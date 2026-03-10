@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO Meta Tags -->
-    <title>Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell</title>
+    <title>{{ page_title if page_title else 'Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell' }}</title>
     <meta name="description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo. Troca de tela, bateria, reparos em geral.">
     <meta name="keywords" content="assistência técnica celular, reparo iPhone, reparo Android, troca de tela, conserto celular, assistência técnica smartphone, reparo celular profissional">
     <meta name="author" content="Clínica CELL">
@@ -18,7 +18,7 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
-    <meta property="og:title" content="Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell">
+    <meta property="og:title" content="{{ page_title if page_title else 'Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell' }}">
     <meta property="og:description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo.">
     <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
     <meta property="og:image:width" content="1200">
@@ -29,7 +29,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
-    <meta name="twitter:title" content="Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell">
+    <meta name="twitter:title" content="{{ page_title if page_title else 'Conserto de Celular em Barueri São Paulo | Troca de Tela iPhone | Clínica do Cell' }}">
     <meta name="twitter:description" content="Assistência técnica especializada em reparo de celulares Android e iPhone. Serviço rápido, qualidade garantida e preço justo.">
     <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}">
     
@@ -1061,18 +1061,18 @@
             </button>
             <div class="menu-overlay"></div>
             <ul class="nav-links">
-                <li><a href="#inicio">Início</a></li>
-                <li><a href="#servicos">Serviços</a></li>
-                <li><a href="#sobre">Sobre</a></li>
-                <li><a href="#dispositivos">Dispositivos</a></li>
-                <li><a href="#laboratorio">Laboratório</a></li>
+                <li><a href="{{ url_for('index') }}">Início</a></li>
+                <li><a href="{{ url_for('site_servicos') }}">Serviços</a></li>
+                <li><a href="{{ url_for('site_sobre') }}">Sobre</a></li>
+                <li><a href="{{ url_for('site_dispositivos') }}">Dispositivos</a></li>
+                <li><a href="{{ url_for('site_laboratorio') }}">Laboratório</a></li>
                 <li><a href="/loja">Loja</a></li>
-                <li><a href="#contato">Contato</a></li>
+                <li><a href="{{ url_for('site_contato') }}">Contato</a></li>
             </ul>
         </nav>
     </header>
 
-    <!-- Hero Section -->
+    {% if not page %}
     <section id="inicio" class="hero" itemscope itemtype="https://schema.org/Service">
         <img src="{{ content.hero.background_image if content and content.hero and content.hero.background_image else '/static/images/head.jpg' }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image">
         <div class="hero-overlay">
@@ -1124,8 +1124,10 @@
             {% endif %}
         </div>
     </section>
+    {% endif %}
 
     <!-- Serviços -->
+    {% if not page or page == 'servicos' %}
     <section id="servicos" class="services" itemscope itemtype="https://schema.org/Service">
         <h2 class="section-title">Nossos Serviços</h2>
         <div class="services-grid">
@@ -1152,8 +1154,10 @@
             {% endif %}
         </div>
     </section>
+    {% endif %}
 
     <!-- Sobre -->
+    {% if not page or page == 'sobre' %}
     <section id="sobre" class="about">
         <h2 class="section-title">{{ content.about.title if content and content.about and content.about.title else 'Por Que Escolher Nosso Serviço?' }}</h2>
         <div class="about-content">
@@ -1184,8 +1188,10 @@
             </div>
         </div>
     </section>
+    {% endif %}
 
     <!-- Módulos de Dispositivos -->
+    {% if not page or page == 'dispositivos' %}
     <section id="dispositivos" class="devices">
         <h2 class="section-title">Especialidades</h2>
         <div class="devices-grid">
@@ -1216,8 +1222,10 @@
             {% endif %}
         </div>
     </section>
+    {% endif %}
 
     <!-- Laboratório -->
+    {% if not page or page == 'laboratorio' %}
     <section id="laboratorio" class="laboratory">
         <h2 class="section-title">{{ content.laboratory.title if content and content.laboratory and content.laboratory.title else 'Nosso Laboratório' }}</h2>
         <div class="laboratory-gallery">
@@ -1238,8 +1246,10 @@
             {% endif %}
         </div>
     </section>
+    {% endif %}
 
     <!-- Contato -->
+    {% if not page or page == 'contato' %}
     <section id="contato" class="contact">
         <h2 class="section-title">Entre em Contato</h2>
         <div class="contact-grid">
@@ -1274,9 +1284,10 @@
             </div>
         </div>
     </section>
+    {% endif %}
 
     <!-- Marcas -->
-    {% if brands %}
+    {% if not page and brands %}
     <section id="marcas" class="brands" style="padding: 4rem 2rem; background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);">
         <div style="max-width: 1200px; margin: 0 auto;">
             <h2 class="section-title" style="text-align: center; font-size: 2.5rem; color: #ff8c00; margin-bottom: 1rem;">Principais Marcas</h2>
@@ -1327,12 +1338,12 @@
     <footer>
         <div class="footer-content">
             <div class="footer-links">
-                <a href="#inicio">Início</a>
-                <a href="#servicos">Serviços</a>
-                <a href="#sobre">Sobre</a>
-                <a href="#dispositivos">Dispositivos</a>
-                <a href="#laboratorio">Laboratório</a>
-                <a href="#contato">Contato</a>
+                <a href="{{ url_for('index') }}">Início</a>
+                <a href="{{ url_for('site_servicos') }}">Serviços</a>
+                <a href="{{ url_for('site_sobre') }}">Sobre</a>
+                <a href="{{ url_for('site_dispositivos') }}">Dispositivos</a>
+                <a href="{{ url_for('site_laboratorio') }}">Laboratório</a>
+                <a href="{{ url_for('site_contato') }}">Contato</a>
             </div>
             <div class="copyright">
                 <p></p>CNPJ: 62.891.287/0001-44</p><p>&copy; 2026 Clínica CELL. Todos os direitos reservados.</p>

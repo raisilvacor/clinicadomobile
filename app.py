@@ -143,7 +143,45 @@ def index():
         os_query=os_query,
         os_lookup=os_lookup,
         os_lookup_error=os_lookup_error,
+        page=None,
+        page_title=None,
     )
+
+def _render_site_page(page, page_title):
+    site_content = get_site_content()
+    brands = get_all_brands()
+    is_open = db_is_business_open()
+    return render_template(
+        'index.html',
+        content=site_content,
+        brands=brands,
+        is_open=is_open,
+        os_query='',
+        os_lookup=None,
+        os_lookup_error=None,
+        page=page,
+        page_title=page_title,
+    )
+
+@app.route('/servicos')
+def site_servicos():
+    return _render_site_page('servicos', 'Serviços | Clínica do Cell')
+
+@app.route('/sobre')
+def site_sobre():
+    return _render_site_page('sobre', 'Sobre | Clínica do Cell')
+
+@app.route('/dispositivos')
+def site_dispositivos():
+    return _render_site_page('dispositivos', 'Dispositivos | Clínica do Cell')
+
+@app.route('/laboratorio')
+def site_laboratorio():
+    return _render_site_page('laboratorio', 'Laboratório | Clínica do Cell')
+
+@app.route('/contato')
+def site_contato():
+    return _render_site_page('contato', 'Contato | Clínica do Cell')
 
 @app.route('/consulta-os', methods=['GET'])
 def public_os_lookup():
