@@ -8,6 +8,7 @@ import json
 from functools import wraps
 from io import BytesIO
 from os_pdf import build_os_pdf
+import secrets
 from db import (
     create_tables,
     get_site_content as db_get_site_content,
@@ -58,6 +59,7 @@ from db import (
     delete_transaction,
     get_all_service_orders,
     get_service_order,
+    get_service_order_by_public_token,
     save_service_order,
     delete_service_order,
     save_equipment,
@@ -149,6 +151,15 @@ def public_os_lookup():
     if not os_value:
         return redirect(url_for('index'))
     return redirect(url_for('index', os=os_value))
+
+@app.route('/os/<public_token>', methods=['GET'])
+def public_os_status(public_token):
+    token = (public_token or '').strip()
+    order = get_service_order_by_public_token(token)
+    if not order:
+        return render_template('os_status.html', order=None, error='OS não encontrada.')
+    order['status_label'] = _status_label(order.get('status'))
+    return render_template('os_status.html', order=order, error=None)
 
 @app.route('/orcamento')
 def orcamento_redirect():
@@ -1288,8 +1299,10 @@ def admin_new_os():
         authorized = (request.form.get('authorized', '') or '').strip() == 'sim'
 
         photos = _read_photos(request.files.getlist('photos'))
+        public_token = secrets.token_urlsafe(16)
         payload = {
             'id': os_id,
+            'public_token': public_token,
             'customer_id': customer_id,
             'technician_id': technician_id or None,
             'equipment_id': equipment_id,
@@ -1452,7 +1465,7 @@ def admin_customer_api(customer_id):
 @login_required
 def admin_os_pdf(os_id):
     try:
-        pdf_bytes, filename = gerar_pdf_os(os_id)
+        pdf_bytes, filename = gerar_pdf_os(os_id, public_base_url=request.url_root.rstrip('/'))
         if not pdf_bytes:
             return redirect(url_for('admin_view_os', os_id=os_id))
         return send_file(BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
@@ -1472,10 +1485,17 @@ def admin_validate_doc():
         payload['valid'] = _validate_cnpj(doc_number)
     return jsonify(payload)
 
-def gerar_pdf_os(os_id):
+def gerar_pdf_os(os_id, public_base_url=None):
     order = get_service_order(os_id)
     if not order:
         return None, None
+
+    public_token = (order.get('public_token') or '').strip()
+    if not public_token:
+        public_token = secrets.token_urlsafe(16)
+        order['public_token'] = public_token
+        parts = order.get('parts') or []
+        save_service_order(os_id, order, parts, history_message=None, create_new=False)
 
     site_content = db_get_site_content() or {}
     contact = site_content.get('contact', {}) if isinstance(site_content, dict) else {}
@@ -1487,7 +1507,10 @@ def gerar_pdf_os(os_id):
         'city': (contact.get('city') or '').strip(),
     }
     logo_path = os.path.join(app.root_path, 'static', 'images', 'logopdf.png')
-    pdf_bytes = build_os_pdf(order, company, logo_path)
+    public_url = None
+    if public_base_url:
+        public_url = f"{public_base_url}{url_for('public_os_status', public_token=public_token)}"
+    pdf_bytes = build_os_pdf(order, company, logo_path, public_url=public_url)
 
     os_number = order.get('os_number')
     if os_number not in [None, '']:

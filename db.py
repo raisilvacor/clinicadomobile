@@ -486,6 +486,7 @@ def create_tables():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_equipments_customer_id ON equipments(customer_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_service_orders_customer_id ON service_orders(customer_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_service_orders_public_token ON service_orders ((data->>'public_token'))")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_service_order_parts_os_id ON service_order_parts(service_order_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_service_order_history_os_id ON service_order_history(service_order_id)")
         
@@ -1829,6 +1830,33 @@ def get_service_order(service_order_id):
             return data
     except Exception as e:
         print(f"⚠️  Erro ao obter OS: {e}")
+        return None
+
+def get_service_order_by_public_token(public_token):
+    public_token = (public_token or '').strip()
+    if not public_token:
+        return None
+
+    if not USE_DATABASE:
+        config = _load_config_file()
+        orders = config.get('service_orders', [])
+        for o in orders:
+            if isinstance(o, dict) and (o.get('public_token') or '') == public_token:
+                return o
+        return None
+
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT id FROM service_orders WHERE data->>'public_token' = %s LIMIT 1", (public_token,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return get_service_order(row['id'])
+    except Exception as e:
+        print(f"⚠️  Erro ao obter OS por token: {e}")
         return None
 
 def save_service_order(service_order_id, payload, parts, history_message=None, create_new=False):

@@ -1,4 +1,4 @@
-def build_os_pdf(order, company, logo_path):
+def build_os_pdf(order, company, logo_path, public_url=None):
     from io import BytesIO
     import os
     from xml.sax.saxutils import escape
@@ -181,8 +181,8 @@ def build_os_pdf(order, company, logo_path):
         return table
 
     header_table = Table(
-        [[logo_cell, header_right]],
-        colWidths=[32 * mm, doc.width - 32 * mm],
+        [[logo_cell, header_right, ""]],
+        colWidths=[32 * mm, doc.width - 32 * mm - 28 * mm, 28 * mm],
         style=TableStyle(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -192,6 +192,37 @@ def build_os_pdf(order, company, logo_path):
             ]
         ),
     )
+
+    if public_url:
+        from reportlab.graphics.barcode.qr import QrCodeWidget
+        from reportlab.graphics.shapes import Drawing
+        from reportlab.graphics import renderPDF
+        from reportlab.platypus import Flowable
+
+        class _DrawingFlowable(Flowable):
+            def __init__(self, drawing, width, height):
+                super().__init__()
+                self.drawing = drawing
+                self.width = width
+                self.height = height
+
+            def wrap(self, availWidth, availHeight):
+                return self.width, self.height
+
+            def draw(self):
+                renderPDF.draw(self.drawing, self.canv, 0, 0)
+
+        qr_size = 24 * mm
+        qr_widget = QrCodeWidget(public_url)
+        bounds = qr_widget.getBounds()
+        bw = bounds[2] - bounds[0]
+        bh = bounds[3] - bounds[1]
+        drawing = Drawing(qr_size, qr_size, transform=[qr_size / bw, 0, 0, qr_size / bh, 0, 0])
+        drawing.add(qr_widget)
+
+        qr_flow = _DrawingFlowable(drawing, qr_size, qr_size)
+        qr_caption = Paragraph("Status da OS", style_small)
+        header_table._cellvalues[0][2] = [qr_flow, Spacer(1, 2 * mm), qr_caption]
 
     elements = [header_table, Spacer(1, 6 * mm)]
 
