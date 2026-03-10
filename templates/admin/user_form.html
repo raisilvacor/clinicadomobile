@@ -45,10 +45,6 @@
                         <span>🛒 Produtos</span>
                     </label>
                     <label class="checkbox-item">
-                        <input type="checkbox" name="perm_budget_requests" {% if user and user.permissions and user.permissions.budget_requests %}checked{% endif %}>
-                        <span>💰 Orçamentos</span>
-                    </label>
-                    <label class="checkbox-item">
                         <input type="checkbox" name="perm_financeiro" {% if user and user.permissions and user.permissions.financeiro %}checked{% endif %}>
                         <span>💵 Financeiro</span>
                     </label>

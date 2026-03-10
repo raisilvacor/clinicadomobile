@@ -148,12 +148,7 @@ def admin_logout():
 @app.route('/admin')
 @login_required
 def admin_dashboard():
-    # Contar solicitações de orçamento pendentes
-    budget_requests = get_all_budget_requests()
-    pending_budget_count = len([r for r in budget_requests if r.get('status') == 'pendente'])
-    
-    return render_template('admin/dashboard.html',
-                         pending_budget_count=pending_budget_count)
+    return render_template('admin/dashboard.html')
 
 @app.route('/admin/hero', methods=['GET', 'POST'])
 @login_required
@@ -451,75 +446,6 @@ def admin_budget_config():
         
     return render_template('admin/budget_config.html', config=config)
 
-@app.route('/admin/budget-requests', methods=['GET'])
-@login_required
-def admin_budget_requests():
-    """Visualiza solicitações de orçamento"""
-    from db import calculate_customer_risk_score
-    
-    try:
-        requests = get_all_budget_requests()
-        # Contar pendentes para notificação
-        pending_count = len([r for r in requests if r.get('status') == 'pendente'])
-        
-        # Calcular score de risco para cada solicitação
-        requests_with_score = []
-        for req in requests:
-            try:
-                # Garantir que req é um dicionário
-                if not isinstance(req, dict):
-                    req = dict(req) if hasattr(req, '__dict__') else {}
-                
-                req_copy = req.copy()
-                
-                # Extrair CPF de diferentes formatos possíveis
-                cpf = req_copy.get('customer_cpf', '')
-                if not cpf and isinstance(req_copy.get('data'), dict):
-                    cpf = req_copy.get('data', {}).get('customer_cpf', '')
-                if not cpf:
-                    # Tentar extrair de outros campos possíveis
-                    cpf = req_copy.get('cpf', '')
-                
-                if cpf:
-                    try:
-                        risk_score = calculate_customer_risk_score(cpf)
-                        req_copy['risk_score'] = risk_score
-                    except Exception as e:
-                        print(f"Erro ao calcular score de risco para CPF {cpf}: {e}")
-                        req_copy['risk_score'] = {
-                            'score': 0,
-                            'level': 'low',
-                            'label': '🟢 Baixo risco',
-                            'details': {'message': 'Erro ao calcular score'}
-                        }
-                else:
-                    req_copy['risk_score'] = {
-                        'score': 0,
-                        'level': 'low',
-                        'label': '🟢 Baixo risco',
-                        'details': {'message': 'CPF não informado'}
-                    }
-                requests_with_score.append(req_copy)
-            except Exception as e:
-                print(f"Erro ao processar solicitação: {e}")
-                # Adicionar mesmo com erro, sem score
-                req_copy = req.copy() if isinstance(req, dict) else dict(req)
-                req_copy['risk_score'] = {
-                    'score': 0,
-                    'level': 'low',
-                    'label': '🟢 Baixo risco',
-                    'details': {'message': 'Erro ao processar'}
-                }
-                requests_with_score.append(req_copy)
-        
-        return render_template('admin/budget_requests.html', requests=requests_with_score, pending_count=pending_count)
-    except Exception as e:
-        print(f"Erro crítico em admin_budget_requests: {e}")
-        import traceback
-        traceback.print_exc()
-        # Retornar página de erro ou lista vazia
-        return render_template('admin/budget_requests.html', requests=[], pending_count=0)
-
 @app.route('/admin/nfse', methods=['GET'])
 @login_required
 def admin_nfse():
@@ -553,7 +479,6 @@ def admin_new_user():
                 'orders': request.form.get('perm_orders') == 'on',
                 'suppliers': request.form.get('perm_suppliers') == 'on',
                 'products': request.form.get('perm_products') == 'on',
-                'budget_requests': request.form.get('perm_budget_requests') == 'on',
                 'financeiro': request.form.get('perm_financeiro') == 'on',
                 'risk_scores': request.form.get('perm_risk_scores') == 'on',
                 'users': request.form.get('perm_users') == 'on',
@@ -587,7 +512,6 @@ def admin_edit_user(user_id):
                 'orders': request.form.get('perm_orders') == 'on',
                 'suppliers': request.form.get('perm_suppliers') == 'on',
                 'products': request.form.get('perm_products') == 'on',
-                'budget_requests': request.form.get('perm_budget_requests') == 'on',
                 'financeiro': request.form.get('perm_financeiro') == 'on',
                 'risk_scores': request.form.get('perm_risk_scores') == 'on',
                 'users': request.form.get('perm_users') == 'on',
@@ -907,34 +831,6 @@ def admin_lookup_cnpj(cnpj):
 
 # ========== ROTAS DE SCORE DE QUALIDADE DO TÉCNICO ==========
 
-
-@app.route('/admin/budget-requests/<request_id>/delete', methods=['POST'])
-@login_required
-def admin_delete_budget_request(request_id):
-    """Exclui uma solicitação de orçamento"""
-    try:
-        delete_budget_request(request_id)
-        return jsonify({'success': True, 'message': 'Solicitação excluída com sucesso'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/admin/budget-requests/<request_id>/update', methods=['POST'])
-@login_required
-def admin_update_budget_request(request_id):
-    """Atualiza o status e notas de uma solicitação de orçamento"""
-    try:
-        data = request.json
-        status = data.get('status')
-        admin_notes = data.get('admin_notes')
-        
-        if not status:
-            return jsonify({'success': False, 'error': 'Status é obrigatório'}), 400
-            
-        update_budget_request_status(request_id, status, admin_notes)
-        return jsonify({'success': True, 'message': 'Solicitação atualizada com sucesso'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 @app.route('/admin/suppliers', methods=['GET'])
 @login_required
 def admin_suppliers():
@@ -1036,12 +932,7 @@ def admin_search_suppliers():
             error = f"Erro ao buscar nos fornecedores: {str(e)}"
             print(f"Erro na busca de fornecedores: {e}")
     
-    # Reutiliza o dashboard para mostrar resultados
-    budget_requests = get_all_budget_requests()
-    pending_budget_count = len([r for r in budget_requests if r.get('status') == 'pendente'])
-    
     return render_template('admin/dashboard.html', 
-                         pending_budget_count=pending_budget_count,
                          supplier_results=results,
                          search_query=query,
                          search_error=error)

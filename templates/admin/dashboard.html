@@ -7,23 +7,6 @@
     <h2>📊 Dashboard</h2>
     <p>Bem-vindo ao painel administrativo. Escolha uma seção abaixo para editar o conteúdo do site.</p>
     
-    <!-- Notificação de Solicitações de Orçamento Pendentes -->
-    {% if pending_budget_count and pending_budget_count > 0 %}
-    <div class="alert-card warning" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <h3 class="text-warning" style="margin-bottom: 0.5rem; font-size: 1.2rem;">
-                💰 Nova(s) Solicitação(ões) de Orçamento: {{ pending_budget_count }}
-            </h3>
-            <p style="margin: 0;">
-                Há {{ pending_budget_count }} solicitação(ões) de orçamento pendente(s) do app mobile.
-            </p>
-        </div>
-        <a href="{{ url_for('admin_budget_requests') }}" class="btn btn-primary" style="background: #ff8c00; color: #000000; font-weight: bold;">
-            Ver Solicitações
-        </a>
-    </div>
-    {% endif %}
-
     <!-- Busca de Produtos em Fornecedores -->
     <div class="admin-card">
         <h3 style="color: #ff8c00; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -202,12 +185,6 @@
             <h3>🏷️ Marcas</h3>
             <p>Gerencie as marcas exibidas no carrossel do site.</p>
             <a href="{{ url_for('admin_brands') }}" class="btn btn-primary">Acessar</a>
-        </div>
-
-        <div class="stat-card">
-            <h3>💰 Solicitações de Orçamento</h3>
-            <p>Visualize e gerencie solicitações de orçamento do app</p>
-            <a href="{{ url_for('admin_budget_requests') }}" class="btn btn-primary">Acessar</a>
         </div>
 
         <div class="stat-card">
