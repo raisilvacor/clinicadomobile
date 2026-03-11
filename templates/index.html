@@ -395,7 +395,8 @@
             font-weight: bold;
             font-size: 1.1rem;
             border-radius: 50px;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 1s ease 0.4s both;
             text-transform: uppercase;
             letter-spacing: 1px;
             box-shadow: none;
@@ -403,7 +404,7 @@
 
         .whatsapp-hero-button:hover {
             transform: translateY(-3px);
-            box-shadow: none;
+            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4);
         }
 
         .whatsapp-hero-button::before {
