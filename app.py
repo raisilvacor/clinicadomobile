@@ -183,35 +183,6 @@ def site_laboratorio():
 def site_contato():
     return _render_site_page('contato', 'Contato | Clínica do Cell')
 
-@app.route('/robots.txt', methods=['GET'])
-def robots_txt():
-    base = request.url_root.rstrip('/')
-    body = "\n".join(
-        [
-            "User-agent: *",
-            "Allow: /",
-            f"Sitemap: {base}/sitemap.xml",
-        ]
-    )
-    return Response(body + "\n", mimetype='text/plain')
-
-@app.route('/sitemap.xml', methods=['GET'])
-def sitemap_xml():
-    base = request.url_root.rstrip('/')
-    paths = [
-        '/',
-        '/servicos',
-        '/sobre',
-        '/dispositivos',
-        '/laboratorio',
-        '/contato',
-        '/orcamento',
-        '/loja',
-    ]
-    urls = "".join([f"<url><loc>{base}{p}</loc></url>" for p in paths])
-    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
-    return Response(xml, mimetype='application/xml')
-
 @app.route('/consulta-os', methods=['GET'])
 def public_os_lookup():
     os_value = (request.args.get('os', '') or request.args.get('numero', '') or '').strip()
@@ -2158,32 +2129,68 @@ def sitemap():
     """Gera sitemap.xml para SEO"""
     from flask import Response
     import xml.etree.ElementTree as ET
+    from datetime import datetime
     
     url_root = request.url_root.rstrip('/')
     
     urlset = ET.Element('urlset')
     urlset.set('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9')
+
+    def _add_url(loc, changefreq=None, priority=None, lastmod=None):
+        url = ET.SubElement(urlset, 'url')
+        ET.SubElement(url, 'loc').text = loc
+        if lastmod:
+            ET.SubElement(url, 'lastmod').text = lastmod
+        if changefreq:
+            ET.SubElement(url, 'changefreq').text = changefreq
+        if priority:
+            ET.SubElement(url, 'priority').text = priority
+
+    def _lastmod_from(value):
+        if not value:
+            return None
+        if hasattr(value, 'date'):
+            try:
+                return value.date().isoformat()
+            except Exception:
+                return None
+        if isinstance(value, str):
+            v = value.strip()
+            if not v:
+                return None
+            v = v.replace('Z', '+00:00')
+            try:
+                dt = datetime.fromisoformat(v)
+                return dt.date().isoformat()
+            except Exception:
+                if len(v) >= 10 and v[4] == '-' and v[7] == '-':
+                    return v[:10]
+                return None
+        return None
     
     # Página principal
-    url = ET.SubElement(urlset, 'url')
-    ET.SubElement(url, 'loc').text = url_root
-    ET.SubElement(url, 'changefreq').text = 'daily'
-    ET.SubElement(url, 'priority').text = '1.0'
+    _add_url(url_root + '/', changefreq='daily', priority='1.0')
+
+    # Páginas institucionais
+    _add_url(f'{url_root}{url_for("site_servicos")}', changefreq='weekly', priority='0.9')
+    _add_url(f'{url_root}{url_for("site_sobre")}', changefreq='monthly', priority='0.7')
+    _add_url(f'{url_root}{url_for("site_dispositivos")}', changefreq='monthly', priority='0.7')
+    _add_url(f'{url_root}{url_for("site_laboratorio")}', changefreq='monthly', priority='0.6')
+    _add_url(f'{url_root}{url_for("site_contato")}', changefreq='monthly', priority='0.6')
+    _add_url(f'{url_root}/orcamento/', changefreq='monthly', priority='0.6')
     
     # Loja
-    url = ET.SubElement(urlset, 'url')
-    ET.SubElement(url, 'loc').text = f'{url_root}/loja'
-    ET.SubElement(url, 'changefreq').text = 'daily'
-    ET.SubElement(url, 'priority').text = '0.8'
+    _add_url(f'{url_root}{url_for("public_shop")}', changefreq='daily', priority='0.8')
     
     # Produtos
     products = get_all_products()
     for product in products:
         if not product.get('sold', False):
-            url = ET.SubElement(urlset, 'url')
-            ET.SubElement(url, 'loc').text = f'{url_root}/loja/{product.get("id")}'
-            ET.SubElement(url, 'changefreq').text = 'weekly'
-            ET.SubElement(url, 'priority').text = '0.7'
+            product_id = product.get('id')
+            if not product_id:
+                continue
+            lastmod = _lastmod_from(product.get('updated_at') or product.get('created_at'))
+            _add_url(f'{url_root}{url_for("public_product", product_id=product_id)}', changefreq='weekly', priority='0.7', lastmod=lastmod)
     
     xml_str = ET.tostring(urlset, encoding='utf-8', method='xml').decode('utf-8')
     return Response(xml_str, mimetype='application/xml')
