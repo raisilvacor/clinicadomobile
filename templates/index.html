@@ -919,6 +919,250 @@
             color: #dc3545;
         }
 
+        /* Como Funciona */
+        .how-it-works {
+            padding: 6rem 2rem;
+            background: #000000;
+            text-align: center;
+        }
+
+        .how-it-works-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .process-badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            background: rgba(255, 140, 0, 0.1);
+            color: #ff8c00;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border-radius: 50px;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+        }
+
+        .section-subtitle {
+            color: #cccccc;
+            font-size: 1.1rem;
+            margin-bottom: 4rem;
+        }
+
+        .steps-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .step-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-number {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #ff8c00;
+            margin-bottom: 1rem;
+        }
+
+        .step-icon-wrapper {
+            width: 80px;
+            height: 80px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            border: 2px solid #333;
+            transition: all 0.3s ease;
+        }
+
+        .step-item:hover .step-icon-wrapper {
+            border-color: #ff8c00;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.3);
+        }
+
+        .step-icon {
+            font-size: 2rem;
+            color: #ffffff;
+        }
+
+        .step-item h3 {
+            color: #ffffff;
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .step-item p {
+            color: #999999;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .step-divider {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ff8c00, transparent);
+            margin-top: 55px; /* Alinha com o centro do ícone */
+            opacity: 0.3;
+        }
+
+        @media (max-width: 992px) {
+            .steps-grid {
+                flex-direction: column;
+                gap: 3rem;
+                align-items: center;
+            }
+            .step-divider {
+                display: none;
+            }
+            .step-item {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+
+        /* Estatísticas / Counters */
+        .stats-section {
+            padding: 5rem 2rem;
+            background: #000000;
+            border-top: 1px solid rgba(255, 140, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 140, 0, 0.1);
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #ff8c00;
+            margin-bottom: 0.5rem;
+            font-family: 'Arial Black', sans-serif;
+            letter-spacing: -2px;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-number span {
+            font-size: 1.5rem;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+
+        .stat-label {
+            color: #999999;
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: lowercase;
+        }
+
+        @media (max-width: 768px) {
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3rem 1rem;
+            }
+            .stat-number {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* FAQ */
+        .faq-section {
+            padding: 6rem 2rem;
+            background: #000000;
+        }
+
+        .faq-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .faq-badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            background: rgba(255, 140, 0, 0.1);
+            color: #ff8c00;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border-radius: 50px;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            text-transform: uppercase;
+        }
+
+        .faq-list {
+            margin-top: 3rem;
+            text-align: left;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid rgba(255, 140, 0, 0.1);
+            padding: 1.5rem 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #ffffff;
+            font-size: 1.2rem;
+            font-weight: bold;
+            gap: 1rem;
+        }
+
+        .faq-toggle {
+            color: #ff8c00;
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .faq-item.active .faq-toggle {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            color: #999999;
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 200px;
+            padding-top: 1rem;
+        }
+
         /* Footer */
         footer {
             background: linear-gradient(135deg, #0d0d0d 0%, #000000 100%);
@@ -1283,6 +1527,55 @@
     </section>
     {% endif %}
 
+    <!-- Como Funciona -->
+    {% if not page %}
+    <section class="how-it-works">
+        <div class="how-it-works-container">
+            <span class="process-badge">PROCESSO SIMPLES</span>
+            <h2 class="section-title">Como funciona?</h2>
+            <p class="section-subtitle">Do primeiro contato à entrega, tudo rápido e transparente.</p>
+            
+            <div class="steps-grid">
+                <div class="step-item">
+                    <div class="step-number">01</div>
+                    <div class="step-icon-wrapper">
+                        <div class="step-icon"><i class="fab fa-whatsapp"></i></div>
+                    </div>
+                    <h3>Contato</h3>
+                    <p>Mande um WhatsApp. Respondemos na hora.</p>
+                </div>
+                <div class="step-divider"></div>
+                <div class="step-item">
+                    <div class="step-number">02</div>
+                    <div class="step-icon-wrapper">
+                        <div class="step-icon"><i class="fas fa-magnifying-glass"></i></div>
+                    </div>
+                    <h3>Diagnóstico</h3>
+                    <p>Receba seu orçamento gratuito.</p>
+                </div>
+                <div class="step-divider"></div>
+                <div class="step-item">
+                    <div class="step-number">03</div>
+                    <div class="step-icon-wrapper">
+                        <div class="step-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+                    </div>
+                    <h3>Reparo</h3>
+                    <p>Conserto rápido com peça de qualidade.</p>
+                </div>
+                <div class="step-divider"></div>
+                <div class="step-item">
+                    <div class="step-number">04</div>
+                    <div class="step-icon-wrapper">
+                        <div class="step-icon"><i class="fas fa-truck-fast"></i></div>
+                    </div>
+                    <h3>Entrega</h3>
+                    <p>Pronto no mesmo dia. Entregamos via motoboy.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
     <!-- Sobre -->
     {% if not page or page == 'sobre' %}
     <section id="sobre" class="about">
@@ -1369,6 +1662,30 @@
     </section>
     {% endif %}
 
+    <!-- Estatísticas -->
+    {% if not page %}
+    <section class="stats-section">
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-number">6<span>+</span></div>
+                <div class="stat-label">Anos de experiência</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">5<span>mil+</span></div>
+                <div class="stat-label">Aparelhos reparados</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">4.9<span>/5</span></div>
+                <div class="stat-label">Nota no Google</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">2</div>
+                <div class="stat-label">Quantidade de Loja</div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
     <!-- Laboratório -->
     {% if not page or page == 'laboratorio' %}
     <section id="laboratorio" class="laboratory">
@@ -1389,6 +1706,73 @@
                     </div>
                 </div>
             {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- FAQ -->
+    {% if not page %}
+    <section id="faq" class="faq-section">
+        <div class="faq-container">
+            <span class="faq-badge">DÚVIDAS</span>
+            <h2 class="section-title">Perguntas frequentes</h2>
+            
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Quanto tempo leva o conserto?</span>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>A maioria dos serviços é realizada no mesmo dia. Trocas de tela, bateria e vidro geralmente ficam prontas em 1 a 2 horas. Reparos de placa podem levar de 1 a 3 dias úteis dependendo da complexidade.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Vocês dão garantia?</span>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Sim! Todos os nossos serviços e peças possuem garantia documentada. O prazo varia de acordo com o serviço prestado, mas trabalhamos com no mínimo 90 dias de garantia.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Quais marcas vocês atendem?</span>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Atendemos as principais marcas: Apple (iPhone, iPad, Apple Watch), Samsung, Motorola, Xiaomi, LG, entre outras. Consulte-nos pelo WhatsApp para confirmar seu modelo.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>O diagnóstico é gratuito?</span>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Sim, o diagnóstico é 100% gratuito e sem compromisso. Analisamos seu aparelho e você decide se quer prosseguir com o reparo ou não.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Vocês fazem coleta e entrega?</span>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Sim! Oferecemos serviço de coleta e entrega via motoboy para a região de Barueri e arredores. Basta solicitar pelo WhatsApp.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Meus dados ficam seguros?</span>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Absolutamente! Não acessamos nem armazenamos nenhum dado pessoal. Nosso laboratório possui câmeras de segurança para total transparência.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
     {% endif %}

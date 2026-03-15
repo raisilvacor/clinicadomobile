@@ -74,8 +74,25 @@
     });
   }, observerOptions);
 
-  document.querySelectorAll('.service-card, .contact-card, .device-card, .lab-image-card').forEach((card) => {
+  document.querySelectorAll('.service-card, .contact-card, .device-card, .lab-image-card, .faq-item').forEach((card) => {
     observer.observe(card);
+  });
+
+  // FAQ Accordion
+  document.querySelectorAll('.faq-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      const isActive = item.classList.contains('active');
+      
+      // Close all other items
+      document.querySelectorAll('.faq-item').forEach((otherItem) => {
+        otherItem.classList.remove('active');
+      });
+
+      // Toggle current item
+      if (!isActive) {
+        item.classList.add('active');
+      }
+    });
   });
 
   const video = document.querySelector('.about-video');
