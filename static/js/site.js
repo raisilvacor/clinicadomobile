@@ -67,6 +67,14 @@
     });
   });
 
+  document.querySelectorAll('.lab-image').forEach((img) => {
+    img.addEventListener('error', () => {
+      const parent = img.parentElement;
+      if (!parent) return;
+      parent.innerHTML = "<div class='lab-image-placeholder'>🔬</div>";
+    });
+  });
+
   const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {

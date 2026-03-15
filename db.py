@@ -679,6 +679,7 @@ def save_site_content_section(section, data):
                 ON CONFLICT (section) 
                 DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
             """, (section, data_json, data_json))
+            conn.commit()
     except Exception as e:
         print(f"⚠️  Erro ao salvar no banco, usando config.json: {e}")
         config = _load_config_file()
