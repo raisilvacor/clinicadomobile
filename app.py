@@ -411,6 +411,8 @@ def admin_contact():
         contact['whatsapp'] = request.form.get('whatsapp', '')
         contact['address'] = request.form.get('address', '')
         contact['city'] = request.form.get('city', '')
+        contact['address2'] = request.form.get('address2', '')
+        contact['city2'] = request.form.get('city2', '')
         contact['hours_weekdays'] = request.form.get('hours_weekdays', '')
         contact['hours_saturday'] = request.form.get('hours_saturday', '')
         contact['hours_sunday'] = request.form.get('hours_sunday', '')

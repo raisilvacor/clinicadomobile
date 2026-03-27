@@ -31,7 +31,7 @@
             <small style="color: #888; display: block; margin-top: 0.5rem;">Apenas números, sem espaços ou caracteres especiais. Exemplo: 5511999999999</small>
         </div>
 
-        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">📍 Endereço</h3>
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">📍 Endereço 1</h3>
 
         <div class="form-group">
             <label for="address">Endereço:</label>
@@ -41,6 +41,18 @@
         <div class="form-group">
             <label for="city">Cidade/Estado:</label>
             <input type="text" id="city" name="city" value="{{ contact.city or '' }}" placeholder="São Paulo - SP" class="form-control">
+        </div>
+
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">📍 Endereço 2 (Opcional)</h3>
+
+        <div class="form-group">
+            <label for="address2">Endereço 2:</label>
+            <input type="text" id="address2" name="address2" value="{{ contact.address2 or '' }}" placeholder="Avenida Outra, 456" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="city2">Cidade/Estado 2:</label>
+            <input type="text" id="city2" name="city2" value="{{ contact.city2 or '' }}" placeholder="São Paulo - SP" class="form-control">
         </div>
 
         <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">🕒 Horários (Exibição)</h3>

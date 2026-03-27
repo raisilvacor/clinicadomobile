@@ -1817,6 +1817,12 @@
                 <h3>Endereço</h3>
                 <p>{{ content.contact.address if content and content.contact and content.contact.address else 'Rua Exemplo, 123' }}</p>
                 <p>{{ content.contact.city if content and content.contact and content.contact.city else 'São Paulo - SP' }}</p>
+                
+                {% if content and content.contact and content.contact.address2 %}
+                <hr style="border: none; border-top: 1px solid rgba(255, 140, 0, 0.2); margin: 1rem 0;">
+                <p>{{ content.contact.address2 }}</p>
+                <p>{{ content.contact.city2 if content.contact.city2 else '' }}</p>
+                {% endif %}
             </div>
             <div class="contact-card">
                 <div class="contact-icon">🕒</div>
