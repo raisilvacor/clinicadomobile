@@ -159,6 +159,116 @@
             color: #ff8c00;
         }
 
+        /* Seletor de Idioma Profissional */
+        .language-selector {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-left: 1rem;
+            list-style: none;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .lang-btn:hover {
+            background: rgba(255, 140, 0, 0.2);
+            border-color: #ff8c00;
+        }
+
+        .lang-dropdown {
+            position: absolute;
+            top: 120%;
+            right: 0;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            min-width: 160px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1002;
+        }
+
+        .lang-dropdown.active {
+            display: flex;
+        }
+
+        .language-selector:hover .lang-dropdown {
+            display: flex;
+        }
+
+        .lang-option {
+            padding: 0.8rem 1.2rem;
+            color: #ffffff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            transition: background 0.3s ease;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .lang-option:hover {
+            background: rgba(255, 140, 0, 0.1);
+            color: #ff8c00;
+        }
+
+        .lang-option img {
+            width: 20px;
+            height: auto;
+            border-radius: 2px;
+        }
+
+        /* Esconder barra do Google Translate */
+        .goog-te-banner-frame.skiptranslate, .goog-te-gadget-icon {
+            display: none !important;
+        }
+        body {
+            top: 0 !important;
+        }
+        .goog-te-menu-value {
+            display: none !important;
+        }
+        .goog-te-gadget {
+            font-size: 0 !important;
+        }
+        .goog-te-combo {
+            display: none !important;
+        }
+        .skiptranslate {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .language-selector {
+                margin: 1.5rem 0 0 0;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+            }
+            .lang-dropdown {
+                right: auto;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+
         /* Botão Menu Hambúrguer */
         .menu-toggle {
             display: none;
@@ -1431,6 +1541,23 @@
                 <li><a href="{{ url_for('site_laboratorio') }}">Laboratório</a></li>
                 <li><a href="/loja">Loja</a></li>
                 <li><a href="{{ url_for('site_contato') }}">Contato</a></li>
+                <li class="language-selector">
+                    <button class="lang-btn" id="langBtn" type="button">
+                        <img src="https://flagcdn.com/w20/br.png" alt="BR" width="20">
+                        <span>PT</span>
+                        <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
+                    </button>
+                    <div class="lang-dropdown" id="langDropdown">
+                        <div class="lang-option" data-lang="pt" onclick="changeLanguage('pt')">
+                            <img src="https://flagcdn.com/w20/br.png" alt="BR">
+                            <span>Português</span>
+                        </div>
+                        <div class="lang-option" data-lang="es" onclick="changeLanguage('es')">
+                            <img src="https://flagcdn.com/w20/es.png" alt="ES">
+                            <span>Español</span>
+                        </div>
+                    </div>
+                </li>
             </ul>
         </nav>
     </header>
@@ -1896,7 +2023,9 @@
     </a>
     {% endif %}
 
-    <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
+    <div id="google_translate_element" style="position: absolute; top: -9999px; left: -9999px;"></div>
+    <script src="{{ url_for('static', filename='js/site.js') }}"></script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>
 

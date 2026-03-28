@@ -1,3 +1,62 @@
+// Language Selection & Translation
+window.changeLanguage = function(langCode) {
+  // O Google Translate usa um select com a classe goog-te-combo
+  const googleCombo = document.querySelector('.goog-te-combo');
+  
+  if (googleCombo) {
+    googleCombo.value = langCode;
+    
+    // Disparar evento de mudança (necessário para o Google Translate processar)
+    if (googleCombo.dispatchEvent) {
+      googleCombo.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+    } else if (googleCombo.fireEvent) {
+      googleCombo.fireEvent('onchange');
+    }
+
+    // Atualizar o visual do botão personalizado
+    const langBtn = document.getElementById('langBtn');
+    if (langBtn) {
+      const img = langBtn.querySelector('img');
+      const span = langBtn.querySelector('span');
+      if (langCode === 'pt') {
+        img.src = "https://flagcdn.com/w20/br.png";
+        span.textContent = "PT";
+      } else if (langCode === 'es') {
+        img.src = "https://flagcdn.com/w20/es.png";
+        span.textContent = "ES";
+      }
+    }
+    
+    // Esconder o dropdown após selecionar
+    const langDropdown = document.getElementById('langDropdown');
+    if (langDropdown) {
+      langDropdown.classList.remove('active');
+    }
+  } else {
+    console.log('Aguardando carregamento do motor de tradução...');
+    // Tentar novamente em breve caso o widget ainda esteja carregando
+    setTimeout(() => changeLanguage(langCode), 500);
+  }
+};
+
+window.googleTranslateElementInit = function() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'pt',
+    includedLanguages: 'pt,es',
+    layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+    autoDisplay: false
+  }, 'google_translate_element');
+  
+  // Garantir que o combo do Google seja acessível
+  const checkInterval = setInterval(() => {
+    const combo = document.querySelector('.goog-te-combo');
+    if (combo) {
+      console.log('Motor de tradução carregado e pronto.');
+      clearInterval(checkInterval);
+    }
+  }, 1000);
+};
+
 (function () {
   const menuToggle = document.querySelector('.menu-toggle');
   const navLinks = document.querySelector('.nav-links');
@@ -102,6 +161,21 @@
       }
     });
   });
+
+  // Language Selection & Translation
+  const langBtn = document.getElementById('langBtn');
+  const langDropdown = document.getElementById('langDropdown');
+
+  if (langBtn && langDropdown) {
+    langBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      langDropdown.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => {
+      langDropdown.classList.remove('active');
+    });
+  }
 
   const video = document.querySelector('.about-video');
   if (video) {
