@@ -1,61 +1,56 @@
 // Language Selection & Translation
 window.changeLanguage = function(langCode) {
-  // O Google Translate usa um select com a classe goog-te-combo
-  const googleCombo = document.querySelector('.goog-te-combo');
+  const target = langCode === 'pt' ? 'pt' : 'es';
+  const cookieVal = "/pt/" + target;
   
-  if (googleCombo) {
-    googleCombo.value = langCode;
-    
-    // Disparar evento de mudança (necessário para o Google Translate processar)
-    if (googleCombo.dispatchEvent) {
-      googleCombo.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-    } else if (googleCombo.fireEvent) {
-      googleCombo.fireEvent('onchange');
-    }
-
-    // Atualizar o visual do botão personalizado
-    const langBtn = document.getElementById('langBtn');
-    if (langBtn) {
-      const img = langBtn.querySelector('img');
-      const span = langBtn.querySelector('span');
-      if (langCode === 'pt') {
-        img.src = "https://flagcdn.com/w20/br.png";
-        span.textContent = "PT";
-      } else if (langCode === 'es') {
-        img.src = "https://flagcdn.com/w20/es.png";
-        span.textContent = "ES";
-      }
-    }
-    
-    // Esconder o dropdown após selecionar
-    const langDropdown = document.getElementById('langDropdown');
-    if (langDropdown) {
-      langDropdown.classList.remove('active');
-    }
-  } else {
-    console.log('Aguardando carregamento do motor de tradução...');
-    // Tentar novamente em breve caso o widget ainda esteja carregando
-    setTimeout(() => changeLanguage(langCode), 500);
+  // Define o cookie googtrans para o Google Translate ler
+  const date = new Date();
+  date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+  const expires = "; expires=" + date.toUTCString();
+  
+  // Define o cookie de várias formas para garantir que o Google o pegue
+  document.cookie = "googtrans=" + cookieVal + expires + "; path=/";
+  document.cookie = "googtrans=" + cookieVal + expires + "; path=/; domain=" + window.location.hostname;
+  
+  // Tentar também com .domain
+  if (window.location.hostname !== 'localhost') {
+    document.cookie = "googtrans=" + cookieVal + expires + "; path=/; domain=." + window.location.hostname;
   }
+
+  // Recarregar a página para aplicar
+  window.location.reload();
 };
 
 window.googleTranslateElementInit = function() {
   new google.translate.TranslateElement({
     pageLanguage: 'pt',
-    includedLanguages: 'pt,es',
     layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
     autoDisplay: false
   }, 'google_translate_element');
-  
-  // Garantir que o combo do Google seja acessível
-  const checkInterval = setInterval(() => {
-    const combo = document.querySelector('.goog-te-combo');
-    if (combo) {
-      console.log('Motor de tradução carregado e pronto.');
-      clearInterval(checkInterval);
-    }
-  }, 1000);
 };
+
+// Sincronizar UI do botão ao carregar a página
+(function() {
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+
+  const currentTrans = getCookie('googtrans');
+  if (currentTrans && currentTrans.includes('/es')) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const langBtn = document.getElementById('langBtn');
+      if (langBtn) {
+        const img = langBtn.querySelector('img');
+        const span = langBtn.querySelector('span');
+        img.src = "https://flagcdn.com/w20/es.png";
+        span.textContent = "ES";
+      }
+    });
+  }
+})();
 
 (function () {
   const menuToggle = document.querySelector('.menu-toggle');

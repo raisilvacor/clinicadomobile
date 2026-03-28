@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" itemscope itemtype="https://schema.org/LocalBusiness">
+<html lang="pt" itemscope itemtype="https://schema.org/LocalBusiness">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1492,30 +1492,26 @@
         /* Botão WhatsApp */
         .whatsapp-button {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            bottom: 25px;
+            right: 25px;
+            background: #25D366;
             color: #ffffff;
-            padding: 1rem 1.5rem;
-            border-radius: 50px;
-            font-weight: bold;
-            box-shadow: none;
-            z-index: 100;
-            text-decoration: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            transition: transform 0.3s ease;
+            justify-content: center;
+            font-size: 35px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            text-decoration: none;
+            transition: transform 0.3s ease, background 0.3s ease;
         }
 
         .whatsapp-button:hover {
-            transform: scale(1.05);
-            box-shadow: none;
-        }
-
-        .whatsapp-button::before {
-            content: '📱';
-            font-size: 1.2rem;
+            transform: scale(1.1);
+            background: #128C7E;
         }
 
     </style>
@@ -2019,13 +2015,13 @@
     <!-- Botão WhatsApp -->
     {% if content and content.contact and content.contact.whatsapp %}
     <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-button" rel="noopener noreferrer">
-        WhatsApp
+        <i class="fab fa-whatsapp"></i>
     </a>
     {% endif %}
 
     <div id="google_translate_element" style="position: absolute; top: -9999px; left: -9999px;"></div>
     <script src="{{ url_for('static', filename='js/site.js') }}"></script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>
 
