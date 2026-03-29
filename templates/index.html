@@ -532,9 +532,52 @@
             max-width: 900px;
             margin: 0 auto;
             background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
-            border: 1px solid #333;
-            border-radius: 15px;
-            padding: 2rem;
+            border: 2px solid #ff8c00;
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.1);
+        }
+
+        .qr-info-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 1.5rem;
+        }
+
+        .qr-icon-wrapper {
+            font-size: 4rem;
+            color: #ff8c00;
+            background: rgba(255, 140, 0, 0.1);
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            margin-bottom: 0.5rem;
+        }
+
+        .qr-text {
+            color: #ffffff !important;
+            font-size: 1.3rem;
+            line-height: 1.6;
+            font-weight: 500;
+            max-width: 700px;
+            margin: 0 !important;
+        }
+
+        @media (max-width: 768px) {
+            .qr-text {
+                font-size: 1.1rem;
+            }
+            .qr-icon-wrapper {
+                width: 80px;
+                height: 80px;
+                font-size: 3rem;
+            }
         }
 
         .os-tracking-card p {
@@ -1601,35 +1644,16 @@
     </section>
 
     <section id="consulta-os" class="os-tracking">
-        <h2 class="section-title">Consulta de Ordem de Serviço</h2>
+        <h2 class="section-title">Acompanhamento Profissional</h2>
         <div class="os-tracking-card">
-            <p>Digite o número da OS para acompanhar o status.</p>
-            <form method="GET" action="{{ url_for('public_os_lookup') }}" class="os-form">
-                <input type="text" name="os" class="os-input" placeholder="Ex: 000123" value="{{ os_query or '' }}" inputmode="numeric" required>
-                <button type="submit" class="cta-button">Consultar</button>
-            </form>
-
-            {% if os_lookup_error %}
-            <div class="os-alert os-alert-error">{{ os_lookup_error }}</div>
-            {% endif %}
-
-            {% if os_lookup %}
-            {% set s = os_lookup.status %}
-            {% if s in ['aberta', 'em_analise', 'aguardando_peca'] %}
-                {% set badge_class = 'open' %}
-            {% elif s in ['concluida', 'entregue'] %}
-                {% set badge_class = 'done' %}
-            {% else %}
-                {% set badge_class = 'info' %}
-            {% endif %}
-            <div class="os-result">
-                <div>
-                    <strong>OS {{ "%06d" % os_lookup.os_number if os_lookup.os_number else os_query }}</strong>
-                    <div class="os-opened-at">Abertura: {{ os_lookup.opened_at or 'N/A' }}</div>
+            <div class="qr-info-content">
+                <div class="qr-icon-wrapper">
+                    <i class="fas fa-qrcode"></i>
                 </div>
-                <div class="os-badge {{ badge_class }}">{{ os_lookup.status_label or os_lookup.status or 'N/A' }}</div>
+                <p class="qr-text">
+                    Receba sua Ordem de Serviço (OS) com um QR Code exclusivo e acompanhe, em tempo real, cada etapa do seu reparo direto no seu celular.
+                </p>
             </div>
-            {% endif %}
         </div>
     </section>
     {% endif %}
