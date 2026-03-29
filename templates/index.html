@@ -569,6 +569,18 @@
             margin: 0 !important;
         }
 
+        .qr-explanation {
+            color: #ffffff;
+            margin-top: 1.5rem;
+            font-size: 1.3rem;
+            opacity: 0.9;
+            font-weight: 500;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
         .os-status-bar {
             background: #ff8c00;
             color: #000000;
@@ -604,6 +616,9 @@
                 gap: 0.8rem;
             }
             .qr-text {
+                font-size: 1.1rem;
+            }
+            .qr-explanation {
                 font-size: 1.1rem;
             }
             .qr-icon-wrapper {
@@ -1230,9 +1245,10 @@
         .stats-container {
             max-width: 1200px;
             margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 2rem;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 4rem;
             text-align: center;
         }
 
@@ -1270,8 +1286,7 @@
 
         @media (max-width: 768px) {
             .stats-container {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 3rem 1rem;
+                gap: 2.5rem;
             }
             .stat-number {
                 font-size: 2.5rem;
@@ -1663,11 +1678,11 @@
             <div class="hero-content">
                 <h1 itemprop="name">{{ content.hero.title if content and content.hero and content.hero.title else 'Especialistas em iPhone e Android' }}</h1>
                 {% set hero_subtitle = (content.hero.subtitle if content and content.hero and content.hero.subtitle else '') | trim %}
-                {% if hero_subtitle == 'Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.' or hero_subtitle == 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP' or hero_subtitle == 'TELA QUEBRADA?\nCONSERTAMOS EM 1 hora com garantia de 90 dias' %}
-                    {% set hero_subtitle = 'Tela quebrada?\nconsertamos em 1 hora com garantia de 90 dias' %}
+                {% if hero_subtitle == 'Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.' or hero_subtitle == 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP' or hero_subtitle == 'TELA QUEBRADA?\nCONSERTAMOS EM 1 hora com garantia de 90 dias' or hero_subtitle == 'Tela quebrada?\nconsertamos em 1 hora com garantia de 90 dias' %}
+                    {% set hero_subtitle = 'Tela quebrada?\nReparo rápido com garantia e peças de qualidade.' %}
                 {% endif %}
                 {% set hero_subtitle = (hero_subtitle | replace('<br/>','\n') | replace('<br>','\n') | replace('<BR>','\n') | replace('<BR/>','\n')) %}
-                <p class="hero-subtitle">{{ (hero_subtitle if hero_subtitle else 'Tela quebrada?\nconsertamos em 1 hora com garantia de 90 dias') | e }}</p>
+                <p class="hero-subtitle">{{ (hero_subtitle if hero_subtitle else 'Tela quebrada?\nReparo rápido com garantia e peças de qualidade.') | e }}</p>
                 <a href="/orcamento" class="cta-button">Solicitar Orçamento</a>
                 {% if content and content.contact and content.contact.whatsapp %}
                 <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-hero-button" rel="noopener noreferrer">Chame no WhatsApp</a>
@@ -1693,6 +1708,9 @@
                     <i class="fas fa-chevron-right"></i>
                     <span>FINALIZADO</span>
                 </div>
+                <p class="qr-explanation">
+                    Assim que seu aparelho for registrado, você já pode acompanhar todo o andamento pelo QR Code da sua OS, sem precisar entrar em contato.
+                </p>
             </div>
         </div>
     </section>
@@ -1742,7 +1760,7 @@
                     <div class="step-icon-wrapper">
                         <div class="step-icon"><i class="fab fa-whatsapp"></i></div>
                     </div>
-                    <h3>Contato</h3>
+                    <h3>Contato rápido</h3>
                     <p>Mande um WhatsApp. Respondemos na hora.</p>
                 </div>
                 <div class="step-divider"></div>
@@ -1751,7 +1769,7 @@
                     <div class="step-icon-wrapper">
                         <div class="step-icon"><i class="fas fa-magnifying-glass"></i></div>
                     </div>
-                    <h3>Diagnóstico</h3>
+                    <h3>Diagnóstico transparente</h3>
                     <p>Receba seu orçamento gratuito.</p>
                 </div>
                 <div class="step-divider"></div>
@@ -1760,7 +1778,7 @@
                     <div class="step-icon-wrapper">
                         <div class="step-icon"><i class="fas fa-screwdriver-wrench"></i></div>
                     </div>
-                    <h3>Reparo</h3>
+                    <h3>Reparo profissional</h3>
                     <p>Conserto rápido com peça de qualidade.</p>
                 </div>
                 <div class="step-divider"></div>
@@ -1769,7 +1787,7 @@
                     <div class="step-icon-wrapper">
                         <div class="step-icon"><i class="fas fa-truck-fast"></i></div>
                     </div>
-                    <h3>Entrega</h3>
+                    <h3>Entrega com garantia</h3>
                     <p>Pronto no mesmo dia. Entregamos via motoboy.</p>
                 </div>
             </div>
@@ -1780,24 +1798,20 @@
     <!-- Sobre -->
     {% if not page or page == 'sobre' %}
     <section id="sobre" class="about">
-        <h2 class="section-title">{{ content.about.title if content and content.about and content.about.title else 'Por Que Escolher Nosso Serviço?' }}</h2>
+        <h2 class="section-title">{{ content.about.title if content and content.about and content.about.title else 'Por que escolher a Clínica Cell?' }}</h2>
         <div class="about-content">
             <div class="about-text">
-                <h2>{{ content.about.heading if content and content.about and content.about.heading else 'Excelência em Cada Reparo' }}</h2>
-                <p>{{ content.about.description1 if content and content.about and content.about.description1 else 'Somos uma assistência técnica especializada com anos de experiência no mercado, focada em oferecer o melhor serviço para seu dispositivo Android ou iPhone.' }}</p>
-                <p>{{ content.about.description2 if content and content.about and content.about.description2 else 'Nossa equipe é composta por técnicos certificados que utilizam equipamentos de última geração e peças de qualidade para garantir a satisfação dos nossos clientes.' }}</p>
+                <h2>{{ content.about.heading if content and content.about and content.about.heading else 'Atendimento transparente, qualidade nos reparos e compromisso com cada cliente.' }}</h2>
                 <ul class="features-list">
                     {% if content and content.about and content.about.features %}
                         {% for feature in content.about.features %}
                         <li>{{ feature }}</li>
                         {% endfor %}
                     {% else %}
-                        <li>Atendimento rápido e eficiente</li>
-                        <li>Garantia em todos os serviços</li>
-                        <li>Orçamento gratuito e transparente</li>
-                        <li>Peças originais e de qualidade</li>
-                        <li>Técnicos especializados e certificados</li>
-                        <li>Atendimento personalizado</li>
+                        <li>✔ Técnicos especializados em smartphones</li>
+                        <li>✔ Peças de qualidade e serviço com garantia</li>
+                        <li>✔ Diagnóstico claro antes de qualquer reparo</li>
+                        <li>✔ Atendimento rápido e transparente</li>
                     {% endif %}
                 </ul>
             </div>
@@ -1868,16 +1882,12 @@
     <section class="stats-section">
         <div class="stats-container">
             <div class="stat-item">
-                <div class="stat-number">6<span>+</span></div>
-                <div class="stat-label">Anos de experiência</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">5<span>mil+</span></div>
+                <div class="stat-number"><span>+</span>500</div>
                 <div class="stat-label">Aparelhos reparados</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number">4.9<span>/5</span></div>
-                <div class="stat-label">Nota no Google</div>
+                <div class="stat-number">4.9</div>
+                <div class="stat-label">Avaliação média</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">2</div>
