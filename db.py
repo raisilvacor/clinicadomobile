@@ -2162,6 +2162,119 @@ def delete_product(product_id):
         config['products'] = [p for p in products if p.get('id') != product_id]
         _save_config_file(config)
 
+# ========== FUNÇÕES DE MARCAS ==========
+
+def get_all_brands():
+    """Obtém todas as marcas"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('brands', [])
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('brands', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM brands ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            return [row['data'] for row in rows]
+    except Exception as e:
+        print(f"⚠️  Erro ao ler do banco, usando config.json: {e}")
+        config = _load_config_file()
+        return config.get('brands', [])
+
+def save_brand(brand_id, brand_data):
+    """Salva ou atualiza uma marca"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'brands' not in config:
+            config['brands'] = []
+        brands = config.get('brands', [])
+        # Atualizar ou adicionar
+        found = False
+        for i, b in enumerate(brands):
+            if b.get('id') == brand_id:
+                brands[i] = brand_data
+                found = True
+                break
+        if not found:
+            brands.append(brand_data)
+        config['brands'] = brands
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                if 'brands' not in config:
+                    config['brands'] = []
+                brands = config.get('brands', [])
+                # Atualizar ou adicionar
+                found = False
+                for i, b in enumerate(brands):
+                    if b.get('id') == brand_id:
+                        brands[i] = brand_data
+                        found = True
+                        break
+                if not found:
+                    brands.append(brand_data)
+                config['brands'] = brands
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(brand_data)
+            cur.execute("""
+                INSERT INTO brands (id, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (brand_id, data_json, data_json))
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar no banco, usando config.json: {e}")
+        config = _load_config_file()
+        if 'brands' not in config:
+            config['brands'] = []
+        brands = config.get('brands', [])
+        # Atualizar ou adicionar
+        found = False
+        for i, b in enumerate(brands):
+            if b.get('id') == brand_id:
+                brands[i] = brand_data
+                found = True
+                break
+        if not found:
+            brands.append(brand_data)
+        config['brands'] = brands
+        _save_config_file(config)
+
+def delete_brand(brand_id):
+    """Deleta uma marca"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        brands = config.get('brands', [])
+        config['brands'] = [b for b in brands if b.get('id') != brand_id]
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                brands = config.get('brands', [])
+                config['brands'] = [b for b in brands if b.get('id') != brand_id]
+                _save_config_file(config)
+                return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM brands WHERE id = %s", (brand_id,))
+    except Exception as e:
+        print(f"⚠️  Erro ao deletar do banco, usando config.json: {e}")
+        config = _load_config_file()
+        brands = config.get('brands', [])
+        config['brands'] = [b for b in brands if b.get('id') != brand_id]
+        _save_config_file(config)
+
 # ========== FUNÇÕES DE USUÁRIOS ADMIN ==========
 
 def get_admin_user(user_id):
@@ -2488,7 +2601,10 @@ def transform_budget_config_to_raw(config):
         for brand_data in config:
             brand_name = brand_data.get('brand')
             if brand_name:
-                raw[brand_name] = [m.get('name') for m in brand_data.get('models', [])]
+                raw[brand_name] = {
+                    'models': [m.get('name') for m in brand_data.get('models', [])],
+                    'logo': brand_data.get('logo', '')
+                }
         return raw
 
     # Se for um dicionário (formato antigo/legado)

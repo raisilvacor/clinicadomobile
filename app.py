@@ -96,7 +96,8 @@ def login_required(f):
 def index():
     site_content = get_site_content()
     is_open = db_is_business_open()
-    config = get_budget_config()
+    from db import get_all_brands
+    brands = get_all_brands()
     os_query = (request.args.get('os', '') or '').strip()
     os_lookup = None
     os_lookup_error = None
@@ -135,7 +136,7 @@ def index():
         'index.html',
         content=site_content,
         is_open=is_open,
-        config=config,
+        brands=brands,
         os_query=os_query,
         os_lookup=os_lookup,
         os_lookup_error=os_lookup_error,
@@ -146,12 +147,13 @@ def index():
 def _render_site_page(page, page_title):
     site_content = get_site_content()
     is_open = db_is_business_open()
-    config = get_budget_config()
+    from db import get_all_brands
+    brands = get_all_brands()
     return render_template(
         'index.html',
         content=site_content,
         is_open=is_open,
-        config=config,
+        brands=brands,
         os_query='',
         os_lookup=None,
         os_lookup_error=None,
@@ -498,7 +500,7 @@ def admin_budget_config():
                                 img.save(output, format='PNG', optimize=True)
                                 brand_logo_base64 = f"data:image/png;base64,{base64.b64encode(output.getvalue()).decode('utf-8')}"
                             except Exception as e:
-                                print(f"Erro ao processar logo da marca: {e}")
+                                print(f"Erro ao processar logo da marca no orçamento: {e}")
 
                     config.append({
                         'brand': brand_name, 
@@ -1129,7 +1131,7 @@ def admin_delete_product(product_id):
             return jsonify({'success': False, 'error': str(e)}), 500
     return jsonify({'success': False, 'error': 'Método não permitido'}), 405
 
-@app.route('/admin/products/<product_id>/sold', methods=['POST'])
+@app.route('/admin/mark-product-sold/<product_id>', methods=['POST'])
 @login_required
 def admin_mark_product_sold(product_id):
     """Marcar produto como vendido"""
@@ -1144,6 +1146,108 @@ def admin_mark_product_sold(product_id):
             return jsonify({'success': True})
         return jsonify({'success': False, 'error': 'Produto não encontrado'}), 404
     return jsonify({'success': False, 'error': 'Método não permitido'}), 405
+
+# ========== ROTAS DE BRANDS ==========
+
+@app.route('/admin/brands')
+@login_required
+def admin_brands():
+    """Listar todas as marcas"""
+    from db import get_all_brands
+    brands = get_all_brands()
+    return render_template('admin/brands.html', brands=brands)
+
+@app.route('/admin/brands/new', methods=['GET', 'POST'])
+@login_required
+def admin_new_brand():
+    """Criar nova marca"""
+    if request.method == 'POST':
+        from datetime import datetime
+        import uuid
+        import base64
+        from PIL import Image
+        from io import BytesIO
+        from db import save_brand
+        
+        brand_id = str(uuid.uuid4())[:8]
+        brand_data = {
+            'id': brand_id,
+            'name': request.form.get('name', ''),
+            'image': '',
+            '_image_data': None,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Salvar imagem como base64 com otimização
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                try:
+                    # Abrir e otimizar imagem
+                    img = Image.open(file)
+                    
+                    # Preservar transparência se presente
+                    if img.mode in ('RGBA', 'LA', 'P'):
+                        if img.mode != 'RGBA':
+                            img = img.convert('RGBA')
+                    
+                    # Redimensionar se muito grande (max 400px de largura ou altura)
+                    max_size = 400
+                    if img.width > max_size or img.height > max_size:
+                        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+                    
+                    # Salvar como PNG para preservar transparência total
+                    output = BytesIO()
+                    img.save(output, format='PNG', optimize=True)
+                    output.seek(0)
+                    
+                    # Converter para base64
+                    file_data = output.getvalue()
+                    brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
+                    brand_data['image'] = f"/static/brand_images/{brand_id}.png"
+                except Exception as e:
+                    print(f"Erro ao processar imagem: {e}")
+        
+        save_brand(brand_id, brand_data)
+        return redirect(url_for('admin_brands'))
+    
+    return render_template('admin/new_brand.html')
+
+@app.route('/admin/brands/<brand_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_brand(brand_id):
+    """Deletar marca"""
+    from db import delete_brand as db_delete_brand
+    try:
+        db_delete_brand(brand_id)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/static/brand_images/<path:filename>')
+def serve_brand_image(filename):
+    """Serve imagens de marcas do banco de dados"""
+    import base64
+    from flask import Response
+    from db import get_all_brands
+    
+    brands = get_all_brands()
+    for brand in brands:
+        image_path = brand.get('image', '')
+        if isinstance(image_path, str) and filename in image_path:
+            image_data = brand.get('_image_data')
+            if image_data:
+                try:
+                    img_data = base64.b64decode(image_data)
+                    mimetype = 'image/png'
+                    if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                        mimetype = 'image/jpeg'
+                    return Response(img_data, mimetype=mimetype)
+                except Exception as e:
+                    print(f"Erro ao decodificar imagem {filename}: {e}")
+    
+    return "Imagem não encontrada", 404
 
 # ========== ROTAS PÚBLICAS DA LOJA ==========
 
