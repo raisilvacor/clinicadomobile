@@ -434,6 +434,9 @@
             justify-content: center;
             padding: 1rem;
             transition: transform 0.3s ease;
+            background: transparent;
+            border: none;
+            box-shadow: none;
         }
 
         .brand-item:hover {
@@ -444,7 +447,8 @@
             max-width: 100%;
             max-height: 100px;
             object-fit: contain;
-            filter: brightness(0) invert(1); /* Garante que logos fiquem brancas */
+            /* Se as logos já são brancas em PNG transparente, não precisamos de filtro */
+            /* filter: brightness(0) invert(1); */
         }
 
         .brand-fallback {
