@@ -1153,24 +1153,19 @@ def admin_new_brand():
                     # Abrir e otimizar imagem
                     img = Image.open(file)
                     
-                    # Converter para RGB se necessário (remove transparência para JPEG)
+                    # Preservar transparência se presente
                     if img.mode in ('RGBA', 'LA', 'P'):
-                        background = Image.new('RGB', img.size, (255, 255, 255))
-                        if img.mode == 'P':
+                        if img.mode != 'RGBA':
                             img = img.convert('RGBA')
-                        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-                        img = background
-                    elif img.mode != 'RGB':
-                        img = img.convert('RGB')
                     
                     # Redimensionar se muito grande (max 400px de largura ou altura)
                     max_size = 400
                     if img.width > max_size or img.height > max_size:
                         img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
                     
-                    # Comprimir e salvar como JPEG (menor que PNG)
+                    # Salvar como WebP para preservar transparência com compressão
                     output = BytesIO()
-                    img.save(output, format='JPEG', quality=85, optimize=True)
+                    img.save(output, format='WEBP', quality=85, method=6)
                     output.seek(0)
                     
                     # Converter para base64

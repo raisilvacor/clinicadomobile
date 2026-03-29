@@ -22,10 +22,12 @@
     }
 
     .brand-image-container img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        /* filter: brightness(0) invert(1); Removido para mostrar a logo real */
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        background: transparent !important; /* Force transparent background */
+        border: none !important;
+        box-shadow: none !important;
     }
 
     .brand-name {
