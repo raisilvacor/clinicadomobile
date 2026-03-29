@@ -96,6 +96,7 @@ def login_required(f):
 def index():
     site_content = get_site_content()
     is_open = db_is_business_open()
+    config = get_budget_config()
     os_query = (request.args.get('os', '') or '').strip()
     os_lookup = None
     os_lookup_error = None
@@ -134,6 +135,7 @@ def index():
         'index.html',
         content=site_content,
         is_open=is_open,
+        config=config,
         os_query=os_query,
         os_lookup=os_lookup,
         os_lookup_error=os_lookup_error,
@@ -144,10 +146,12 @@ def index():
 def _render_site_page(page, page_title):
     site_content = get_site_content()
     is_open = db_is_business_open()
+    config = get_budget_config()
     return render_template(
         'index.html',
         content=site_content,
         is_open=is_open,
+        config=config,
         os_query='',
         os_lookup=None,
         os_lookup_error=None,
@@ -472,7 +476,35 @@ def admin_budget_config():
             if brand_name:
                 # Check if brand exists
                 if not any(b['brand'] == brand_name for b in config):
-                    config.append({'brand': brand_name, 'models': []})
+                    import base64
+                    from PIL import Image
+                    from io import BytesIO
+                    
+                    brand_logo_base64 = ""
+                    if 'brand_logo' in request.files:
+                        file = request.files['brand_logo']
+                        if file and file.filename:
+                            try:
+                                img = Image.open(file)
+                                if img.mode != 'RGBA':
+                                    img = img.convert('RGBA')
+                                
+                                # Redimensionar se necessário
+                                max_size = 300
+                                if img.width > max_size or img.height > max_size:
+                                    img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+                                
+                                output = BytesIO()
+                                img.save(output, format='PNG', optimize=True)
+                                brand_logo_base64 = f"data:image/png;base64,{base64.b64encode(output.getvalue()).decode('utf-8')}"
+                            except Exception as e:
+                                print(f"Erro ao processar logo da marca: {e}")
+
+                    config.append({
+                        'brand': brand_name, 
+                        'logo': brand_logo_base64,
+                        'models': []
+                    })
                     save_budget_config(config)
                     
         elif action == 'delete_brand':
