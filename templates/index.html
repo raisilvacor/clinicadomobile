@@ -2067,37 +2067,42 @@
             <h2 class="brands-title">Marcas que trabalhamos</h2>
             <p class="brands-subtitle">Especialistas em reparos de diversas marcas</p>
             <div class="brands-grid">
+                <!-- Logos estáticas forçadas da pasta carrosel -->
+                <div class="brand-item">
+                    <img src="{{ url_for('static', filename='images/carrosel/logo-apple-white-scaled.png') }}" alt="Apple" class="brand-img">
+                </div>
+                <div class="brand-item">
+                    <img src="{{ url_for('static', filename='images/carrosel/motorola.png') }}" alt="Motorola" class="brand-img">
+                </div>
+                <div class="brand-item">
+                    <img src="{{ url_for('static', filename='images/carrosel/samsumg.png') }}" alt="Samsung" class="brand-img">
+                </div>
+                <div class="brand-item">
+                    <img src="{{ url_for('static', filename='images/carrosel/asus.png') }}" alt="Asus" class="brand-img">
+                </div>
+                <div class="brand-item">
+                    <img src="{{ url_for('static', filename='images/carrosel/lg.png') }}" alt="LG" class="brand-img">
+                </div>
+                <div class="brand-item">
+                    <img src="{{ url_for('static', filename='images/carrosel/realme.png') }}" alt="Realme" class="brand-img">
+                </div>
+                <div class="brand-item">
+                    <img src="{{ url_for('static', filename='images/carrosel/infinix.png') }}" alt="Infinix" class="brand-img">
+                </div>
+                <div class="brand-item">
+                    <img src="{{ url_for('static', filename='images/carrosel/xiamo.png') }}" alt="Xiaomi" class="brand-img">
+                </div>
+
+                {# Marcas dinâmicas do admin aparecem APÓS as principais, se existirem #}
                 {% if brands %}
                     {% for brand in brands %}
-                    <div class="brand-item">
-                        <img src="{{ brand.image }}" alt="{{ brand.name }}" class="brand-img">
-                    </div>
+                        {# Evitar duplicar as que já estão fixas acima #}
+                        {% if brand.name.lower() not in ['apple', 'samsung', 'motorola', 'asus', 'lg', 'realme', 'infinix', 'xiaomi'] %}
+                        <div class="brand-item">
+                            <img src="{{ brand.image }}" alt="{{ brand.name }}" class="brand-img">
+                        </div>
+                        {% endif %}
                     {% endfor %}
-                {% else %}
-                    <div class="brand-item">
-                        <img src="{{ url_for('static', filename='images/carrosel/logo-apple-white-scaled.png') }}" alt="Apple" class="brand-img">
-                    </div>
-                    <div class="brand-item">
-                        <img src="{{ url_for('static', filename='images/carrosel/motorola.png') }}" alt="Motorola" class="brand-img">
-                    </div>
-                    <div class="brand-item">
-                        <img src="{{ url_for('static', filename='images/carrosel/samsumg.png') }}" alt="Samsung" class="brand-img">
-                    </div>
-                    <div class="brand-item">
-                        <img src="{{ url_for('static', filename='images/carrosel/asus.png') }}" alt="Asus" class="brand-img">
-                    </div>
-                    <div class="brand-item">
-                        <img src="{{ url_for('static', filename='images/carrosel/lg.png') }}" alt="LG" class="brand-img">
-                    </div>
-                    <div class="brand-item">
-                        <img src="{{ url_for('static', filename='images/carrosel/realme.png') }}" alt="Realme" class="brand-img">
-                    </div>
-                    <div class="brand-item">
-                        <img src="{{ url_for('static', filename='images/carrosel/infinix.png') }}" alt="Infinix" class="brand-img">
-                    </div>
-                    <div class="brand-item">
-                        <img src="{{ url_for('static', filename='images/carrosel/xiamo.png') }}" alt="Xiaomi" class="brand-img">
-                    </div>
                 {% endif %}
             </div>
         </div>
