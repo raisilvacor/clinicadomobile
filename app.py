@@ -199,10 +199,10 @@ def orcamento_index():
         # Injetar script
         # Colocar antes do primeiro script ou no head
         # Obter apenas as logos para injeção no front-através de script
-    budget_config = get_budget_config()
-    brand_logos = {b['brand']: b['logo'] for b in budget_config if b.get('logo')}
-    
-    injection = f'<script>window.BUDGET_DATA = {json.dumps(raw_config)}; window.BRAND_LOGOS = {json.dumps(brand_logos)};</script>'
+        budget_config = get_budget_config()
+        brand_logos = {b['brand']: b['logo'] for b in budget_config if b.get('logo')}
+        
+        injection = f'<script>window.BUDGET_DATA = {json.dumps(raw_config)}; window.BRAND_LOGOS = {json.dumps(brand_logos)};</script>'
         if '<head>' in content:
             content = content.replace('<head>', f'<head>{injection}')
         else:
