@@ -419,62 +419,54 @@
             font-size: 1.1rem;
         }
 
-        .brands-carousel-container {
-            position: relative;
-            overflow: hidden;
+        .brands-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3rem;
+            max-width: 1000px;
+            margin: 0 auto;
             padding: 2rem 0;
         }
 
-        .brands-carousel {
-            display: flex;
-            gap: 2rem;
-            animation: scrollBrands 30s linear infinite;
-            width: fit-content;
-        }
-
-        .brands-carousel-container:hover .brands-carousel {
-            animation-play-state: paused;
-        }
-
         .brand-item {
-            flex: 0 0 auto;
-            width: 200px;
-            height: 150px;
-            background: #ffffff;
-            border-radius: 15px;
-            padding: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 5px 20px rgba(255, 140, 0, 0.2);
-            border: 2px solid #333333;
+            padding: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .brand-item:hover {
+            transform: scale(1.1);
         }
 
         .brand-img {
             max-width: 100%;
-            max-height: 100%;
+            max-height: 100px;
             object-fit: contain;
+            filter: brightness(0) invert(1); /* Garante que logos fiquem brancas */
         }
 
         .brand-fallback {
-            color: #000;
+            color: #fff;
             font-weight: bold;
             text-align: center;
         }
 
-        @keyframes scrollBrands {
-            0% {
-                transform: translateX(0);
+        @media (max-width: 768px) {
+            .brands-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
             }
-            100% {
-                transform: translateX(calc(-50% - 1rem));
+            .brand-img {
+                max-height: 80px;
             }
         }
 
-        @media (max-width: 768px) {
-            .brand-item {
-                width: 150px;
-                height: 120px;
+        @media (max-width: 480px) {
+            .brands-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
             }
         }
 
@@ -2060,20 +2052,12 @@
             <h2 class="section-title brands-title">Principais Marcas</h2>
             <p class="brands-subtitle">Trabalhamos com as principais marcas do mercado</p>
             
-            <div class="brands-carousel-container">
-                <div class="brands-carousel">
-                    {% for brand in brands %}
-                    <div class="brand-item">
-                        <img src="{{ brand.image }}" alt="{{ brand.name }}" loading="eager" fetchpriority="high" class="brand-img" data-name="{{ brand.name | e }}">
-                    </div>
-                    {% endfor %}
-                    <!-- Duplicar para loop infinito -->
-                    {% for brand in brands %}
-                    <div class="brand-item">
-                        <img src="{{ brand.image }}" alt="{{ brand.name }}" loading="lazy" class="brand-img" data-name="{{ brand.name | e }}">
-                    </div>
-                    {% endfor %}
+            <div class="brands-grid">
+                {% for brand in brands %}
+                <div class="brand-item">
+                    <img src="{{ brand.image }}" alt="{{ brand.name }}" loading="eager" fetchpriority="high" class="brand-img" data-name="{{ brand.name | e }}">
                 </div>
+                {% endfor %}
             </div>
         </div>
     </section>
