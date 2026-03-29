@@ -858,9 +858,7 @@
                 <li><a href="{{ url_for('admin_devices') }}" class="{% if request.endpoint == 'admin_devices' %}active{% endif %}">Dispositivos</a></li>
                 <li><a href="{{ url_for('admin_laboratory') }}" class="{% if request.endpoint == 'admin_laboratory' %}active{% endif %}">Laboratório</a></li>
                 <li><a href="{{ url_for('admin_contact') }}" class="{% if request.endpoint == 'admin_contact' %}active{% endif %}">Contato</a></li>
-                <li><a href="{{ url_for('admin_customers') }}" class="{% if request.endpoint in ['admin_customers', 'admin_new_customer', 'admin_edit_customer', 'admin_view_customer'] %}active{% endif %}">Clientes</a></li>
                 <li><a href="{{ url_for('admin_financeiro') }}" class="{% if request.endpoint in ['admin_financeiro', 'admin_new_transaction', 'admin_edit_transaction'] %}active{% endif %}">Financeiro</a></li>
-                <li><a href="{{ url_for('admin_os') }}" class="{% if request.endpoint in ['admin_os', 'admin_new_os', 'admin_view_os', 'admin_edit_os'] %}active{% endif %}">Ordem de Serviço</a></li>
                 <li><a href="{{ url_for('admin_password') }}">Senha</a></li>
                 <li><a href="{{ url_for('admin_logout') }}">Sair</a></li>
             </ul>
