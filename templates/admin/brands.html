@@ -73,9 +73,9 @@
         <div class="item-card brand-card">
             <div class="brand-image-container">
                 {% if brand.image %}
-                <img src="{{ brand.image }}" alt="{{ brand.name }}" onerror="this.parentElement.innerHTML='<div style=\'color: #000; font-weight: bold;\'>{{ brand.name }}</div>'">
+                <img src="{{ brand.image }}" alt="{{ brand.name }}" onerror="this.parentElement.innerHTML='<div style=\'color: #fff; font-weight: bold;\'>{{ brand.name }}</div>'">
                 {% else %}
-                <div style="color: #000; font-weight: bold;">{{ brand.name }}</div>
+                <div style="color: #fff; font-weight: bold;">{{ brand.name }}</div>
                 {% endif %}
             </div>
             <div class="brand-name">{{ brand.name or 'Sem nome' }}</div>
