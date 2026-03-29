@@ -456,7 +456,13 @@ def admin_password():
 @login_required
 def admin_budget_config():
     """Gerenciar configuração de orçamentos (Marcas, Modelos, Preços)"""
-    config = get_budget_config()
+    try:
+        config = get_budget_config()
+        if not isinstance(config, list):
+            config = []
+    except Exception as e:
+        print(f"Erro ao carregar budget_config: {e}")
+        config = []
     
     if request.method == 'POST':
         action = request.form.get('action')

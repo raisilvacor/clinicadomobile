@@ -2410,39 +2410,61 @@ def delete_budget_request(request_id):
 
 def get_budget_config():
     """Obtém a configuração do formulário de orçamento"""
+    BUDGET_CONFIG_FILE = 'budget_config.json'
+    
+    def load_from_json():
+        if os.path.exists(BUDGET_CONFIG_FILE):
+            try:
+                with open(BUDGET_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return []
+        return []
+
     if not USE_DATABASE:
-        config = _load_config_file()
-        return config.get('budget_config', {})
+        return load_from_json()
     
     try:
         with get_db_connection() as conn:
             if not conn:
-                config = _load_config_file()
-                return config.get('budget_config', {})
+                return load_from_json()
             cur = _get_cursor(conn, dict_cursor=True)
             cur.execute("SELECT value FROM admin_settings WHERE key = 'budget_config'")
             row = cur.fetchone()
             if row:
-                return json.loads(row['value'])
-            return {}
+                config = json.loads(row['value'])
+                # Garantir que retorna uma lista
+                if isinstance(config, dict) and 'brands' in config:
+                    return config['brands']
+                return config if isinstance(config, list) else []
+            
+            # Se não encontrar no banco, tentar carregar do JSON
+            config = load_from_json()
+            if config:
+                # Salvar no banco para futuras consultas
+                save_budget_config(config)
+            return config
     except Exception as e:
         print(f"⚠️  Erro ao ler configuração de orçamento: {e}")
-        return {}
+        return load_from_json()
 
 def save_budget_config(config_data):
     """Salva a configuração do formulário de orçamento"""
+    BUDGET_CONFIG_FILE = 'budget_config.json'
+    
+    # Salvar sempre no JSON como backup
+    try:
+        with open(BUDGET_CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config_data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar backup de orçamento em JSON: {e}")
+
     if not USE_DATABASE:
-        config = _load_config_file()
-        config['budget_config'] = config_data
-        _save_config_file(config)
         return
     
     try:
         with get_db_connection() as conn:
             if not conn:
-                config = _load_config_file()
-                config['budget_config'] = config_data
-                _save_config_file(config)
                 return
             cur = _get_cursor(conn)
             config_json = json.dumps(config_data)
@@ -2453,7 +2475,7 @@ def save_budget_config(config_data):
                 DO UPDATE SET value = %s, updated_at = CURRENT_TIMESTAMP
             """, (config_json, config_json))
     except Exception as e:
-        print(f"⚠️  Erro ao salvar configuração de orçamento: {e}")
+        print(f"⚠️  Erro ao salvar configuração de orçamento no banco: {e}")
 
 def transform_budget_config_to_raw(config):
     """Transforma a configuração estruturada em um formato simples para o orçamentador"""
@@ -2461,15 +2483,22 @@ def transform_budget_config_to_raw(config):
     if not config:
         return raw
         
-    # Extrair marcas e modelos
-    brands_data = config.get('brands', [])
-    for brand in brands_data:
-        brand_name = brand.get('name')
-        if brand_name:
-            raw[brand_name] = [m.get('name') for m in brand.get('models', [])]
-            
-    # Extrair defeitos
-    raw['defeitos'] = [d.get('name') for d in config.get('defects', [])]
+    # Se for uma lista (formato do admin_budget_config)
+    if isinstance(config, list):
+        for brand_data in config:
+            brand_name = brand_data.get('brand')
+            if brand_name:
+                raw[brand_name] = [m.get('name') for m in brand_data.get('models', [])]
+        return raw
+
+    # Se for um dicionário (formato antigo/legado)
+    if isinstance(config, dict):
+        brands_data = config.get('brands', [])
+        for brand in brands_data:
+            brand_name = brand.get('name')
+            if brand_name:
+                raw[brand_name] = [m.get('name') for m in brand.get('models', [])]
+        raw['defeitos'] = [d.get('name') for d in config.get('defects', [])]
     
     return raw
 
