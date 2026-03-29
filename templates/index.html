@@ -1628,13 +1628,13 @@
         {% endif %}
         <div class="hero-overlay">
             <div class="hero-content">
-                <h1 itemprop="name">{{ content.hero.title if content and content.hero and content.hero.title else 'Assistência Técnica Profissional' }}</h1>
+                <h1 itemprop="name">{{ content.hero.title if content and content.hero and content.hero.title else 'Especialistas em iPhone e Android' }}</h1>
                 {% set hero_subtitle = (content.hero.subtitle if content and content.hero and content.hero.subtitle else '') | trim %}
-                {% if hero_subtitle == 'Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.' %}
-                    {% set hero_subtitle = 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP' %}
+                {% if hero_subtitle == 'Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.' or hero_subtitle == 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP' or hero_subtitle == 'TELA QUEBRADA?\nCONSERTAMOS EM 1 hora com garantia de 90 dias' %}
+                    {% set hero_subtitle = 'Tela quebrada?\nconsertamos em 1 hora com garantia de 90 dias' %}
                 {% endif %}
                 {% set hero_subtitle = (hero_subtitle | replace('<br/>','\n') | replace('<br>','\n') | replace('<BR>','\n') | replace('<BR/>','\n')) %}
-                <p class="hero-subtitle">{{ (hero_subtitle if hero_subtitle else 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP') | e }}</p>
+                <p class="hero-subtitle">{{ (hero_subtitle if hero_subtitle else 'Tela quebrada?\nconsertamos em 1 hora com garantia de 90 dias') | e }}</p>
                 <a href="/orcamento" class="cta-button">Solicitar Orçamento</a>
                 {% if content and content.contact and content.contact.whatsapp %}
                 <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-hero-button" rel="noopener noreferrer">Chame no WhatsApp</a>
@@ -1644,14 +1644,14 @@
     </section>
 
     <section id="consulta-os" class="os-tracking">
-        <h2 class="section-title">Acompanhamento Profissional</h2>
+        <h2 class="section-title">Controle total do seu reparo</h2>
         <div class="os-tracking-card">
             <div class="qr-info-content">
                 <div class="qr-icon-wrapper">
                     <i class="fas fa-qrcode"></i>
                 </div>
                 <p class="qr-text">
-                    Receba sua Ordem de Serviço (OS) com um QR Code exclusivo e acompanhe, em tempo real, cada etapa do seu reparo direto no seu celular.
+                    Com o QR Code da sua Ordem de Serviço (OS), você acompanha em tempo real o andamento do seu aparelho, com atualizações claras em cada etapa do serviço.
                 </p>
             </div>
         </div>
