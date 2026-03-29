@@ -1798,10 +1798,9 @@
     <!-- Sobre -->
     {% if not page or page == 'sobre' %}
     <section id="sobre" class="about">
-        <h2 class="section-title">{{ content.about.title if content and content.about and content.about.title else 'Por que escolher a Clínica Cell?' }}</h2>
+        <h2 class="section-title">{{ content.about.title if content and content.about and content.about.title else 'Por que confiar na Clínica Cell?' }}</h2>
         <div class="about-content">
             <div class="about-text">
-                <h2>{{ content.about.heading if content and content.about and content.about.heading else 'Atendimento transparente, qualidade nos reparos e compromisso com cada cliente.' }}</h2>
                 <ul class="features-list">
                     {% if content and content.about and content.about.features %}
                         {% for feature in content.about.features %}
@@ -1812,6 +1811,7 @@
                         <li>✔ Peças de qualidade e serviço com garantia</li>
                         <li>✔ Diagnóstico claro antes de qualquer reparo</li>
                         <li>✔ Atendimento rápido e transparente</li>
+                        <li>✔ Acompanhamento do serviço pela OS</li>
                     {% endif %}
                 </ul>
             </div>
