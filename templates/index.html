@@ -2096,8 +2096,9 @@
                 {# Marcas dinâmicas do admin aparecem APÓS as principais, se existirem #}
                 {% if brands %}
                     {% for brand in brands %}
-                        {# Evitar duplicar as que já estão fixas acima #}
-                        {% if brand.name.lower() not in ['apple', 'samsung', 'motorola', 'asus', 'lg', 'realme', 'infinix', 'xiaomi'] %}
+                        {# Evitar duplicar as que já estão fixas acima (usando verificação robusta) #}
+                        {% set brand_lower = brand.name.lower().strip() %}
+                        {% if brand_lower not in ['apple', 'samsung', 'motorola', 'asus', 'lg', 'realme', 'realm', 'infinix', 'xiaomi'] %}
                         <div class="brand-item">
                             <img src="{{ brand.image }}" alt="{{ brand.name }}" class="brand-img">
                         </div>
