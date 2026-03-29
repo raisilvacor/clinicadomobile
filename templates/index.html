@@ -569,7 +569,40 @@
             margin: 0 !important;
         }
 
+        .os-status-bar {
+            background: #ff8c00;
+            color: #000000;
+            padding: 0.75rem 2rem;
+            border-radius: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            font-weight: 800;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 1.5rem;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .os-status-bar span {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
         @media (max-width: 768px) {
+            .os-status-bar {
+                font-size: 0.85rem;
+                gap: 0.8rem;
+                padding: 0.6rem 1.2rem;
+            }
+            .os-status-bar span {
+                gap: 0.8rem;
+            }
             .qr-text {
                 font-size: 1.1rem;
             }
@@ -1653,6 +1686,13 @@
                 <p class="qr-text">
                     Com o QR Code da sua Ordem de Serviço (OS), você acompanha em tempo real o andamento do seu aparelho, com atualizações claras em cada etapa do serviço.
                 </p>
+                <div class="os-status-bar">
+                    <span>EM ANÁLISE</span>
+                    <i class="fas fa-chevron-right"></i>
+                    <span>EM MANUTENÇÃO</span>
+                    <i class="fas fa-chevron-right"></i>
+                    <span>FINALIZADO</span>
+                </div>
             </div>
         </div>
     </section>
