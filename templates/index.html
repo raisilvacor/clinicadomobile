@@ -432,26 +432,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1rem;
+            padding: 1.5rem;
             transition: transform 0.3s ease;
             background: transparent !important;
-            border: none;
-            box-shadow: none;
+            border: none !important;
+            box-shadow: none !important;
         }
 
         .brand-item:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
         .brand-img {
             max-width: 100% !important;
-            max-height: 100px !important;
+            max-height: 80px !important;
             object-fit: contain !important;
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
-            /* Se as logos já são brancas em PNG transparente, não precisamos de filtro */
-            /* filter: brightness(0) invert(1); */
+            display: block;
+            margin: 0 auto;
         }
 
         .brand-fallback {

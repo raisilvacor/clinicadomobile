@@ -1163,15 +1163,15 @@ def admin_new_brand():
                     if img.width > max_size or img.height > max_size:
                         img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
                     
-                    # Salvar como WebP para preservar transparência com compressão
+                    # Salvar como PNG para preservar transparência total (melhor para logos)
                     output = BytesIO()
-                    img.save(output, format='WEBP', quality=85, method=6)
+                    img.save(output, format='PNG', optimize=True)
                     output.seek(0)
                     
                     # Converter para base64
                     file_data = output.getvalue()
                     brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
-                    brand_data['image'] = f"/static/brand_images/{brand_id}.jpg"
+                    brand_data['image'] = f"/static/brand_images/{brand_id}.png"
                 except Exception as e:
                     print(f"Erro ao processar imagem: {e}")
                     # Fallback: salvar sem otimização
@@ -1215,8 +1215,13 @@ def serve_brand_image(filename):
             if image_data:
                 try:
                     img_data = base64.b64decode(image_data)
-                    mimetype = 'image/jpeg'  # Sempre JPEG após otimização
-                    if filename.lower().endswith('.png'):
+                    # Detectar tipo MIME corretamente baseado na extensão salva
+                    mimetype = 'image/png'
+                    if filename.lower().endswith('.webp'):
+                        mimetype = 'image/webp'
+                    elif filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+                        mimetype = 'image/jpeg'
+                    elif filename.lower().endswith('.png'):
                         mimetype = 'image/png'
                     
                     # Headers de cache para performance
