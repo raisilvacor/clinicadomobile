@@ -38,13 +38,6 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
     
-    <!-- Preload imagens de marcas para carregamento mais rápido -->
-    {% if brands %}
-    {% for brand in brands[:6] %}
-    <link rel="preload" as="image" href="{{ brand.image }}" fetchpriority="high">
-    {% endfor %}
-    {% endif %}
-    
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
@@ -393,88 +386,6 @@
 
         .is-hidden {
             display: none !important;
-        }
-
-        .brands-section {
-            padding: 4rem 2rem;
-            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
-        }
-
-        .brands-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .brands-title {
-            text-align: center;
-            font-size: 2.5rem;
-            color: #ff8c00;
-            margin-bottom: 1rem;
-        }
-
-        .brands-subtitle {
-            text-align: center;
-            color: #ffffff;
-            margin-bottom: 3rem;
-            font-size: 1.1rem;
-        }
-
-        .brands-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 3rem;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 2rem 0;
-        }
-
-        .brand-item {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            transition: transform 0.3s ease;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
-
-        .brand-item:hover {
-            transform: scale(1.05);
-        }
-
-        .brand-img {
-            max-width: 100% !important;
-            max-height: 80px !important;
-            object-fit: contain !important;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            display: block;
-            margin: 0 auto;
-        }
-
-        .brand-fallback {
-            color: #fff;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            .brands-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 2rem;
-            }
-            .brand-img {
-                max-height: 80px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .brands-grid {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-            }
         }
 
         .contact-email-button {
@@ -2047,24 +1958,6 @@
                 <p>{{ content.contact.hours_weekdays if content and content.contact and content.contact.hours_weekdays else 'Segunda a Sexta: 9h - 18h' }}</p>
                 <p>{{ content.contact.hours_saturday if content and content.contact and content.contact.hours_saturday else 'Sábado: 9h - 18h' }}</p>
                 <p>{{ content.contact.hours_sunday if content and content.contact and content.contact.hours_sunday else 'Domingo: somente agendado' }}</p>
-            </div>
-        </div>
-    </section>
-    {% endif %}
-
-    <!-- Marcas -->
-    {% if not page and brands %}
-    <section id="marcas" class="brands-section">
-        <div class="brands-container">
-            <h2 class="section-title brands-title">Principais Marcas</h2>
-            <p class="brands-subtitle">Trabalhamos com as principais marcas do mercado</p>
-            
-            <div class="brands-grid">
-                {% for brand in brands %}
-                <div class="brand-item">
-                    <img src="{{ brand.image }}" alt="{{ brand.name }}" loading="eager" fetchpriority="high" class="brand-img" data-name="{{ brand.name | e }}">
-                </div>
-                {% endfor %}
             </div>
         </div>
     </section>

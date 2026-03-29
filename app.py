@@ -27,10 +27,6 @@ from db import (
     get_product as db_get_product,
     save_product,
     delete_product as db_delete_product,
-    get_all_brands,
-    get_brand as db_get_brand,
-    save_brand,
-    delete_brand as db_delete_brand,
     get_all_budget_requests,
     save_budget_request,
     update_budget_request_status,
@@ -99,7 +95,6 @@ def login_required(f):
 @app.route('/')
 def index():
     site_content = get_site_content()
-    brands = get_all_brands()
     is_open = db_is_business_open()
     os_query = (request.args.get('os', '') or '').strip()
     os_lookup = None
@@ -138,7 +133,6 @@ def index():
     return render_template(
         'index.html',
         content=site_content,
-        brands=brands,
         is_open=is_open,
         os_query=os_query,
         os_lookup=os_lookup,
@@ -149,12 +143,10 @@ def index():
 
 def _render_site_page(page, page_title):
     site_content = get_site_content()
-    brands = get_all_brands()
     is_open = db_is_business_open()
     return render_template(
         'index.html',
         content=site_content,
-        brands=brands,
         is_open=is_open,
         os_query='',
         os_lookup=None,
@@ -1114,128 +1106,6 @@ def admin_mark_product_sold(product_id):
             return jsonify({'success': True})
         return jsonify({'success': False, 'error': 'Produto não encontrado'}), 404
     return jsonify({'success': False, 'error': 'Método não permitido'}), 405
-
-# ========== ROTAS DE BRANDS ==========
-
-@app.route('/admin/brands')
-@login_required
-def admin_brands():
-    """Listar todas as marcas"""
-    brands = get_all_brands()
-    return render_template('admin/brands.html', brands=brands)
-
-@app.route('/admin/brands/new', methods=['GET', 'POST'])
-@login_required
-def admin_new_brand():
-    """Criar nova marca"""
-    if request.method == 'POST':
-        from datetime import datetime
-        import uuid
-        import base64
-        from PIL import Image
-        from io import BytesIO
-        
-        brand_id = str(uuid.uuid4())[:8]
-        brand_data = {
-            'id': brand_id,
-            'name': request.form.get('name', ''),
-            'image': '',
-            '_image_data': None,
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat()
-        }
-        
-        # Salvar imagem como base64 com otimização
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and file.filename:
-                try:
-                    # Abrir e otimizar imagem
-                    img = Image.open(file)
-                    
-                    # Preservar transparência se presente
-                    if img.mode in ('RGBA', 'LA', 'P'):
-                        if img.mode != 'RGBA':
-                            img = img.convert('RGBA')
-                    
-                    # Redimensionar se muito grande (max 400px de largura ou altura)
-                    max_size = 400
-                    if img.width > max_size or img.height > max_size:
-                        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-                    
-                    # Salvar como PNG para preservar transparência total (melhor para logos)
-                    output = BytesIO()
-                    img.save(output, format='PNG', optimize=True)
-                    output.seek(0)
-                    
-                    # Converter para base64
-                    file_data = output.getvalue()
-                    brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
-                    brand_data['image'] = f"/static/brand_images/{brand_id}.png"
-                except Exception as e:
-                    print(f"Erro ao processar imagem: {e}")
-                    # Fallback: salvar sem otimização
-                    file.seek(0)
-                    file_data = file.read()
-                    brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
-                    brand_data['image'] = f"/static/brand_images/{brand_id}_{file.filename}"
-        
-        save_brand(brand_id, brand_data)
-        return redirect(url_for('admin_brands'))
-    
-    return render_template('admin/new_brand.html')
-
-@app.route('/admin/brands/<brand_id>/delete', methods=['POST'])
-@login_required
-def admin_delete_brand(brand_id):
-    """Deletar marca"""
-    if request.method == 'POST':
-        try:
-            db_delete_brand(brand_id)
-            return jsonify({'success': True})
-        except Exception as e:
-            print(f"Erro ao deletar marca {brand_id}: {e}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({'success': False, 'error': str(e)}), 500
-    return jsonify({'success': False, 'error': 'Método não permitido'}), 405
-
-@app.route('/static/brand_images/<path:filename>')
-def serve_brand_image(filename):
-    """Serve imagens de marcas do banco de dados com cache otimizado"""
-    import base64
-    from flask import Response
-    from datetime import datetime, timedelta
-    
-    brands = get_all_brands()
-    for brand in brands:
-        image_path = brand.get('image', '')
-        if isinstance(image_path, str) and filename in image_path:
-            image_data = brand.get('_image_data')
-            if image_data:
-                try:
-                    img_data = base64.b64decode(image_data)
-                    # Detectar tipo MIME corretamente baseado na extensão salva
-                    mimetype = 'image/png'
-                    if filename.lower().endswith('.webp'):
-                        mimetype = 'image/webp'
-                    elif filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
-                        mimetype = 'image/jpeg'
-                    elif filename.lower().endswith('.png'):
-                        mimetype = 'image/png'
-                    
-                    # Headers de cache para performance
-                    expires = datetime.now() + timedelta(days=365)  # Cache por 1 ano
-                    response = Response(img_data, mimetype=mimetype)
-                    response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
-                    response.headers['Expires'] = expires.strftime('%a, %d %b %Y %H:%M:%S GMT')
-                    response.headers['ETag'] = f'"{brand.get("id", "")}"'
-                    return response
-                except Exception as e:
-                    print(f"Erro ao decodificar imagem de marca {filename}: {e}")
-                    continue
-    
-    return "Imagem de marca não encontrada", 404
 
 # ========== ROTAS PÚBLICAS DA LOJA ==========
 

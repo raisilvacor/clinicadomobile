@@ -108,19 +108,6 @@ window.googleTranslateElementInit = function() {
     });
   });
 
-  document.querySelectorAll('.brand-img').forEach((img) => {
-    img.addEventListener('error', () => {
-      const parent = img.parentElement;
-      if (!parent) return;
-      const name = img.getAttribute('data-name') || img.getAttribute('alt') || '';
-      img.remove();
-      const div = document.createElement('div');
-      div.className = 'brand-fallback';
-      div.textContent = name;
-      parent.appendChild(div);
-    });
-  });
-
   document.querySelectorAll('.lab-image').forEach((img) => {
     img.addEventListener('error', () => {
       const parent = img.parentElement;
