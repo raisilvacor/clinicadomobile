@@ -2601,10 +2601,7 @@ def transform_budget_config_to_raw(config):
         for brand_data in config:
             brand_name = brand_data.get('brand')
             if brand_name:
-                raw[brand_name] = {
-                    'models': [m.get('name') for m in brand_data.get('models', [])],
-                    'logo': brand_data.get('logo', '')
-                }
+                raw[brand_name] = [m.get('name') for m in brand_data.get('models', [])]
         return raw
 
     # Se for um dicionário (formato antigo/legado)

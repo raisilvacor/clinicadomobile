@@ -1,14 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-br">
 	<head>
 		<meta charset="UTF-8" />
 		<link rel="icon" type="image/png" href="/static/images/favicon.png" />
 		<link rel="apple-touch-icon" href="/static/images/logo.png" />
-		<meta name="generator" content="Hostinger Horizons" />
+		<meta name="generator" content="Clínica CELL" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hostinger Horizons</title>
+		<title>Clínica CELL - Orçamento Online</title>
 		<script type="module" crossorigin src="assets/index-new.js?v=3"></script>
 		<link rel="stylesheet" href="assets/index-911a79ae.css">
+		
+		<!-- Script de Injeção de Logos Dinâmicas -->
+		<script>
+			(function() {
+				const observer = new MutationObserver((mutations) => {
+					if (!window.BRAND_LOGOS) return;
+					
+					// Procurar por containers de marca (divs com classes de flex e rounded)
+					const brandItems = document.querySelectorAll('div.flex-col.items-center');
+					brandItems.forEach(item => {
+						const nameSpan = item.querySelector('span.font-semibold');
+						if (!nameSpan) return;
+						
+						const brandName = nameSpan.textContent.trim();
+						const logoData = window.BRAND_LOGOS[brandName];
+						
+						if (logoData) {
+							// O container da logo é o div branco anterior ao span
+							const logoContainer = item.querySelector('.bg-white.rounded-xl');
+							if (logoContainer && logoContainer.getAttribute('data-logo-injected') !== 'true') {
+								logoContainer.innerHTML = `<img src="${logoData}" alt="${brandName} logo" class="w-full h-full object-contain p-2 hover:scale-110 transition-transform duration-500">`;
+								logoContainer.setAttribute('data-logo-injected', 'true');
+							}
+						}
+					});
+				});
+
+				observer.observe(document.body, {
+					childList: true,
+					subtree: true
+				});
+			})();
+		</script>
 		<script type="module">
 window.onerror = (message, source, lineno, colno, errorObj) => {
 	const errorDetails = errorObj ? JSON.stringify({
