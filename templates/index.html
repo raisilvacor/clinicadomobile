@@ -1706,7 +1706,7 @@
                 {% endif %}
                 {% set hero_subtitle = (hero_subtitle | replace('<br/>','\n') | replace('<br>','\n') | replace('<BR>','\n') | replace('<BR/>','\n')) %}
                 <p class="hero-subtitle">{{ (hero_subtitle if hero_subtitle else 'Tela quebrada?\nReparo rápido com garantia e peças de qualidade.') | e }}</p>
-                <a href="/orcamento" class="cta-button">Solicitar Orçamento</a>
+
                 {% if content and content.contact and content.contact.whatsapp %}
                 <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-hero-button" rel="noopener noreferrer">Chame no WhatsApp</a>
                 {% endif %}

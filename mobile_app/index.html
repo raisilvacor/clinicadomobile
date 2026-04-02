@@ -269,7 +269,7 @@
         <div class="button-group">
             <button class="btn" onclick="showLogin()">🔐 Entrar</button>
             <button class="btn btn-secondary" onclick="showFirstAccess()">🆕 Primeiro Acesso</button>
-            <button class="btn btn-secondary" onclick="showBudgetRequest()">💰 Solicitar Orçamento</button>
+
         </div>
     </div>
     
@@ -322,50 +322,7 @@
         </div>
     </div>
     
-    <!-- Tela de Solicitar Orçamento -->
-    <div id="budgetRequestScreen" class="container hidden">
-        <div class="form-container">
-            <a href="#" class="back-btn" onclick="showHome()">← Voltar</a>
-            <h2 style="color: #ff8c00; margin-bottom: 1.5rem;">Solicitar Orçamento</h2>
-            <div id="budgetError" class="error-message hidden"></div>
-            <div id="budgetSuccess" class="success-message hidden"></div>
-            <form id="budgetForm" onsubmit="handleBudgetRequest(event)">
-                <div class="form-group">
-                    <label>Nome Completo *</label>
-                    <input type="text" id="budgetName" required>
-                </div>
-                <div class="form-group">
-                    <label>Telefone *</label>
-                    <input type="tel" id="budgetPhone" required>
-                </div>
-                <div class="form-group">
-                    <label>E-mail *</label>
-                    <input type="email" id="budgetEmail" required>
-                </div>
-                <div class="form-group">
-                    <label>CPF (apenas números) *</label>
-                    <input type="text" id="budgetCpf" maxlength="11" pattern="[0-9]{11}" required placeholder="12345678901">
-                </div>
-                <div class="form-group">
-                    <label>Marca do Dispositivo *</label>
-                    <input type="text" id="budgetBrand" required placeholder="Ex: Samsung, Apple, Xiaomi">
-                </div>
-                <div class="form-group">
-                    <label>Modelo do Dispositivo *</label>
-                    <input type="text" id="budgetModel" required placeholder="Ex: Galaxy S21, iPhone 13">
-                </div>
-                <div class="form-group">
-                    <label>Defeito *</label>
-                    <input type="text" id="budgetDefect" required placeholder="Ex: Tela quebrada, Bateria">
-                </div>
-                <div class="form-group">
-                    <label>Descrição do Problema *</label>
-                    <textarea id="budgetDescription" required placeholder="Descreva o problema em detalhes..."></textarea>
-                </div>
-                <button type="submit" class="btn">Enviar Solicitação</button>
-            </form>
-        </div>
-    </div>
+
     
     <!-- Tela de Reparos (após login) -->
     <div id="repairsScreen" class="container hidden">
@@ -413,11 +370,7 @@
             document.getElementById('createPasswordSection').classList.add('hidden');
         }
         
-        function showBudgetRequest() {
-            showScreen('budgetRequestScreen');
-            document.getElementById('budgetError').classList.add('hidden');
-            document.getElementById('budgetSuccess').classList.add('hidden');
-        }
+
         
         // Verificar CPF no primeiro acesso
         async function checkCpf() {
@@ -1005,61 +958,7 @@
             return labels[status] || status;
         }
         
-        // Solicitar orçamento
-        async function handleBudgetRequest(event) {
-            event.preventDefault();
-            
-            const cpf = document.getElementById('budgetCpf').value.replace(/\D/g, '');
-            if (cpf.length !== 11) {
-                showError('budgetError', 'CPF deve ter 11 dígitos');
-                return;
-            }
-            
-            const requestData = {
-                customer_name: document.getElementById('budgetName').value,
-                customer_phone: document.getElementById('budgetPhone').value,
-                customer_email: document.getElementById('budgetEmail').value,
-                customer_cpf: cpf,
-                device_brand: document.getElementById('budgetBrand').value,
-                device_model: document.getElementById('budgetModel').value,
-                defect: document.getElementById('budgetDefect').value,
-                description: document.getElementById('budgetDescription').value
-            };
-            
-            // Mostrar loading
-            const submitBtn = event.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Enviando...';
-            document.getElementById('budgetError').classList.add('hidden');
-            document.getElementById('budgetSuccess').classList.add('hidden');
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/request-budget`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(requestData)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showSuccess('budgetSuccess', '✅ Solicitação enviada com sucesso! Entraremos em contato em breve.');
-                    document.getElementById('budgetForm').reset();
-                    // Scroll para o topo para ver a mensagem
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    setTimeout(() => showHome(), 4000);
-                } else {
-                    showError('budgetError', data.error || 'Erro ao enviar solicitação');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                }
-            } catch (error) {
-                showError('budgetError', 'Erro ao enviar solicitação. Verifique sua conexão e tente novamente.');
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
-            }
-        }
+
         
         // Logout
         function logout() {
@@ -1185,9 +1084,7 @@
         window.addEventListener('load', () => {
             if (window.location.hash) {
                 const hash = window.location.hash.substring(1); // Remove o #
-                if (hash === 'budgetRequestScreen') {
-                    showBudgetRequest();
-                } else if (hash === 'loginScreen') {
+
                     showLogin();
                 } else if (hash === 'firstAccessScreen') {
                     showFirstAccess();
@@ -1199,9 +1096,7 @@
         window.addEventListener('hashchange', () => {
             if (window.location.hash) {
                 const hash = window.location.hash.substring(1);
-                if (hash === 'budgetRequestScreen') {
-                    showBudgetRequest();
-                } else if (hash === 'loginScreen') {
+
                     showLogin();
                 } else if (hash === 'firstAccessScreen') {
                     showFirstAccess();

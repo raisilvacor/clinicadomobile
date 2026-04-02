@@ -27,13 +27,6 @@ from db import (
     get_product as db_get_product,
     save_product,
     delete_product as db_delete_product,
-    get_all_budget_requests,
-    save_budget_request,
-    update_budget_request_status,
-    delete_budget_request,
-    get_budget_config,
-    save_budget_config,
-    transform_budget_config_to_raw,
     get_all_admin_users,
     get_admin_user,
     save_admin_user,
@@ -180,43 +173,6 @@ def site_laboratorio():
 @app.route('/contato')
 def site_contato():
     return _render_site_page('contato', 'Contato | Clínica do Cell')
-
-@app.route('/orcamento')
-def orcamento_redirect():
-    return redirect('/orcamento/')
-
-@app.route('/orcamento/')
-def orcamento_index():
-    try:
-        # Ler configuração e converter para raw
-        raw_config = transform_budget_config_to_raw(get_budget_config())
-        
-        # Ler arquivo original
-        index_path = os.path.join('orcamento', 'index.html')
-        with open(index_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            
-        # Injetar script
-        # Colocar antes do primeiro script ou no head
-        # Obter apenas as logos para injeção no front-através de script
-        budget_config = get_budget_config()
-        brand_logos = {b['brand']: b['logo'] for b in budget_config if b.get('logo')}
-        
-        injection = f'<script>window.BUDGET_DATA = {json.dumps(raw_config)}; window.BRAND_LOGOS = {json.dumps(brand_logos)};</script>'
-        if '<head>' in content:
-            content = content.replace('<head>', f'<head>{injection}')
-        else:
-            # Fallback
-            content = injection + content
-            
-        return content
-    except Exception as e:
-        print(f"Erro ao servir orcamento/index.html: {e}")
-        return send_from_directory('orcamento', 'index.html')
-
-@app.route('/orcamento/<path:filename>')
-def orcamento_files(filename):
-    return send_from_directory('orcamento', filename)
 
 # ========== ROTAS ADMINISTRATIVAS ==========
 
@@ -461,122 +417,6 @@ def admin_password():
 
 
 # ========== CENTRAL DE STATUS DO REPARO ==========
-
-@app.route('/admin/budget-config', methods=['GET', 'POST'])
-@login_required
-def admin_budget_config():
-    """Gerenciar configuração de orçamentos (Marcas, Modelos, Preços)"""
-    try:
-        config = get_budget_config()
-        if not isinstance(config, list):
-            config = []
-    except Exception as e:
-        print(f"Erro ao carregar budget_config: {e}")
-        config = []
-    
-    if request.method == 'POST':
-        action = request.form.get('action')
-        
-        if action == 'add_brand':
-            brand_name = request.form.get('brand_name')
-            if brand_name:
-                # Check if brand exists
-                if not any(b['brand'] == brand_name for b in config):
-                    import base64
-                    from PIL import Image
-                    from io import BytesIO
-                    
-                    brand_logo_base64 = ""
-                    if 'brand_logo' in request.files:
-                        file = request.files['brand_logo']
-                        if file and file.filename:
-                            try:
-                                img = Image.open(file)
-                                if img.mode != 'RGBA':
-                                    img = img.convert('RGBA')
-                                
-                                # Redimensionar se necessário
-                                max_size = 300
-                                if img.width > max_size or img.height > max_size:
-                                    img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-                                
-                                output = BytesIO()
-                                img.save(output, format='PNG', optimize=True)
-                                brand_logo_base64 = f"data:image/png;base64,{base64.b64encode(output.getvalue()).decode('utf-8')}"
-                            except Exception as e:
-                                print(f"Erro ao processar logo da marca no orçamento: {e}")
-
-                    config.append({
-                        'brand': brand_name, 
-                        'logo': brand_logo_base64,
-                        'models': []
-                    })
-                    save_budget_config(config)
-                    
-        elif action == 'delete_brand':
-            brand_name = request.form.get('brand_name')
-            config = [b for b in config if b['brand'] != brand_name]
-            save_budget_config(config)
-            
-        elif action == 'add_model':
-            brand_name = request.form.get('brand_name')
-            model_name = request.form.get('model_name')
-            if brand_name and model_name:
-                for brand in config:
-                    if brand['brand'] == brand_name:
-                        # Check if model exists
-                        if not any(m['name'] == model_name for m in brand['models']):
-                            brand['models'].append({
-                                'name': model_name,
-                                'services': []
-                            })
-                            save_budget_config(config)
-                        break
-                        
-        elif action == 'delete_model':
-            brand_name = request.form.get('brand_name')
-            model_name = request.form.get('model_name')
-            for brand in config:
-                if brand['brand'] == brand_name:
-                    brand['models'] = [m for m in brand['models'] if m['name'] != model_name]
-                    save_budget_config(config)
-                    break
-                    
-        elif action == 'update_prices':
-            brand_name = request.form.get('brand_name')
-            model_name = request.form.get('model_name')
-            
-            services_map = [
-                "Troca de Tela", "Troca de Vidro", "Troca de Bateria", 
-                "Troca de Conector", "Troca de Tampa", "Troca de Lente", 
-                "Reparo de Face ID"
-            ]
-            
-            new_services = []
-            for service in services_map:
-                price = request.form.get(f'price_{service}')
-                if price:
-                    new_services.append({'service': service, 'price': price})
-            
-            # Add "Outro Defeito"
-            new_services.append({
-                "service": "Outro Defeito",
-                "price": "Consulte",
-                "action": "instagram"
-            })
-            
-            for brand in config:
-                if brand['brand'] == brand_name:
-                    for model in brand['models']:
-                        if model['name'] == model_name:
-                            model['services'] = new_services
-                            save_budget_config(config)
-                            break
-                    break
-        
-        return redirect(url_for('admin_budget_config'))
-        
-    return render_template('admin/budget_config.html', config=config)
 
 @app.route('/admin/nfse', methods=['GET'])
 @login_required
@@ -1470,7 +1310,7 @@ def sitemap():
     _add_url(f'{url_root}{url_for("site_dispositivos")}', changefreq='monthly', priority='0.7')
     _add_url(f'{url_root}{url_for("site_laboratorio")}', changefreq='monthly', priority='0.6')
     _add_url(f'{url_root}{url_for("site_contato")}', changefreq='monthly', priority='0.6')
-    _add_url(f'{url_root}/orcamento/', changefreq='monthly', priority='0.6')
+
     
     # Loja
     _add_url(f'{url_root}{url_for("public_shop")}', changefreq='daily', priority='0.8')
