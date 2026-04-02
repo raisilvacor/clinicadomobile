@@ -2,7 +2,7 @@
   "admin_password": "admin123",
   "site_content": {
     "hero": {
-      "title": "Assistência Técnica Profissional",
+      "title": "Clínica CELL",
       "subtitle": "Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.",
       "button_text": "Fale Conosco",
       "background_image": "/static/images/head.jpg"

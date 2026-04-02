@@ -313,7 +313,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.5) 100%);
+            background: transparent;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1525,7 +1525,7 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: rgba(0, 0, 0, 0.7);
+                background: transparent;
             }
 
             .hero-content {
@@ -1635,7 +1635,7 @@
     <header>
         <nav>
             <div class="logo">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica CELL - Assistência Técnica Profissional" itemprop="logo" fetchpriority="high" decoding="async">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica CELL" itemprop="logo" fetchpriority="high" decoding="async">
             </div>
             <button class="menu-toggle" aria-label="Menu">
                 <span></span>
@@ -1674,43 +1674,8 @@
 
     {% if not page %}
     <section id="inicio" class="hero" itemscope itemtype="https://schema.org/Service">
-        {% if content and content.hero and content.hero.background_image %}
-            {% set bg = (content.hero.background_image or '') | trim %}
-            {% if bg.startswith('/static/images/') and (bg.endswith('.jpg') or bg.endswith('.png') or bg.endswith('.jpeg')) %}
-                {% if bg.endswith('.png') %}
-                    {% set bg_webp = bg[:-4] ~ '.webp' %}
-                {% elif bg.endswith('.jpeg') %}
-                    {% set bg_webp = bg[:-5] ~ '.webp' %}
-                {% else %}
-                    {% set bg_webp = bg[:-4] ~ '.webp' %}
-                {% endif %}
-                <picture>
-                    <source srcset="{{ bg_webp }}" type="image/webp">
-                    <img src="{{ bg }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
-                </picture>
-            {% else %}
-                <img src="{{ bg }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
-            {% endif %}
-        {% else %}
-            <picture>
-                <source srcset="{{ url_for('static', filename='images/head.webp') }}" type="image/webp">
-                <img src="{{ url_for('static', filename='images/head.jpg') }}" alt="Assistência Técnica Profissional para Celulares Android e iPhone" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
-            </picture>
-        {% endif %}
+        <img src="{{ url_for('static', filename='images/head.jpg') }}?t=1775171380" alt="Clínica CELL" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
         <div class="hero-overlay">
-            <div class="hero-content">
-                <h1 itemprop="name">{{ content.hero.title if content and content.hero and content.hero.title else 'Especialistas em iPhone e Android' }}</h1>
-                {% set hero_subtitle = (content.hero.subtitle if content and content.hero and content.hero.subtitle else '') | trim %}
-                {% if hero_subtitle == 'Especialistas em reparo de celulares Android e iPhone. Qualidade garantida, serviço rápido e preço justo.' or hero_subtitle == 'TELA QUEBRADA?\nCONSERTAMOS EM 30 MINUTOS\nORÇAMENTO GRÁTIS\nCHAME NO WHATSAPP' or hero_subtitle == 'TELA QUEBRADA?\nCONSERTAMOS EM 1 hora com garantia de 90 dias' or hero_subtitle == 'Tela quebrada?\nconsertamos em 1 hora com garantia de 90 dias' %}
-                    {% set hero_subtitle = 'Tela quebrada?\nReparo rápido com garantia e peças de qualidade.' %}
-                {% endif %}
-                {% set hero_subtitle = (hero_subtitle | replace('<br/>','\n') | replace('<br>','\n') | replace('<BR>','\n') | replace('<BR/>','\n')) %}
-                <p class="hero-subtitle">{{ (hero_subtitle if hero_subtitle else 'Tela quebrada?\nReparo rápido com garantia e peças de qualidade.') | e }}</p>
-
-                {% if content and content.contact and content.contact.whatsapp %}
-                <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-hero-button" rel="noopener noreferrer">Chame no WhatsApp</a>
-                {% endif %}
-            </div>
         </div>
     </section>
 
@@ -1773,6 +1738,11 @@
     {% if not page %}
     <section class="how-it-works">
         <div class="how-it-works-container">
+            {% if content and content.contact and content.contact.whatsapp %}
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <a href="https://wa.me/{{ content.contact.whatsapp }}" target="_blank" class="whatsapp-hero-button" rel="noopener noreferrer" style="display: inline-block; width: auto; padding: 1rem 2.5rem;">Chame no WhatsApp</a>
+            </div>
+            {% endif %}
             <span class="process-badge">PROCESSO SIMPLES</span>
             <h2 class="section-title">Como funciona?</h2>
             <p class="section-subtitle">Do primeiro contato à entrega, tudo rápido e transparente.</p>
