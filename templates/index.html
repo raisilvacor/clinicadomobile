@@ -2081,6 +2081,20 @@
             </div>
         </div>
     </section>
+    <section class="map-section" style="width: 100%; overflow: hidden; line-height: 0;">
+        {% set full_address = (content.contact.address if content and content.contact and content.contact.address else '') ~ ' ' ~ (content.contact.city if content and content.contact and content.contact.city else '') %}
+        {% if full_address | trim %}
+        <iframe 
+            width="100%" 
+            height="450" 
+            style="border:0;" 
+            allowfullscreen="" 
+            loading="lazy" 
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q={{ full_address | urlencode }}&output=embed">
+        </iframe>
+        {% endif %}
+    </section>
     {% endif %}
 
     <!-- Footer -->
