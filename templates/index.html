@@ -1674,7 +1674,10 @@
 
     {% if not page %}
     <section id="inicio" class="hero" itemscope itemtype="https://schema.org/Service">
-        <img src="{{ url_for('static', filename='images/head.jpg') }}?t=1775171380" alt="Clínica CELL" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
+        <picture>
+            <source media="(max-width: 768px)" srcset="{{ url_for('static', filename='images/head-mobile.jpg') }}?t=1775172622">
+            <img src="{{ url_for('static', filename='images/head.jpg') }}?t=1775171380" alt="Clínica CELL" class="hero-image" itemprop="image" fetchpriority="high" decoding="async">
+        </picture>
         <div class="hero-overlay">
         </div>
     </section>
