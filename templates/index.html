@@ -744,6 +744,11 @@
         /* Serviços */
         .services {
             padding: 6rem 2rem;
+            background-color: #ffffff;
+            width: 100%;
+        }
+
+        .services-container {
             max-width: 1200px;
             margin: 0 auto;
         }
@@ -922,6 +927,11 @@
         /* Módulos de Dispositivos */
         .devices {
             padding: 6rem 2rem;
+            background-color: #ffffff;
+            width: 100%;
+        }
+
+        .devices-container {
             max-width: 1200px;
             margin: 0 auto;
         }
@@ -1146,7 +1156,7 @@
         /* Como Funciona */
         .how-it-works {
             padding: 6rem 2rem;
-            background: #000000;
+            background: #ffffff;
             text-align: center;
         }
 
@@ -1169,7 +1179,7 @@
         }
 
         .section-subtitle {
-            color: #cccccc;
+            color: #011c3d;
             font-size: 1.1rem;
             margin-bottom: 4rem;
         }
@@ -1201,13 +1211,13 @@
         .step-icon-wrapper {
             width: 80px;
             height: 80px;
-            background: #1a1a1a;
+            background: #f8f9fa;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1.5rem;
-            border: 2px solid #333;
+            border: 2px solid #011c3d;
             transition: all 0.3s ease;
         }
 
@@ -1219,17 +1229,17 @@
 
         .step-icon {
             font-size: 2rem;
-            color: #ffffff;
+            color: #011c3d;
         }
 
         .step-item h3 {
-            color: #ffffff;
+            color: #011c3d;
             font-size: 1.3rem;
             margin-bottom: 0.75rem;
         }
 
         .step-item p {
-            color: #999999;
+            color: #011c3d;
             font-size: 0.95rem;
             line-height: 1.5;
         }
@@ -1319,7 +1329,7 @@
         /* FAQ */
         .faq-section {
             padding: 6rem 2rem;
-            background: #000000;
+            background: #ffffff;
         }
 
         .faq-container {
@@ -1357,7 +1367,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: #ffffff;
+            color: #011c3d;
             font-size: 1.2rem;
             font-weight: bold;
             gap: 1rem;
@@ -1377,7 +1387,7 @@
             max-height: 0;
             overflow: hidden;
             transition: all 0.3s ease;
-            color: #999999;
+            color: #011c3d;
             font-size: 1.05rem;
             line-height: 1.6;
         }
@@ -1710,29 +1720,31 @@
     <!-- Serviços -->
     {% if not page or page == 'servicos' %}
     <section id="servicos" class="services" itemscope itemtype="https://schema.org/Service">
-        <h2 class="section-title">Nossos Serviços</h2>
-        <div class="services-grid">
-            {% if content and content.services %}
-                {% for service in content.services %}
-                <div class="service-card">
-                    <div class="service-icon">
-                        {% if 'fa-' in service.icon %}
-                            <i class="fas {{ service.icon }}"></i>
-                        {% else %}
-                            {{ service.icon|safe }}
-                        {% endif %}
+        <div class="services-container">
+            <h2 class="section-title">Nossos Serviços</h2>
+            <div class="services-grid">
+                {% if content and content.services %}
+                    {% for service in content.services %}
+                    <div class="service-card">
+                        <div class="service-icon">
+                            {% if 'fa-' in service.icon %}
+                                <i class="fas {{ service.icon }}"></i>
+                            {% else %}
+                                {{ service.icon|safe }}
+                            {% endif %}
+                        </div>
+                        <h3>{{ service.title }}</h3>
+                        <p>{{ service.description }}</p>
                     </div>
-                    <h3>{{ service.title }}</h3>
-                    <p>{{ service.description }}</p>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="service-card">
-                    <div class="service-icon">📱</div>
-                    <h3>Troca de Tela</h3>
-                    <p>Troca profissional de telas quebradas ou trincadas para Android e iPhone. Utilizamos peças originais e garantimos a qualidade do serviço.</p>
-                </div>
-            {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="service-card">
+                        <div class="service-icon">📱</div>
+                        <h3>Troca de Tela</h3>
+                        <p>Troca profissional de telas quebradas ou trincadas para Android e iPhone. Utilizamos peças originais e garantimos a qualidade do serviço.</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </section>
     {% endif %}
@@ -1824,51 +1836,53 @@
     <!-- Módulos de Dispositivos -->
     {% if not page or page == 'dispositivos' %}
     <section id="dispositivos" class="devices">
-        <h2 class="section-title">Especialidades</h2>
-        <div class="devices-grid">
-            {% if content and content.devices %}
-                {% for device in content.devices %}
-                <div class="device-card">
-                    <div class="device-image-container">
-                        {% set di = (device.image or '') | trim %}
-                        {% if di.startswith('/static/images/') and (di.endswith('.jpg') or di.endswith('.png') or di.endswith('.jpeg')) %}
-                            {% if di.endswith('.png') %}
-                                {% set di_webp = di[:-4] ~ '.webp' %}
-                            {% elif di.endswith('.jpeg') %}
-                                {% set di_webp = di[:-5] ~ '.webp' %}
+        <div class="devices-container">
+            <h2 class="section-title">Especialidades</h2>
+            <div class="devices-grid">
+                {% if content and content.devices %}
+                    {% for device in content.devices %}
+                    <div class="device-card">
+                        <div class="device-image-container">
+                            {% set di = (device.image or '') | trim %}
+                            {% if di.startswith('/static/images/') and (di.endswith('.jpg') or di.endswith('.png') or di.endswith('.jpeg')) %}
+                                {% if di.endswith('.png') %}
+                                    {% set di_webp = di[:-4] ~ '.webp' %}
+                                {% elif di.endswith('.jpeg') %}
+                                    {% set di_webp = di[:-5] ~ '.webp' %}
+                                {% else %}
+                                    {% set di_webp = di[:-4] ~ '.webp' %}
+                                {% endif %}
+                                <picture>
+                                    <source srcset="{{ di_webp }}" type="image/webp">
+                                    <img src="{{ di }}" alt="{{ device.name }}" class="device-image js-device-img" loading="lazy" decoding="async">
+                                </picture>
                             {% else %}
-                                {% set di_webp = di[:-4] ~ '.webp' %}
-                            {% endif %}
-                            <picture>
-                                <source srcset="{{ di_webp }}" type="image/webp">
                                 <img src="{{ di }}" alt="{{ device.name }}" class="device-image js-device-img" loading="lazy" decoding="async">
+                            {% endif %}
+                        </div>
+                        <div class="device-content">
+                            <h3>{{ device.name }}</h3>
+                            <p>{{ device.description }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Conteúdo padrão -->
+                    <div class="device-card">
+                        <div class="device-image-container">
+                            <picture>
+                                <source srcset="{{ url_for('static', filename='images/android.webp') }}" type="image/webp">
+                                <img src="{{ url_for('static', filename='images/android.png') }}" alt="Android" class="device-image js-toggle-next-placeholder" loading="lazy" decoding="async">
                             </picture>
-                        {% else %}
-                            <img src="{{ di }}" alt="{{ device.name }}" class="device-image js-device-img" loading="lazy" decoding="async">
-                        {% endif %}
+                            <div class="device-image-placeholder is-hidden">🤖</div>
+                        </div>
+                        <div class="device-content">
+                            <h3>Android</h3>
+                            <p>Reparos especializados para aparelhos Android de todas as marcas.</p>
+                        </div>
                     </div>
-                    <div class="device-content">
-                        <h3>{{ device.name }}</h3>
-                        <p>{{ device.description }}</p>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <!-- Conteúdo padrão -->
-                <div class="device-card">
-                    <div class="device-image-container">
-                        <picture>
-                            <source srcset="{{ url_for('static', filename='images/android.webp') }}" type="image/webp">
-                            <img src="{{ url_for('static', filename='images/android.png') }}" alt="Android" class="device-image js-toggle-next-placeholder" loading="lazy" decoding="async">
-                        </picture>
-                        <div class="device-image-placeholder is-hidden">🤖</div>
-                    </div>
-                    <div class="device-content">
-                        <h3>Android</h3>
-                        <p>Reparos especializados para aparelhos Android de todas as marcas.</p>
-                    </div>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </section>
     {% endif %}
