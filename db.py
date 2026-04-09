@@ -97,8 +97,9 @@ if DATABASE_URL:
     try:
         host = urlsplit(DATABASE_URL).hostname or ''
         if host and '.' not in host:
-            print(f"⚠️  DATABASE_URL parece inválida (host sem domínio): {host}")
-            print("⚠️  Use a URL completa do Postgres (ex: ...render.com) nas variáveis de ambiente.")
+            print(f"⚠️  DATABASE_URL parece incompleta (host sem domínio): {host}")
+            print("⚠️  DICA RENDER: Use a 'External Database URL' (ex: dpg-xxx.oregon-postgres.render.com)")
+            print("⚠️  ou a 'Internal Database URL' completa do seu dashboard do Render.")
     except Exception:
         pass
     print(f"✅ DATABASE_URL configurada: {redacted}")
@@ -177,9 +178,18 @@ def init_db():
             except Exception as e:
                 print(f"⚠️  Falha ao testar conexão: {e}")
             finally:
-                pool.putconn(test_conn)
+                if 'test_conn' in locals() and test_conn:
+                    pool.putconn(test_conn)
         except Exception as e:
-            print(f"❌ Erro ao criar pool de conexões: {e}")
+            error_msg = str(e)
+            print(f"❌ Erro ao conectar ao banco de dados: {error_msg}")
+            if "name resolution" in error_msg.lower() or "not resolve" in error_msg.lower():
+                print("⚠️  ERRO DE DNS: O host do banco de dados não pôde ser encontrado.")
+                print("⚠️  DICA: Se estiver no Render, tente usar a 'External Database URL' em vez da Internal.")
+            elif "password authentication failed" in error_msg.lower():
+                print("⚠️  ERRO DE AUTENTICAÇÃO: Usuário ou senha do banco de dados incorretos.")
+            
+            print("⚠️  Usando config.json como fallback (dados serão voláteis no Render!)")
             USE_DATABASE = False
             return None
     return pool
@@ -333,7 +343,11 @@ def create_tables():
         
         # Criar conexão direta (não do pool) para criação de tabelas
         import psycopg
-        conn = psycopg.connect(database_url, autocommit=True)
+        try:
+            conn = psycopg.connect(database_url, autocommit=True, connect_timeout=10)
+        except Exception as conn_error:
+            print(f"❌ create_tables: Erro ao conectar diretamente: {conn_error}")
+            return
         cur = conn.cursor()
         
         # Tabela para conteúdo do site (hero, serviços, sobre, etc.)
