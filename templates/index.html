@@ -1187,6 +1187,119 @@
         .social-icon.instagram:hover { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%); color: #fff; }
         .social-icon.youtube:hover { background: #FF0000; color: #fff; }
 
+        /* Videos Page */
+        .videos-section {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+            margin-top: 3rem;
+        }
+
+        .video-card {
+            background: #1a1a1a;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            border: 1px solid #333;
+        }
+
+        .video-card:hover {
+            transform: translateY(-10px);
+            border-color: #ff8c00;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        .video-info {
+            padding: 1.5rem;
+            text-align: left;
+        }
+
+        .video-info h3 {
+            color: #ff8c00;
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .video-info p {
+            color: #cccccc;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* Shorts Section */
+        .shorts-section {
+            padding: 6rem 2rem;
+            background: #000;
+            text-align: center;
+        }
+
+        .shorts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 3rem auto 0;
+        }
+
+        .short-card {
+            background: #1a1a1a;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid #333;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .short-card:hover {
+            transform: translateY(-5px);
+            border-color: #ff8c00;
+        }
+
+        .short-video-container {
+            position: relative;
+            padding-bottom: 177.77%; /* 9:16 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+        }
+
+        .short-video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        @media (max-width: 768px) {
+            .shorts-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+        }
+
         .status-text.closed {
             color: #dc3545;
         }
@@ -1697,6 +1810,7 @@
                 <li><a href="{{ url_for('site_sobre') }}">Sobre</a></li>
                 <li><a href="{{ url_for('site_dispositivos') }}">Dispositivos</a></li>
                 <li><a href="{{ url_for('site_laboratorio') }}">Laboratório</a></li>
+                <li><a href="{{ url_for('site_videos') }}">Vídeos</a></li>
                 <li><a href="/loja">Loja</a></li>
                 <li><a href="{{ url_for('site_contato') }}">Contato</a></li>
                 <li class="language-selector">
@@ -1925,6 +2039,29 @@
     </section>
     {% endif %}
 
+    <!-- YouTube Shorts -->
+    {% if not page and shorts %}
+    <section class="shorts-section">
+        <h2 class="section-title">Últimos Reparos</h2>
+        <p class="section-subtitle">Confira nossos procedimentos em vídeo rápido.</p>
+        
+        <div class="shorts-grid">
+            {% for short in shorts %}
+            <div class="short-card">
+                <div class="short-video-container">
+                    <iframe 
+                        src="https://www.youtube.com/embed/{{ short.youtube_id }}" 
+                        title="{{ short.title }}"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     <!-- Estatísticas -->
     {% if not page %}
     <section class="stats-section">
@@ -1963,6 +2100,39 @@
                     <div class="lab-image-container">
                         <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=600&fit=crop" alt="Laboratório" class="lab-image" loading="lazy" decoding="async">
                     </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Videos -->
+    {% if page == 'videos' %}
+    <section id="videos" class="videos-section">
+        <h2 class="section-title">Vídeos de Reparos</h2>
+        <p class="section-subtitle">Acompanhe nossos procedimentos e dicas de manutenção.</p>
+        
+        <div class="videos-grid">
+            {% if videos %}
+                {% for video in videos %}
+                <div class="video-card">
+                    <div class="video-container">
+                        <iframe 
+                            src="https://www.youtube.com/embed/{{ video.youtube_id }}" 
+                            title="{{ video.title }}"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    <div class="video-info">
+                        <h3>{{ video.title }}</h3>
+                        <p>{{ video.description or '' }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="grid-column: 1/-1; padding: 4rem 2rem;">
+                    <p style="color: #666; font-size: 1.2rem;">Em breve, novos vídeos de reparos aqui!</p>
                 </div>
             {% endif %}
         </div>
@@ -2169,6 +2339,7 @@
                 <a href="{{ url_for('site_sobre') }}">Sobre</a>
                 <a href="{{ url_for('site_dispositivos') }}">Dispositivos</a>
                 <a href="{{ url_for('site_laboratorio') }}">Laboratório</a>
+                <a href="{{ url_for('site_videos') }}">Vídeos</a>
                 <a href="{{ url_for('site_contato') }}">Contato</a>
             </div>
             <div class="copyright">

@@ -473,6 +473,16 @@ def create_tables():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # Tabela para vídeos do youtube
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS videos (
+                id VARCHAR(50) PRIMARY KEY,
+                data JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
         cur.execute("CREATE INDEX IF NOT EXISTS idx_repairs_repair_id ON repairs(id)")
 
@@ -2478,5 +2488,99 @@ def get_all_technician_quality_scores():
                 'quality_score': quality
             })
     return scores
+
+# ========== FUNÇÕES DE VÍDEOS ==========
+
+def get_all_videos():
+    """Obtém todos os vídeos"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        return config.get('videos', [])
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                config = _load_config_file()
+                return config.get('videos', [])
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM videos ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            return [row['data'] for row in rows]
+    except Exception as e:
+        print(f"⚠️  Erro ao ler vídeos do banco: {e}")
+        config = _load_config_file()
+        return config.get('videos', [])
+
+def get_video(video_id):
+    """Obtém um vídeo específico"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        videos = config.get('videos', [])
+        for video in videos:
+            if video.get('id') == video_id:
+                return video
+        return None
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn:
+                return None
+            cur = _get_cursor(conn, dict_cursor=True)
+            cur.execute("SELECT data FROM videos WHERE id = %s", (video_id,))
+            row = cur.fetchone()
+            return row['data'] if row else None
+    except Exception as e:
+        print(f"⚠️  Erro ao ler vídeo do banco: {e}")
+        return None
+
+def save_video(video_id, video_data):
+    """Salva ou atualiza um vídeo"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        if 'videos' not in config:
+            config['videos'] = []
+        videos = config.get('videos', [])
+        found = False
+        for i, v in enumerate(videos):
+            if v.get('id') == video_id:
+                videos[i] = video_data
+                found = True
+                break
+        if not found:
+            videos.append(video_data)
+        config['videos'] = videos
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn: return
+            cur = _get_cursor(conn)
+            data_json = json.dumps(video_data)
+            cur.execute("""
+                INSERT INTO videos (id, data, updated_at)
+                VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (id) 
+                DO UPDATE SET data = %s::jsonb, updated_at = CURRENT_TIMESTAMP
+            """, (video_id, data_json, data_json))
+    except Exception as e:
+        print(f"⚠️  Erro ao salvar vídeo no banco: {e}")
+
+def delete_video(video_id):
+    """Deleta um vídeo"""
+    if not USE_DATABASE:
+        config = _load_config_file()
+        videos = config.get('videos', [])
+        config['videos'] = [v for v in videos if v.get('id') != video_id]
+        _save_config_file(config)
+        return
+    
+    try:
+        with get_db_connection() as conn:
+            if not conn: return
+            cur = _get_cursor(conn)
+            cur.execute("DELETE FROM videos WHERE id = %s", (video_id,))
+    except Exception as e:
+        print(f"⚠️  Erro ao deletar vídeo do banco: {e}")
 
 # ========== FIM DO ARQUIVO ==========

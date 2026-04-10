@@ -55,6 +55,10 @@ from db import (
     get_business_hours,
     save_business_hours,
     is_business_open as db_is_business_open,
+    get_all_videos,
+    get_video as db_get_video,
+    save_video,
+    delete_video as db_delete_video,
 )
 
 app = Flask(__name__)
@@ -89,8 +93,14 @@ def login_required(f):
 def index():
     site_content = get_site_content()
     is_open = db_is_business_open()
-    from db import get_all_brands
+    from db import get_all_brands, get_all_videos
     brands = get_all_brands()
+    
+    # Pegar apenas os últimos 4 vídeos marcados como shorts
+    all_videos = get_all_videos()
+    shorts = [v for v in all_videos if v.get('is_short')]
+    shorts = shorts[:4]
+    
     os_query = (request.args.get('os', '') or '').strip()
     os_lookup = None
     os_lookup_error = None
@@ -130,6 +140,7 @@ def index():
         content=site_content,
         is_open=is_open,
         brands=brands,
+        shorts=shorts,
         os_query=os_query,
         os_lookup=os_lookup,
         os_lookup_error=os_lookup_error,
@@ -173,6 +184,26 @@ def site_laboratorio():
 @app.route('/contato')
 def site_contato():
     return _render_site_page('contato', 'Contato | Clínica do Cell')
+
+@app.route('/videos')
+def site_videos():
+    site_content = get_site_content()
+    is_open = db_is_business_open()
+    from db import get_all_brands
+    brands = get_all_brands()
+    videos = get_all_videos()
+    return render_template(
+        'index.html',
+        content=site_content,
+        is_open=is_open,
+        brands=brands,
+        videos=videos,
+        os_query='',
+        os_lookup=None,
+        os_lookup_error=None,
+        page='videos',
+        page_title='Vídeos | Clínica do Cell',
+    )
 
 # ========== ROTAS ADMINISTRATIVAS ==========
 
@@ -328,6 +359,44 @@ def admin_laboratory():
         return redirect(url_for('admin_laboratory'))
     
     return render_template('admin/laboratory.html', laboratory=laboratory)
+
+@app.route('/admin/videos', methods=['GET', 'POST'])
+@login_required
+def admin_videos():
+    import uuid
+    if request.method == 'POST':
+        action = request.form.get('action')
+        video_id = request.form.get('id') or str(uuid.uuid4())
+        
+        if action == 'delete':
+            db_delete_video(video_id)
+        else:
+            # Extrair ID do youtube da URL
+            youtube_url = request.form.get('youtube_url', '')
+            youtube_id = ''
+            if 'youtu.be/' in youtube_url:
+                youtube_id = youtube_url.split('youtu.be/')[1].split('?')[0]
+            elif 'youtube.com/watch?v=' in youtube_url:
+                youtube_id = youtube_url.split('watch?v=')[1].split('&')[0]
+            elif 'youtube.com/embed/' in youtube_url:
+                youtube_id = youtube_url.split('embed/')[1].split('?')[0]
+            elif 'youtube.com/shorts/' in youtube_url:
+                youtube_id = youtube_url.split('shorts/')[1].split('?')[0].split('&')[0]
+            
+            video_data = {
+                'id': video_id,
+                'title': request.form.get('title', ''),
+                'youtube_url': youtube_url,
+                'youtube_id': youtube_id,
+                'description': request.form.get('description', ''),
+                'is_short': request.form.get('is_short') == 'on'
+            }
+            save_video(video_id, video_data)
+        
+        return redirect(url_for('admin_videos'))
+    
+    videos = get_all_videos()
+    return render_template('admin/videos.html', videos=videos)
 
 @app.route('/api/contact-info')
 def api_contact_info():
