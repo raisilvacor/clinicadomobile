@@ -2498,17 +2498,17 @@
     </section>
 
     <section class="map-section" style="width: 100%; overflow: hidden; line-height: 0; position: relative;">
+        {% set full_address = (content.contact.address if content and content.contact and content.contact.address else '') ~ ' ' ~ (content.contact.city if content and content.contact and content.contact.city else '') %}
         <div class="map-buttons-container">
-            <a href="https://www.google.com/maps/dir/?api=1&destination=Rua+Exemplo+123+São+Paulo+SP" target="_blank" class="map-btn google-maps">
+            <a href="comgooglemaps://www.google.com/maps/dir/?api=1&destination={{ full_address | urlencode }}" target="_blank" class="map-btn google-maps">
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Google Maps</span>
             </a>
-            <a href="https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=Rua+Exemplo+123+São+Paulo+SP" target="_blank" class="map-btn uber">
+            <a href="uber://?action=setPickup&pickup=my_location&dropoff[formatted_address]={{ full_address | urlencode }}" target="_blank" class="map-btn uber">
                 <i class="fas fa-sign-out-alt" style="transform: rotate(-90deg);"></i>
                 <span>Ir de Uber</span>
             </a>
         </div>
-        {% set full_address = (content.contact.address if content and content.contact and content.contact.address else '') ~ ' ' ~ (content.contact.city if content and content.contact and content.contact.city else '') %}
         {% if full_address | trim %}
         <iframe 
             width="100%" 
