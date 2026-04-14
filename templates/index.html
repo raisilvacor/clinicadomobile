@@ -1214,30 +1214,31 @@
 
         .broken-brands-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2rem;
             align-items: center;
+            margin-top: 2rem;
         }
 
         .broken-brand-item {
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            gap: 0.5rem;
-            color: #ffffff;
-            font-size: 0.8rem;
-            text-transform: lowercase;
-            opacity: 0.9;
+            height: 60px;
         }
 
         .broken-brand-item i {
-            font-size: 1.8rem;
+            font-size: 3rem;
+            color: #ffffff;
         }
 
         .broken-brand-item img {
-            width: 30px;
+            width: auto;
+            max-width: 100%;
             height: auto;
+            max-height: 45px;
             filter: brightness(0) invert(1);
+            object-fit: contain;
         }
 
         @media (max-width: 768px) {
@@ -1263,6 +1264,16 @@
             }
             .broken-brands-grid {
                 grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+            }
+            .broken-brand-item {
+                height: 50px;
+            }
+            .broken-brand-item i {
+                font-size: 2.2rem;
+            }
+            .broken-brand-item img {
+                max-height: 35px;
             }
         }
 
@@ -2397,43 +2408,33 @@
                 <div class="broken-brands-grid">
                     <div class="broken-brand-item">
                         <i class="fab fa-apple"></i>
-                        <span>apple</span>
                     </div>
                     <div class="broken-brand-item">
                         <img src="{{ url_for('static', filename='images/carrosel/samsumg.png') }}" alt="Samsung">
-                        <span>samsung</span>
                     </div>
                     <div class="broken-brand-item">
                         <img src="{{ url_for('static', filename='images/carrosel/motorola.png') }}" alt="Motorola">
-                        <span>motorola</span>
                     </div>
                     <div class="broken-brand-item">
                         <img src="{{ url_for('static', filename='images/carrosel/lg.png') }}" alt="LG">
-                        <span>lg</span>
                     </div>
                     <div class="broken-brand-item">
                         <img src="{{ url_for('static', filename='images/carrosel/asus.png') }}" alt="Asus">
-                        <span>asus</span>
                     </div>
                     <div class="broken-brand-item">
                         <img src="{{ url_for('static', filename='images/carrosel/xiamo.png') }}" alt="Xiaomi">
-                        <span>xiaomi</span>
                     </div>
                     <div class="broken-brand-item">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Huawei_logo_icon_1.png" alt="Huawei" style="filter: brightness(0) invert(1);">
-                        <span>huawei</span>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e8/Huawei-logo.png" alt="Huawei">
                     </div>
                     <div class="broken-brand-item">
-                        <img src="https://static.wikia.nocookie.net/logopedia/images/3/3b/OnePlus_2020.svg" alt="OnePlus" style="filter: brightness(0) invert(1);">
-                        <span>oneplus</span>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/OnePlus_logo.png" alt="OnePlus">
                     </div>
                     <div class="broken-brand-item">
                         <img src="{{ url_for('static', filename='images/carrosel/realme.png') }}" alt="Realme">
-                        <span>realme</span>
                     </div>
                     <div class="broken-brand-item">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Pixel_Logo.svg" alt="Pixel" style="filter: brightness(0) invert(1);">
-                        <span>pixel</span>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Pixel_Logo.svg" alt="Pixel">
                     </div>
                 </div>
             </div>
