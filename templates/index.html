@@ -1241,6 +1241,71 @@
             object-fit: contain;
         }
 
+        /* Map Buttons */
+        .map-buttons-container {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+            width: 100%;
+            max-width: 600px;
+            justify-content: center;
+            padding: 0 15px;
+            box-sizing: border-box;
+        }
+
+        .map-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 25px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            flex: 1;
+            max-width: 220px;
+            white-space: nowrap;
+        }
+
+        .map-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+
+        .map-btn.uber {
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #333;
+        }
+
+        .map-btn.google-maps {
+            background-color: #D32F2F; /* Vermelho similar ao da imagem */
+            color: #ffffff;
+        }
+
+        .map-btn i {
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .map-buttons-container {
+                bottom: 20px;
+                gap: 10px;
+            }
+            .map-btn {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+                max-width: 150px;
+            }
+        }
+
         @media (max-width: 768px) {
             .broken-screen-container {
                 grid-template-columns: 1fr;
@@ -2441,7 +2506,17 @@
         </div>
     </section>
 
-    <section class="map-section" style="width: 100%; overflow: hidden; line-height: 0;">
+    <section class="map-section" style="width: 100%; overflow: hidden; line-height: 0; position: relative;">
+        <div class="map-buttons-container">
+            <a href="https://www.google.com/maps/dir/?api=1&destination=Rua+Exemplo+123+São+Paulo+SP" target="_blank" class="map-btn google-maps">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Google Maps</span>
+            </a>
+            <a href="https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=Rua+Exemplo+123+São+Paulo+SP" target="_blank" class="map-btn uber">
+                <i class="fas fa-sign-out-alt" style="transform: rotate(-90deg);"></i>
+                <span>Ir de Uber</span>
+            </a>
+        </div>
         {% set full_address = (content.contact.address if content and content.contact and content.contact.address else '') ~ ' ' ~ (content.contact.city if content and content.contact and content.contact.city else '') %}
         {% if full_address | trim %}
         <iframe 
