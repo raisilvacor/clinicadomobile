@@ -1149,6 +1149,123 @@
             color: #28a745;
         }
 
+        /* Broken Screen Section */
+        .broken-screen-section {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 4rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .broken-screen-container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .broken-screen-image {
+            position: relative;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .broken-screen-image img {
+            max-width: 100%;
+            height: auto;
+            max-height: 500px;
+            object-fit: contain;
+            /* Se quiser que o celular saia um pouco da seção como na imagem */
+            margin-bottom: -4rem;
+            z-index: 2;
+        }
+
+        .broken-screen-content {
+            text-align: left;
+            z-index: 3;
+        }
+
+        .broken-screen-content h2 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #FFD700; /* Amarelo similar ao da imagem */
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+
+        .broken-screen-content p {
+            font-size: 1.5rem;
+            color: #CCFF00; /* Verde limão similar ao da imagem */
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .broken-brands-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .broken-brand-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            font-size: 0.8rem;
+            text-transform: lowercase;
+            opacity: 0.9;
+        }
+
+        .broken-brand-item i {
+            font-size: 1.8rem;
+        }
+
+        .broken-brand-item img {
+            width: 30px;
+            height: auto;
+            filter: brightness(0) invert(1);
+        }
+
+        @media (max-width: 768px) {
+            .broken-screen-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .broken-screen-content {
+                text-align: center;
+            }
+            .broken-screen-image {
+                order: 2;
+            }
+            .broken-screen-image img {
+                margin-bottom: -2rem;
+                max-height: 300px;
+            }
+            .broken-screen-content h2 {
+                font-size: 2rem;
+            }
+            .broken-screen-content p {
+                font-size: 1.1rem;
+            }
+            .broken-brands-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
         .status-text.closed {
             color: #dc3545;
         }
@@ -2268,52 +2385,61 @@
     {% endif %}
 
     {% if not page %}
-    <section id="marcas" class="brands-section">
-        <div class="brands-container">
-            <h2 class="brands-title">Marcas que trabalhamos</h2>
-            <p class="brands-subtitle">Especialistas em reparos de diversas marcas</p>
-            <div class="brands-grid">
-                <!-- Logos estáticas forçadas da pasta carrosel -->
-                <div class="brand-item">
-                    <img src="{{ url_for('static', filename='images/carrosel/logo-apple-white-scaled.png') }}" alt="Apple" class="brand-img">
+    <section class="broken-screen-section">
+        <div class="broken-screen-container">
+            <div class="broken-screen-image">
+                <img src="https://img.freepik.com/fotos-premium/tela-do-smartphone-quebrada-e-rachada-isolada-no-fundo-preto_154515-5857.jpg" alt="Celular com tela quebrada">
+            </div>
+            <div class="broken-screen-content">
+                <h2>Seu celular quebrou?</h2>
+                <p>Oferecemos assistência técnica personalizada:</p>
+                
+                <div class="broken-brands-grid">
+                    <div class="broken-brand-item">
+                        <i class="fab fa-apple"></i>
+                        <span>apple</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="{{ url_for('static', filename='images/carrosel/samsumg.png') }}" alt="Samsung">
+                        <span>samsung</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="{{ url_for('static', filename='images/carrosel/motorola.png') }}" alt="Motorola">
+                        <span>motorola</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="{{ url_for('static', filename='images/carrosel/lg.png') }}" alt="LG">
+                        <span>lg</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="{{ url_for('static', filename='images/carrosel/asus.png') }}" alt="Asus">
+                        <span>asus</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="{{ url_for('static', filename='images/carrosel/xiamo.png') }}" alt="Xiaomi">
+                        <span>xiaomi</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Huawei_logo_icon_1.png" alt="Huawei" style="filter: brightness(0) invert(1);">
+                        <span>huawei</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="https://static.wikia.nocookie.net/logopedia/images/3/3b/OnePlus_2020.svg" alt="OnePlus" style="filter: brightness(0) invert(1);">
+                        <span>oneplus</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="{{ url_for('static', filename='images/carrosel/realme.png') }}" alt="Realme">
+                        <span>realme</span>
+                    </div>
+                    <div class="broken-brand-item">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Pixel_Logo.svg" alt="Pixel" style="filter: brightness(0) invert(1);">
+                        <span>pixel</span>
+                    </div>
                 </div>
-                <div class="brand-item">
-                    <img src="{{ url_for('static', filename='images/carrosel/motorola.png') }}" alt="Motorola" class="brand-img">
-                </div>
-                <div class="brand-item">
-                    <img src="{{ url_for('static', filename='images/carrosel/samsumg.png') }}" alt="Samsung" class="brand-img">
-                </div>
-                <div class="brand-item">
-                    <img src="{{ url_for('static', filename='images/carrosel/asus.png') }}" alt="Asus" class="brand-img">
-                </div>
-                <div class="brand-item">
-                    <img src="{{ url_for('static', filename='images/carrosel/lg.png') }}" alt="LG" class="brand-img">
-                </div>
-                <div class="brand-item">
-                    <img src="{{ url_for('static', filename='images/carrosel/realme.png') }}" alt="Realme" class="brand-img">
-                </div>
-                <div class="brand-item">
-                    <img src="{{ url_for('static', filename='images/carrosel/infinix.png') }}" alt="Infinix" class="brand-img">
-                </div>
-                <div class="brand-item">
-                    <img src="{{ url_for('static', filename='images/carrosel/xiamo.png') }}" alt="Xiaomi" class="brand-img">
-                </div>
-
-                {# Marcas dinâmicas do admin aparecem APÓS as principais, se existirem #}
-                {% if brands %}
-                    {% for brand in brands %}
-                        {# Evitar duplicar as que já estão fixas acima (usando verificação robusta) #}
-                        {% set brand_lower = brand.name.lower().strip() %}
-                        {% if brand_lower not in ['apple', 'samsung', 'motorola', 'asus', 'lg', 'realme', 'realm', 'infinix', 'xiaomi'] %}
-                        <div class="brand-item">
-                            <img src="{{ brand.image }}" alt="{{ brand.name }}" class="brand-img">
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
             </div>
         </div>
     </section>
+
     <section class="map-section" style="width: 100%; overflow: hidden; line-height: 0;">
         {% set full_address = (content.contact.address if content and content.contact and content.contact.address else '') ~ ' ' ~ (content.contact.city if content and content.contact and content.contact.city else '') %}
         {% if full_address | trim %}
