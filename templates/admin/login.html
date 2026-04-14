@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Administrativo - Clínica do Cell</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #ff8c00;
+            --bg-dark: #000000;
+            --bg-card: #1a1a1a;
+            --text-light: #ffffff;
+            --error-color: #ff4d4d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background-color: var(--bg-card);
+            padding: 2.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.1);
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            text-align: center;
+        }
+
+        .login-logo {
+            margin-bottom: 2rem;
+        }
+
+        .login-logo img {
+            max-width: 150px;
+            height: auto;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .login-subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+            position: relative;
+        }
+
+        .form-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: #333;
+            box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.2);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .btn-login:hover {
+            background-color: #ffa500;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+        }
+
+        .error-message {
+            background-color: rgba(255, 77, 77, 0.1);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .back-to-site {
+            margin-top: 2rem;
+            display: inline-block;
+            color: #888;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-to-site:hover {
+            color: var(--primary-color);
+        }
+
+        /* Animação suave */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-card {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <a href="/">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Clínica do Cell" onerror="this.src='https://clinicacellsp.com.br/static/images/logo.png'">
+                </a>
+            </div>
+            
+            <h1 class="login-title">Área Administrativa</h1>
+            <p class="login-subtitle">Entre com sua senha para gerenciar o site</p>
+
+            {% if error %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST">
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" class="form-control" placeholder="Senha Administrativa" required autofocus>
+                </div>
+                <button type="submit" class="btn-login">ACESSAR PAINEL</button>
+            </form>
+
+            <a href="/" class="back-to-site">
+                <i class="fas fa-arrow-left"></i> Voltar para o site
+            </a>
+        </div>
+    </div>
+</body>
+</html>
