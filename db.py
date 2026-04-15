@@ -24,41 +24,41 @@ try:
     # Tentativa 1: psycopg_pool (pacote separado)
     try:
         from psycopg_pool import ConnectionPool
-        print("✅ psycopg_pool.ConnectionPool importado com sucesso!")
+        print("psycopg_pool.ConnectionPool importado com sucesso!")
     except ImportError as e1:
         import_error_msg = str(e1)
         # Tentativa 2: psycopg.pool
         try:
             from psycopg.pool import ConnectionPool
-            print("✅ psycopg.pool.ConnectionPool importado com sucesso!")
+            print("psycopg.pool.ConnectionPool importado com sucesso!")
         except ImportError as e2:
             # Tentativa 3: psycopg import pool
             try:
                 import psycopg.pool as pool_module
                 ConnectionPool = pool_module.ConnectionPool
-                print("✅ psycopg.pool.ConnectionPool importado via módulo!")
+                print("psycopg.pool.ConnectionPool importado via modulo!")
             except (ImportError, AttributeError) as e3:
                 # Tentativa 4: verificar se está no psycopg diretamente
                 if hasattr(psycopg, 'pool'):
                     ConnectionPool = getattr(psycopg.pool, 'ConnectionPool', None)
                     if ConnectionPool:
-                        print("✅ ConnectionPool encontrado em psycopg.pool!")
+                        print("ConnectionPool encontrado em psycopg.pool!")
                     else:
-                        raise ImportError(f"ConnectionPool não encontrado. Erros: {e1}, {e2}, {e3}")
+                        raise ImportError(f"ConnectionPool nao encontrado. Erros: {e1}, {e2}, {e3}")
                 else:
-                    raise ImportError(f"ConnectionPool não encontrado. Erros: {e1}, {e2}, {e3}")
+                    raise ImportError(f"ConnectionPool nao encontrado. Erros: {e1}, {e2}, {e3}")
     
     if ConnectionPool is None:
-        raise ImportError("ConnectionPool não pôde ser importado")
+        raise ImportError("ConnectionPool nao pode ser importado")
     
     PSYCOPG_VERSION = 3
-    print("✅ psycopg e ConnectionPool importados com sucesso!")
+    print("psycopg e ConnectionPool importados com sucesso!")
 except ImportError as e:
     USE_DATABASE = False
     ConnectionPool = None
     dict_row = None
-    print(f"⚠️  psycopg não encontrado ({e}), usando config.json como fallback")
-    print("⚠️  ATENÇÃO: Dados serão perdidos após deploy! Instale psycopg[binary]>=3.1.0")
+    print(f"psycopg nao encontrado ({e}), usando config.json como fallback")
+    print("ATENCAO: Dados serao perdidos apos deploy! Instale psycopg[binary]>=3.1.0")
 
 def _get_database_url():
     url = os.environ.get('DATABASE_URL')
@@ -97,14 +97,14 @@ if DATABASE_URL:
     try:
         host = urlsplit(DATABASE_URL).hostname or ''
         if host and '.' not in host:
-            print(f"⚠️  DATABASE_URL parece incompleta (host sem domínio): {host}")
-            print("⚠️  DICA RENDER: Use a 'External Database URL' (ex: dpg-xxx.oregon-postgres.render.com)")
-            print("⚠️  ou a 'Internal Database URL' completa do seu dashboard do Render.")
+            print(f"DATABASE_URL parece incompleta (host sem dominio): {host}")
+            print("DICA RENDER: Use a 'External Database URL' (ex: dpg-xxx.oregon-postgres.render.com)")
+            print("ou a 'Internal Database URL' completa do seu dashboard do Render.")
     except Exception:
         pass
-    print(f"✅ DATABASE_URL configurada: {redacted}")
+    print(f"DATABASE_URL configurada: {redacted}")
 else:
-    print("⚠️  DATABASE_URL não configurada - usando config.json como fallback")
+    print("DATABASE_URL nao configurada - usando config.json como fallback")
     USE_DATABASE = False
 
 # Pool de conexões
@@ -126,15 +126,15 @@ def init_db():
     """Inicializa o pool de conexões"""
     global USE_DATABASE, pool, ConnectionPool, DATABASE_URL
     if not USE_DATABASE:
-        print("⚠️  Banco de dados desabilitado - usando config.json")
+        print("Banco de dados desabilitado - usando config.json")
         return None
     if ConnectionPool is None:
-        print("❌ ConnectionPool não disponível - usando config.json")
+        print("ConnectionPool nao disponivel - usando config.json")
         USE_DATABASE = False
         return None
     if pool is None:
         try:
-            print(f"🔌 Conectando ao banco de dados PostgreSQL...")
+            print(f"Conectando ao banco de dados PostgreSQL...")
             
             # Garantir SSL na string de conexão
             if DATABASE_URL:
@@ -144,7 +144,7 @@ def init_db():
                 DATABASE_URL = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
                     
             if DATABASE_URL:
-                print(f"🔌 DATABASE_URL: {_redact_database_url(DATABASE_URL)}")
+                print(f"DATABASE_URL: {_redact_database_url(DATABASE_URL)}")
             
             # Configurar pool com timeout maior e parâmetros otimizados
             # psycopg_pool ConnectionPool aceita: min_size, max_size, timeout, max_waiting, max_idle, reconnect_timeout
@@ -160,36 +160,36 @@ def init_db():
                 )
             except TypeError:
                 # Se alguns parâmetros não forem suportados, usar apenas os básicos
-                print("⚠️  Usando configuração básica do pool (alguns parâmetros não suportados)")
+                print("Usando configuracao basica do pool (alguns parametros nao suportados)")
                 pool = ConnectionPool(
                     DATABASE_URL,
                     min_size=1,
                     max_size=10,
                     timeout=60
                 )
-            print("✅ Pool de conexões criado com sucesso!")
+            print("Pool de conexoes criado com sucesso!")
             # Testar conexão criando uma conexão direta primeiro
             test_conn = pool.getconn(timeout=10)  # Timeout de 10s para teste
             try:
                 test_cur = test_conn.cursor()
                 test_cur.execute("SELECT 1")
                 test_cur.fetchone()
-                print("✅ Conexão com banco de dados estabelecida!")
+                print("Conexao com banco de dados estabelecida!")
             except Exception as e:
-                print(f"⚠️  Falha ao testar conexão: {e}")
+                print(f"Falha ao testar conexao: {e}")
             finally:
                 if 'test_conn' in locals() and test_conn:
                     pool.putconn(test_conn)
         except Exception as e:
             error_msg = str(e)
-            print(f"❌ Erro ao conectar ao banco de dados: {error_msg}")
+            print(f"Erro ao conectar ao banco de dados: {error_msg}")
             if "name resolution" in error_msg.lower() or "not resolve" in error_msg.lower():
-                print("⚠️  ERRO DE DNS: O host do banco de dados não pôde ser encontrado.")
-                print("⚠️  DICA: Se estiver no Render, tente usar a 'External Database URL' em vez da Internal.")
+                print("ERRO DE DNS: O host do banco de dados nao pode ser encontrado.")
+                print("DICA: Se estiver no Render, tente usar a 'External Database URL' em vez da Internal.")
             elif "password authentication failed" in error_msg.lower():
-                print("⚠️  ERRO DE AUTENTICAÇÃO: Usuário ou senha do banco de dados incorretos.")
+                print("ERRO DE AUTENTICACAO: Usuario ou senha do banco de dados incorretos.")
             
-            print("⚠️  Usando config.json como fallback (dados serão voláteis no Render!)")
+            print("Usando config.json como fallback (dados serao volateis no Render!)")
             USE_DATABASE = False
             return None
     return pool
