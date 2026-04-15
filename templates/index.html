@@ -2169,8 +2169,13 @@
                 </ul>
             </div>
             <div class="about-image">
-                <video class="about-video" autoplay loop playsinline muted preload="auto" loading="eager">
-                    <source src="{{ content.about.video if content and content.about and content.about.video else '/static/videos/iphone.mp4' }}" type="video/mp4">
+                {% if content and content.about and content.about.video %}
+                    {% set video_url = content.about.video %}
+                {% else %}
+                    {% set video_url = url_for('static', filename='videos/iphone.mp4') %}
+                {% endif %}
+                <video class="about-video" autoplay loop playsinline muted preload="auto" src="{{ video_url }}">
+                    <source src="{{ video_url }}" type="video/mp4">
                     Seu navegador não suporta vídeos HTML5.
                 </video>
             </div>

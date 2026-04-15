@@ -162,7 +162,6 @@ window.googleTranslateElementInit = function() {
   const video = document.querySelector('.about-video');
   if (video) {
     try {
-      video.load();
       const playPromise = video.play();
       if (playPromise && typeof playPromise.catch === 'function') {
         playPromise.catch(() => {
@@ -174,17 +173,10 @@ window.googleTranslateElementInit = function() {
         });
       }
 
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          video.load();
-        });
-      }
-
       const videoObserver = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              video.load();
               video.play().catch(() => {});
             }
           });
