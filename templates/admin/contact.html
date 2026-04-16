@@ -122,6 +122,17 @@
             }
         </script>
 
+        <h3 style="color: #ff8c00; margin-top: 2rem; margin-bottom: 1rem;">📦 Integração Melhor Envio</h3>
+        <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">Insira o token de acesso (Bearer) do Melhor Envio para o cálculo de frete.</p>
+        
+        <div class="form-group">
+            <label for="melhorenvio_token">Token Melhor Envio:</label>
+            <textarea id="melhorenvio_token" name="melhorenvio_token" rows="4" class="form-control" placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...">{{ contact.melhorenvio_token or '' }}</textarea>
+            <small style="color: #888; display: block; margin-top: 0.5rem;">
+                Gere este token no painel do Melhor Envio em: <strong>Gerenciar > Tokens</strong>.
+            </small>
+        </div>
+
         <button type="submit" class="btn btn-primary">Salvar Alterações</button>
         <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancelar</a>
     </form>
