@@ -1186,19 +1186,8 @@ def public_product(product_id):
     whatsapp = contact.get('whatsapp', '')
     
     # Endereço da loja para o Melhor Envio (CEP de origem)
-    # Tenta pegar do endereço cadastrado ou usa um padrão se não houver
-    import re
-    address_str = contact.get('address', '') + " " + contact.get('city', '')
-    all_digits = "".join(re.findall(r'\d', address_str))
-    
-    # Se houver mais de 8 dígitos, tenta pegar o que parece ser um CEP (geralmente no final)
-    if len(all_digits) > 8:
-        # Pega os últimos 8 dígitos (padrão comum de CEP no final do endereço)
-        shop_zip = all_digits[-8:]
-    elif len(all_digits) == 8:
-        shop_zip = all_digits
-    else:
-        shop_zip = "01001000" # CEP padrão (Sé, SP) se não encontrar um válido
+    # CEP fixo definido pelo usuário: 06436-270
+    shop_zip = "06436270"
     
     return render_template('product.html', product=product, whatsapp=whatsapp, shop_zip=shop_zip)
 
@@ -1211,12 +1200,12 @@ def calculate_shipping():
     if not data:
         return jsonify({'error': 'Dados inválidos'}), 400
         
-    zip_from = data.get('zip_from')
+    zip_from = data.get('zip_from') or "06436270"
     zip_to = data.get('zip_to')
     product_id = data.get('product_id')
     
     if not zip_from or not zip_to or not product_id:
-        return jsonify({'error': 'CEP de origem, destino e ID do produto são obrigatórios'}), 400
+        return jsonify({'error': 'CEP de destino e ID do produto são obrigatórios'}), 400
         
     product = db_get_product(product_id)
     if not product:
