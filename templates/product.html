@@ -196,7 +196,15 @@
                             const data = await response.json();
 
                             if (data.error) {
-                                throw new Error(data.error);
+                                let details = "";
+                                if (data.details && data.details.message) {
+                                    details = `: ${data.details.message}`;
+                                } else if (data.details && typeof data.details === 'string') {
+                                    details = `: ${data.details}`;
+                                } else if (data.status_code === 401) {
+                                    details = ": Token de acesso inválido ou expirado";
+                                }
+                                throw new Error(data.error + details);
                             }
 
                             // Limpar e mostrar resultados
@@ -230,7 +238,7 @@
                                 });
                             }
                         } catch (err) {
-                            errorDiv.textContent = "Erro ao calcular frete. Tente novamente.";
+                            errorDiv.textContent = err.message || "Erro ao calcular frete. Tente novamente.";
                             errorDiv.style.display = 'block';
                             resultsDiv.style.display = 'none';
                         } finally {
