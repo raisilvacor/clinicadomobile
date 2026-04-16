@@ -1185,7 +1185,87 @@ def public_product(product_id):
     contact = site_content.get('contact', {})
     whatsapp = contact.get('whatsapp', '')
     
-    return render_template('product.html', product=product, whatsapp=whatsapp)
+    # Endereço da loja para o Melhor Envio (CEP de origem)
+    # Tenta pegar do endereço cadastrado ou usa um padrão se não houver
+    shop_zip = "".join(filter(str.isdigit, contact.get('address', '')))
+    if len(shop_zip) != 8:
+        shop_zip = "01001000" # CEP padrão (Sé, SP) se não encontrar um válido
+    
+    return render_template('product.html', product=product, whatsapp=whatsapp, shop_zip=shop_zip)
+
+@app.route('/api/shipping/calculate', methods=['POST'])
+def calculate_shipping():
+    """Calcula o frete usando a API do Melhor Envio"""
+    import requests
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Dados inválidos'}), 400
+        
+    zip_from = data.get('zip_from')
+    zip_to = data.get('zip_to')
+    product_id = data.get('product_id')
+    
+    if not zip_from or not zip_to or not product_id:
+        return jsonify({'error': 'CEP de origem, destino e ID do produto são obrigatórios'}), 400
+        
+    product = db_get_product(product_id)
+    if not product:
+        return jsonify({'error': 'Produto não encontrado'}), 404
+        
+    # Dados para o cálculo (Melhor Envio exige dimensões e peso)
+    # Se não houver no produto, usamos valores padrão para um celular
+    weight = float(product.get('weight', 0.5))
+    width = float(product.get('width', 11))
+    height = float(product.get('height', 4))
+    length = float(product.get('length', 16))
+    price = float(product.get('price', 0))
+    
+    token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiMzA5ZDE5MGIyNzQxZGMxZjE4YjIwYjZiMWQ5M2M5MTMwNTdkNTYwY2QwODAyMjgwOThjNzJmMjVkYzUxN2MxYmZlNTQ1MDM5YzVmZjEyNzYiLCJpYXQiOjE3NzYzMTA3NzMuNDM2NDU0LCJuYmYiOjE3NzYzMTA3NzMuNDM2NDU2LCJleHAiOjE4MDc4NDY3NzMuNDI2MjM3LCJzdWIiOiIxNjM0MWJiZS01ZDQzLTQ3OTktYTUzMi1iY2UzNDU5ZDQwMmUiLCJzY29wZXMiOlsiY2FydC1yZWFkIiwiY2FydC13cml0ZSIsImNvbXBhbmllcy1yZWFkIiwiY29tcGFuaWVzLXdyaXRlIiwiY291cG9ucy1yZWFkIiwiY291cG9ucy13cml0ZSIsIm5vdGlmaWNhdGlvbnMtcmVhZCIsIm9yZGVycy1yZWFkIiwicHJvZHVjdHMtcmVhZCIsInByb2R1Y3RzLWRlc3Ryb3kiLCJwcm9kdWN0cy13cml0ZSIsInB1cmNoYXNlcy1yZWFkIiwic2hpcHBpbmctY2FsY3VsYXRlIiwic2hpcHBpbmctY2FuY2VsIiwic2hpcHBpbmctY2hlY2tvdXQiLCJzaGlwcGluZy1jb21wYW5pZXMiLCJzaGlwcGluZy1nZW5lcmF0ZSIsInNoaXBwaW5nLXByZXZpZXciLCJzaGlwcGluZy1wcmludCIsInNoaXBwaW5nLXNoYXJlIiwic2hpcHBpbmctdHJhY2tpbmciLCJlY29tbWVyY2Utc2hpcHBpbmciLCJ0cmFuc2FjdGlvbnMtcmVhZCIsInVzZXJzLXJlYWQiLCJ1c2Vycy13cml0ZSIsIndlYMob29rcy1yZWFkIiwic2hpcHBpbmctY2FsY3VsYXRlIiwic2hpcHBpbmctY2FuY2VsIiwic2hpcHBpbmctY2hlY2tvdXQiLCJzaGlwcGluZy1jb21wYW5pZXMiLCJzaGlwcGluZy1nZW5lcmF0ZSIsInNoaXBwaW5nLXByZXZpZXciLCJzaGlwcGluZy1wcmludCIsInNoaXBwaW5nLXNoYXJlIiwic2hpcHBpbmctdHJhY2tpbmciLCJlY29tbWVyY2Utc2hpcHBpbmciLCJ0cmFuc2FjdGlvbnMtcmVhZCIsInVzZXJzLXJlYWQiLCJ1c2Vycy13cml0ZSIsIndlYmhvb2tzLXJlYWQiLCJ3ZWJob29rcy13cml0ZSIsIndlYmhvb2tzLWRlbGV0ZSIsInRkZWFsZXItd2ViaG9vayJdfQ.g2cBZzQG57JuxhJI57ndOxi78AzuccmHyIpaYEAT8DaAMUkAToXyHOmid03qHG3KQZ6G3HpxUi3yGYJ0L4LvscSHaRfJBmMOVuXR3QqrK17rbu5kH9MZSFH2yZK3RNIjUj7mgIAlLl6TfZlBvfN20TnZHc-f9U6bLjmUv7_UiLqcOcD2R43C4PynAPoK19-XHLTBjxE6XAGaDsTJzvdiYyvfYBZPFHFQBWdtrnTdTwUVjXLq7F2halvJQ_0GIc5rTlusRxfqmkA7Slhy-mfegpOIbhY2YpOG7aV_iihwHlzYz_lISZhTsfoBBinGIXAVFlegcKdJYyaQjHj2eKZfImIkLVkNnGz_w2wDug7q2usBHWpptVlUGz1afc59__w7ChFPsxTnEqk8C2A--fnrSJANm4nPV4VetdZLy121J-KVL4X5fJYhYQZPpCE6DtEXe1OaTjR7w0kVmR8nofk3lNicTciOrg7CY1FR1H9BTXEw8upqSke4ELYG2C3VtFX8zxznv2DkZJOsyuFq5ee_QlejWy6ilOUsoWvkjNfWcRxJ9sWRVVLDQ-E0BGPsNMKo_ck7q_EIprvgSlGD1_mz_pr5Jq-9KvgSyhrEtzoqsQERagXoCSc3njts8tzriumTOoSnLRQVxXMOL6o3BduOISZ6Izth7N544xfJv8phFjA"
+    
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}',
+        'User-Agent': 'ClinicaCell (contato@clinicacellsp.com.br)'
+    }
+    
+    payload = {
+        "from": {"postal_code": zip_from},
+        "to": {"postal_code": zip_to},
+        "products": [
+            {
+                "id": product_id,
+                "width": width,
+                "height": height,
+                "length": length,
+                "weight": weight,
+                "insurance_value": price,
+                "quantity": 1
+            }
+        ]
+    }
+    
+    try:
+        # Endpoint de cálculo de frete do Melhor Envio
+        # Sandbox: https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate
+        # Produção: https://melhorenvio.com.br/api/v2/me/shipment/calculate
+        response = requests.post(
+            'https://melhorenvio.com.br/api/v2/me/shipment/calculate',
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            print(f"Erro Melhor Envio: {response.status_code} - {response.text}")
+            return jsonify({'error': 'Erro ao calcular frete na plataforma externa'}), response.status_code
+            
+    except Exception as e:
+        print(f"Erro na requisição Melhor Envio: {e}")
+        return jsonify({'error': 'Falha na comunicação com o serviço de frete'}), 500
 
 
 
