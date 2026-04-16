@@ -859,7 +859,6 @@
                 <li><a href="{{ url_for('admin_laboratory') }}" class="{% if request.endpoint == 'admin_laboratory' %}active{% endif %}">Laboratório</a></li>
                 <li><a href="{{ url_for('admin_videos') }}" class="{% if request.endpoint == 'admin_videos' %}active{% endif %}">Vídeos</a></li>
                 <li><a href="{{ url_for('admin_contact') }}" class="{% if request.endpoint == 'admin_contact' %}active{% endif %}">Contato</a></li>
-                <li><a href="{{ url_for('admin_brands') }}" class="{% if request.endpoint in ['admin_brands', 'admin_new_brand'] %}active{% endif %}">Marcas</a></li>
                 <li><a href="{{ url_for('admin_financeiro') }}" class="{% if request.endpoint in ['admin_financeiro', 'admin_new_transaction', 'admin_edit_transaction'] %}active{% endif %}">Financeiro</a></li>
                 <li><a href="{{ url_for('admin_password') }}">Senha</a></li>
                 <li><a href="{{ url_for('admin_logout') }}">Sair</a></li>

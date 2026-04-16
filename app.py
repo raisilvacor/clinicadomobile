@@ -19,14 +19,6 @@ from db import (
     get_repair as db_get_repair,
     save_repair,
     delete_repair as db_delete_repair,
-    get_all_suppliers,
-    get_supplier as db_get_supplier,
-    save_supplier,
-    delete_supplier as db_delete_supplier,
-    get_all_products,
-    get_product as db_get_product,
-    save_product,
-    delete_product as db_delete_product,
     get_all_admin_users,
     get_admin_user,
     save_admin_user,
@@ -93,8 +85,7 @@ def login_required(f):
 def index():
     site_content = get_site_content()
     is_open = db_is_business_open()
-    from db import get_all_brands, get_all_videos
-    brands = get_all_brands()
+    from db import get_all_videos
     
     # Pegar apenas os últimos 4 vídeos marcados como shorts
     all_videos = get_all_videos()
@@ -139,7 +130,6 @@ def index():
         'index.html',
         content=site_content,
         is_open=is_open,
-        brands=brands,
         shorts=shorts,
         os_query=os_query,
         os_lookup=os_lookup,
@@ -151,13 +141,10 @@ def index():
 def _render_site_page(page, page_title):
     site_content = get_site_content()
     is_open = db_is_business_open()
-    from db import get_all_brands
-    brands = get_all_brands()
     return render_template(
         'index.html',
         content=site_content,
         is_open=is_open,
-        brands=brands,
         os_query='',
         os_lookup=None,
         os_lookup_error=None,
@@ -189,14 +176,11 @@ def site_contato():
 def site_videos():
     site_content = get_site_content()
     is_open = db_is_business_open()
-    from db import get_all_brands
-    brands = get_all_brands()
     videos = get_all_videos()
     return render_template(
         'index.html',
         content=site_content,
         is_open=is_open,
-        brands=brands,
         videos=videos,
         os_query='',
         os_lookup=None,
@@ -519,8 +503,6 @@ def admin_new_user():
                 'repairs': request.form.get('perm_repairs') == 'on',
                 'checklist': request.form.get('perm_checklist') == 'on',
                 'orders': request.form.get('perm_orders') == 'on',
-                'suppliers': request.form.get('perm_suppliers') == 'on',
-                'products': request.form.get('perm_products') == 'on',
                 'financeiro': request.form.get('perm_financeiro') == 'on',
                 'risk_scores': request.form.get('perm_risk_scores') == 'on',
                 'users': request.form.get('perm_users') == 'on',
@@ -552,8 +534,6 @@ def admin_edit_user(user_id):
                 'repairs': request.form.get('perm_repairs') == 'on',
                 'checklist': request.form.get('perm_checklist') == 'on',
                 'orders': request.form.get('perm_orders') == 'on',
-                'suppliers': request.form.get('perm_suppliers') == 'on',
-                'products': request.form.get('perm_products') == 'on',
                 'financeiro': request.form.get('perm_financeiro') == 'on',
                 'risk_scores': request.form.get('perm_risk_scores') == 'on',
                 'users': request.form.get('perm_users') == 'on',
@@ -921,324 +901,11 @@ def admin_search_suppliers():
                          search_query=query,
                          search_error=error)
 
-# ========== ROTAS DE PRODUTOS (LOJA) ==========
-
-@app.route('/admin/products', methods=['GET'])
-@login_required
-def admin_products():
-    """Página principal para gerenciar Produtos da Loja"""
-    products = get_all_products()
-    return render_template('admin/products.html', products=products)
-
-@app.route('/admin/products/new', methods=['GET', 'POST'])
-@login_required
-def admin_new_product():
-    """Criar novo produto"""
-    if request.method == 'POST':
-        import uuid
-        from datetime import datetime
-        import base64
-        
-        product_id = str(uuid.uuid4())[:8]
-        product_data = {
-            'id': product_id,
-            'title': request.form.get('title', ''),
-            'description': request.form.get('description', ''),
-            'price': request.form.get('price', '0'),
-            'condition': request.form.get('condition', 'novo'),  # novo ou usado
-            'sold': False,
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat(),
-            'photos': [],
-            '_photo_data': {}
-        }
-        
-        # Salvar fotos
-        photos_dir = os.path.join('static', 'product_photos')
-        if not os.path.exists(photos_dir):
-            os.makedirs(photos_dir)
-        
-        if 'photos' in request.files:
-            files = request.files.getlist('photos')
-            for file in files:
-                if file and file.filename:
-                    filename = f"product_{product_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-                    filepath = os.path.join(photos_dir, filename)
-                    file.save(filepath)
-                    product_data['photos'].append(f"/static/product_photos/{filename}")
-                    # Salvar também como base64 no banco
-                    file.seek(0)
-                    file_data = file.read()
-                    product_data['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
-        
-        save_product(product_id, product_data)
-        return redirect(url_for('admin_products'))
-    
-    return render_template('admin/new_product.html')
-
-@app.route('/admin/products/<product_id>/edit', methods=['GET', 'POST'])
-@login_required
-def admin_edit_product(product_id):
-    """Editar produto existente"""
-    product = db_get_product(product_id)
-    if not product:
-        return redirect(url_for('admin_products'))
-    
-    if request.method == 'POST':
-        from datetime import datetime
-        import base64
-        
-        product['title'] = request.form.get('title', '')
-        product['description'] = request.form.get('description', '')
-        product['price'] = request.form.get('price', '0')
-        product['condition'] = request.form.get('condition', 'novo')
-        product['updated_at'] = datetime.now().isoformat()
-        
-        # Adicionar novas fotos
-        if 'photos' in request.files:
-            photos_dir = os.path.join('static', 'product_photos')
-            if not os.path.exists(photos_dir):
-                os.makedirs(photos_dir)
-            
-            if '_photo_data' not in product:
-                product['_photo_data'] = {}
-            
-            files = request.files.getlist('photos')
-            for file in files:
-                if file and file.filename:
-                    filename = f"product_{product_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-                    filepath = os.path.join(photos_dir, filename)
-                    file.save(filepath)
-                    product['photos'].append(f"/static/product_photos/{filename}")
-                    # Salvar também como base64 no banco
-                    file.seek(0)
-                    file_data = file.read()
-                    product['_photo_data'][filename] = base64.b64encode(file_data).decode('utf-8')
-        
-        save_product(product_id, product)
-        return redirect(url_for('admin_products'))
-    
-    return render_template('admin/edit_product.html', product=product)
-
-@app.route('/admin/products/<product_id>', methods=['GET'])
-@login_required
-def admin_view_product(product_id):
-    """Visualizar detalhes de um produto"""
-    product = db_get_product(product_id)
-    if not product:
-        return redirect(url_for('admin_products'))
-    
-    return render_template('admin/view_product.html', product=product)
-
-@app.route('/admin/products/<product_id>/delete', methods=['POST'])
-@login_required
-def admin_delete_product(product_id):
-    """Deletar produto"""
-    if request.method == 'POST':
-        try:
-            db_delete_product(product_id)
-            return jsonify({'success': True})
-        except Exception as e:
-            print(f"Erro ao deletar produto {product_id}: {e}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({'success': False, 'error': str(e)}), 500
-    return jsonify({'success': False, 'error': 'Método não permitido'}), 405
-
-@app.route('/admin/mark-product-sold/<product_id>', methods=['POST'])
-@login_required
-def admin_mark_product_sold(product_id):
-    """Marcar produto como vendido"""
-    if request.method == 'POST':
-        from datetime import datetime
-        product = db_get_product(product_id)
-        if product:
-            product['sold'] = True
-            product['sold_at'] = datetime.now().isoformat()
-            product['updated_at'] = datetime.now().isoformat()
-            save_product(product_id, product)
-            return jsonify({'success': True})
-        return jsonify({'success': False, 'error': 'Produto não encontrado'}), 404
-    return jsonify({'success': False, 'error': 'Método não permitido'}), 405
-
-# ========== ROTAS DE BRANDS ==========
-
-@app.route('/admin/brands')
-@login_required
-def admin_brands():
-    """Listar todas as marcas"""
-    from db import get_all_brands
-    brands = get_all_brands()
-    return render_template('admin/brands.html', brands=brands)
-
-@app.route('/admin/brands/new', methods=['GET', 'POST'])
-@login_required
-def admin_new_brand():
-    """Criar nova marca"""
-    if request.method == 'POST':
-        from datetime import datetime
-        import uuid
-        import base64
-        from PIL import Image
-        from io import BytesIO
-        from db import save_brand
-        
-        brand_id = str(uuid.uuid4())[:8]
-        brand_data = {
-            'id': brand_id,
-            'name': request.form.get('name', ''),
-            'image': '',
-            '_image_data': None,
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat()
-        }
-        
-        # Salvar imagem como base64 com otimização
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and file.filename:
-                try:
-                    # Abrir e otimizar imagem
-                    img = Image.open(file)
-                    
-                    # Preservar transparência se presente
-                    if img.mode in ('RGBA', 'LA', 'P'):
-                        if img.mode != 'RGBA':
-                            img = img.convert('RGBA')
-                    
-                    # Redimensionar se muito grande (max 400px de largura ou altura)
-                    max_size = 400
-                    if img.width > max_size or img.height > max_size:
-                        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-                    
-                    # Salvar como PNG para preservar transparência total
-                    output = BytesIO()
-                    img.save(output, format='PNG', optimize=True)
-                    output.seek(0)
-                    
-                    # Converter para base64
-                    file_data = output.getvalue()
-                    brand_data['_image_data'] = base64.b64encode(file_data).decode('utf-8')
-                    brand_data['image'] = f"/static/brand_images/{brand_id}.png"
-                except Exception as e:
-                    print(f"Erro ao processar imagem: {e}")
-        
-        save_brand(brand_id, brand_data)
-        return redirect(url_for('admin_brands'))
-    
-    return render_template('admin/new_brand.html')
-
-@app.route('/admin/brands/<brand_id>/delete', methods=['POST'])
-@login_required
-def admin_delete_brand(brand_id):
-    """Deletar marca"""
-    from db import delete_brand as db_delete_brand
-    try:
-        db_delete_brand(brand_id)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/static/brand_images/<path:filename>')
-def serve_brand_image(filename):
-    """Serve imagens de marcas do banco de dados"""
-    import base64
-    from flask import Response
-    from db import get_all_brands
-    
-    brands = get_all_brands()
-    for brand in brands:
-        image_path = brand.get('image', '')
-        if isinstance(image_path, str) and filename in image_path:
-            image_data = brand.get('_image_data')
-            if image_data:
-                try:
-                    img_data = base64.b64decode(image_data)
-                    mimetype = 'image/png'
-                    if filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
-                        mimetype = 'image/jpeg'
-                    return Response(img_data, mimetype=mimetype)
-                except Exception as e:
-                    print(f"Erro ao decodificar imagem {filename}: {e}")
-    
-    return "Imagem não encontrada", 404
-
-# ========== ROTAS PÚBLICAS DA LOJA ==========
-
-@app.route('/loja', methods=['GET'])
-def public_shop():
-    """Página pública da loja"""
-    products = get_all_products()
-    # Filtrar apenas produtos não vendidos
-    available_products = [p for p in products if not p.get('sold', False)]
-    return render_template('shop.html', products=available_products)
-
-@app.route('/loja/<product_id>', methods=['GET'])
-def public_product(product_id):
-    """Página pública de detalhes do produto"""
-    product = db_get_product(product_id)
-    if not product:
-        return redirect(url_for('public_shop'))
-    
-    # Buscar WhatsApp do admin
-    from db import get_site_content as db_get_site_content
-    site_content = db_get_site_content()
-    contact = site_content.get('contact', {})
-    whatsapp = contact.get('whatsapp', '')
-    
-    # Endereço da loja para o Melhor Envio (CEP de origem)
-    # CEP fixo definido pelo usuário: 06436-270
-    shop_zip = "06436270"
-    
-    return render_template('product.html', product=product, whatsapp=whatsapp, shop_zip=shop_zip)
+# ========== ROTAS PÚBLICAS DA LOJA REMOVIDAS ==========
 
 @app.route('/api/shipping/calculate', methods=['POST'])
 def calculate_shipping():
-    """Calcula o frete usando a API do Melhor Envio"""
-    import requests
-    
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Dados inválidos'}), 400
-        
-    zip_from = data.get('zip_from') or "06436270"
-    zip_to = data.get('zip_to')
-    product_id = data.get('product_id')
-    
-    if not zip_from or not zip_to or not product_id:
-        return jsonify({'error': 'CEP de destino e ID do produto são obrigatórios'}), 400
-        
-    product = db_get_product(product_id)
-    if not product:
-        return jsonify({'error': 'Produto não encontrado'}), 404
-        
-    # Dados para o cálculo (Melhor Envio exige dimensões e peso)
-    # Se não houver no produto, usamos valores padrão para um celular
-    def to_float(val, default):
-        try:
-            if not val: return float(default)
-            if isinstance(val, (int, float)): return float(val)
-            # Limpar string de preço/medida (ex: "R$ 1.200,00" -> 1200.00)
-            clean = "".join(c for c in str(val) if c.isdigit() or c in '.,')
-            if not clean: return float(default)
-            if ',' in clean and '.' in clean: # 1.200,00
-                clean = clean.replace('.', '').replace(',', '.')
-            elif ',' in clean: # 1200,00
-                clean = clean.replace(',', '.')
-            return float(clean)
-        except:
-            return float(default)
-
-    weight = to_float(product.get('weight'), 0.5)
-    width = to_float(product.get('width'), 11)
-    height = to_float(product.get('height'), 4)
-    length = to_float(product.get('length'), 16)
-    price = to_float(product.get('price'), 0)
-    
-    # Obter token do Melhor Envio das configurações (admin)
-    site_content = db_get_site_content()
-    contact = site_content.get('contact', {})
-    token = contact.get('melhorenvio_token', '').strip()
+    return jsonify({'error': 'Serviço desativado'}), 404
     
     # Fallback para o token antigo (se não houver um novo configurado)
     if not token:
