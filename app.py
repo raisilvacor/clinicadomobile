@@ -1271,8 +1271,16 @@ def calculate_shipping():
         # Endpoint de cálculo de frete do Melhor Envio
         # Sandbox: https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate
         # Produção: https://melhorenvio.com.br/api/v2/me/shipment/calculate
+        
+        # Usar Sandbox por padrão conforme exemplo fornecido
+        url = 'https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate'
+        
+        # Se for um token de produção (não contém "sandbox"), usa a URL de produção
+        if token and 'sandbox' not in token.lower() and len(token) > 500:
+            url = 'https://melhorenvio.com.br/api/v2/me/shipment/calculate'
+            
         response = requests.post(
-            'https://melhorenvio.com.br/api/v2/me/shipment/calculate',
+            url,
             headers=headers,
             json=payload,
             timeout=10

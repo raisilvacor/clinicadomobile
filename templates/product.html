@@ -228,7 +228,7 @@
                                             ${logo}
                                             <span style="font-weight: bold;">${service.name}</span>
                                             <br>
-                                            <small style="color: #888;">Até ${service.delivery_range.max} dias úteis</small>
+                                            <small style="color: #888;">Até ${service.delivery_time || service.delivery_range.max} dias úteis</small>
                                         </div>
                                         <div style="color: #28a745; font-weight: bold;">
                                             R$ ${parseFloat(service.price).toFixed(2).replace('.', ',')}
