@@ -1230,6 +1230,13 @@ def api_business_status():
             'traceback': traceback.format_exc()
         }), 500
 
+# Rota para o Web App (PWA) / Mobile App
+@app.route('/mobile_app/')
+@app.route('/mobile_app/<path:path>')
+def serve_mobile_app(path='index.html'):
+    """Serve os arquivos do Web App mobile"""
+    return send_from_directory('mobile_app', path)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
