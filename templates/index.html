@@ -1700,6 +1700,80 @@
             text-align: left;
         }
 
+        /* Banner Popup Styles */
+        .banner-popup {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .banner-popup-content {
+            position: relative;
+            background-color: transparent;
+            max-width: 90%;
+            max-height: 90%;
+            text-align: center;
+            animation: slideIn 0.4s ease;
+        }
+
+        .banner-popup-content img {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(255, 140, 0, 0.5);
+            border: 2px solid #ff8c00;
+        }
+
+        .banner-popup-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: #fff;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .banner-popup-close:hover {
+            color: #ff8c00;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .banner-popup-content {
+                max-width: 95%;
+            }
+            .banner-popup-close {
+                top: -35px;
+                right: 5px;
+                font-size: 30px;
+            }
+        }
+
         .faq-item {
             border-bottom: 1px solid rgba(255, 140, 0, 0.1);
             padding: 1.5rem 0;
@@ -2562,9 +2636,43 @@
     </a>
     {% endif %}
 
+    {% if not page %}
+    <!-- Banner Popup -->
+    <div id="bannerPopup" class="banner-popup">
+        <div class="banner-popup-content">
+            <span class="banner-popup-close">&times;</span>
+            <img src="{{ url_for('static', filename='images/banner.png') }}" alt="Promoção">
+        </div>
+    </div>
+    {% endif %}
+
     <div id="google_translate_element" style="position: absolute; top: -9999px; left: -9999px;"></div>
     <script src="{{ url_for('static', filename='js/site.js') }}"></script>
     <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const bannerPopup = document.getElementById('bannerPopup');
+        const closeBtn = document.querySelector('.banner-popup-close');
+
+        if (bannerPopup && closeBtn) {
+            // Mostra o banner ao carregar a página
+            bannerPopup.style.display = 'flex';
+
+            // Fecha ao clicar no X
+            closeBtn.onclick = function() {
+                bannerPopup.style.display = 'none';
+            }
+
+            // Fecha ao clicar fora da imagem
+            window.onclick = function(event) {
+                if (event.target == bannerPopup) {
+                    bannerPopup.style.display = 'none';
+                }
+            }
+        }
+    });
+    </script>
 </body>
 </html>
 
